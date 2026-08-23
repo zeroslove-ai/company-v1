@@ -1,369 +1,394 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-same-game-reset-runtime-separation-v1
-Mode: PREFER REAL STANDALONE DIALOG ACCEPT -> FALLBACK ONE-SHOT CONFIRM SHIM FOR RUNTIME B-H ONLY -> MINIMAL FIX IF PROVEN -> RESET RUNTIME CLOSURE
-Updated: 2026-08-23 23:47 KST
+Status: READY
+Task ID: company-r3-approved-media-image-character-tts-v1
+Mode: REUSE APPROVED MEDIA CONTRACTS -> R3 PRESENTATION-ONLY IMAGE PROJECTION + CHARACTER-AWARE SERVER TTS -> TEST DEPLOY -> BARE-PUBLIC ACCEPTANCE
+Updated: 2026-08-23 23:48 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5386520534`
-Operator review: Issue #68 comment `5386535078`
-Priority override: Issue #68 comment `5386179970`
+Previous terminal: Issue #68 comment `5386591995`
+Operator review: Issue #68 comment `5386633620`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path and do not create a new ops/recovery branch.
 
 ## 0. Accepted baseline — preserve
 
-Accepted executable/source:
+Accepted executable/source before this cut:
 - `fad4d7f5cd637cf77b9613335eeaef2302c03853`
 
-Previous terminal main:
-- `0455878462978d0cef41b85dfe5890fdcad40f05`
-- docs-only terminal descendant; no executable drift.
+Current main before this registration:
+- `ec36fc0820c613872bf433beb6b5a1e34dfd1dff`
+- docs-only descendant recording reset runtime acceptance; no executable drift from the accepted source.
 
-Current TEST artifacts remain unchanged:
+Current TEST artifacts remain:
 - API `game-proxy-company-r3` version `c7b0f0fe-9c20-4cec-8af0-8e27508b44ff`
 - Frontend `gamebuilder-company-r3` version `74f14b2c-fcb0-47ce-b14d-ecb90ece7ff1`
 - bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Freeze unless direct contradictory evidence appears:
+Freeze the already accepted product/runtime behavior:
 - first-day/first-arrival Opening and selected department/rank preservation;
-- exact player agency/navigation;
-- committed player inner thought and character-specific Mind Monitor;
-- Story-owned four choices and accepted choice-tail formatting variants;
-- chronological CSA APPLY/CHANGE/REMOVE and high-parity five-tab draft UI;
+- exact player agency/navigation/action literal authority;
+- committed player inner thought and character-specific first-person Mind Monitor;
+- Story-owned four choices and accepted terminal choice formatting variants;
+- chronological CSA APPLY/CHANGE/REMOVE, one operation = one normal Story turn;
+- high-parity five-tab CSA draft UI and one-pending-operation behavior;
 - ordinary post-CSA turns free of stale `csa_operation`;
-- prior refresh/re-entry/mobile acceptance outside reset;
-- high-parity CSA draft source accepted at the executable SHA above.
+- same-game reset runtime: same game Turn3 -> fresh Turn0 -> refresh/re-entry -> clean Turn1 GREEN;
+- mobile core controls and refresh/re-entry outside deferred native-confirm automation.
 
-Do not touch image/TTS, timeline/history residue, provider/model/config, CSA semantics, Story/Observer semantics, or unrelated presentation in this task.
+Reset native-confirm browser automation remains `DEFERRED_ENVIRONMENT`; do not reopen reset runtime in this task.
 
-## 1. Why this task exists
+Do not change provider/model/temperature/token/timeout, Story/Observer semantics, CSA semantics, gameplay persistence/schema, reset, navigation, choice parsing, or unrelated timeline/history UI.
 
-Two consecutive reset-acceptance attempts were blocked before any reset request was sent because the current in-app browser bridge could not accept a native JavaScript confirm.
+## 1. Owner media requirement
 
-Read-only evidence fixtures:
-- first blocked fixture: `3e1522ab-65ac-40f8-91f2-617a9929d3bc`
-- second blocked fixture: `f356c603-3aa5-4304-832a-984c0229cd75`
+Issue #68 owner authority `5384780073` superseded earlier owner-ready assumptions and requires real image/TTS sidecars before owner readiness.
 
-What those runs proved:
-- visible bare-public Setup/Opening worked;
-- each fresh game reached Turn 3 through ordinary visible play;
-- the visible `초기화` control invokes a real browser-native confirm;
-- on the second run, CDP `Page.enable`, `Network.enable` and a `Page.javascriptDialogOpening` handler were established before the click;
-- the native confirm still failed to surface through the available bridge;
-- no reset network request was observed in either run;
-- source/deploy/migration changes were zero;
-- full tests remained 521/521.
+Current R3 is incomplete:
+- `frontend-r3/index.html` already contains `#media-panel`, `#character-image`, `#audio-player`, `#tts-toggle`, `#tts-replay`, and status shells;
+- `frontend-r3/app.js` still uses generic browser `speechSynthesis` / whole-Story `SpeechSynthesisUtterance`, which is NOT the accepted product TTS path;
+- R3 currently has no dedicated approved-media server plumbing.
 
-Therefore:
-- native-confirm *presentation* is proven to exist;
-- native-confirm automated *acceptance* is still an environment limitation;
-- reset runtime B-H is still completely untested;
-- do not infer a product reset failure from either blocked run;
-- do not repeat the same in-app CDP strategy a third time.
+Existing Company assets/contracts already present on main and must be treated as donor/reference, not blindly copied gameplay authority:
+- `src/engine/media/image-selector.js` — deterministic zero-LLM curated image selector;
+- `src/engine/media/tts-contract.js` — server eligibility gate resolving `character_id -> voice_id`, rejecting narrator/unknown/no-voice;
+- `src/api/media-routes.js` — existing Service Binding TTS transport pattern;
+- `src/frontend/pages/tts.js` — character-dialogue batching/dedup/cancel/replay behavior;
+- `src/frontend/pages/utility-ui.js` — stale-safe image request/render behavior;
+- `content/characters.json` — canonical heroine voice IDs and image storage metadata;
+- `test/content-media-contract.test.mjs` — established media behavior tests.
 
-Historical owner-readiness reset evidence remains OPEN/read-only:
-- `51efe18b-1bc3-435f-a178-bb2d8ee223e4`
+Existing non-R3 API config already proves the intended TTS service identity:
+- binding `TTS_WORKER`
+- service `fancy-dust-7f8c`
+- current legacy URL var `https://fancy-dust-7f8c.zeroslove.workers.dev/`
 
-Preserved owner manual game remains immutable:
-- `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`
+R3 `wrangler.r3.api.jsonc` does not yet bind that service.
 
-## 2. Mandatory evidence strategy — split dialog UX from reset runtime
+Goal: connect the smallest presentation-only R3 media path using the approved Company metadata/contracts. Do not create another media provider, another LLM call, or a second gameplay authority.
 
-This task explicitly separates:
+## 2. Mandatory pre-edit inventory
 
-A. native-confirm UX/presentation evidence; and
-B. post-confirmation reset runtime B-H.
+Before source changes, read and record the exact current boundaries.
 
-A is already proven to the extent available in automation: the visible reset control opens a real native confirm. Real automated acceptance remains unproven because of the browser bridge.
+### A. Image data/source inventory
 
-The goal now is to reach B-H without allowing that environment limitation to consume another lease.
+Read-only only:
+1. inspect current TEST `image_library` availability/schema/access through the existing service-role/server path where available;
+2. inspect active curated rows for registered Company heroines (`heroine1` ... `heroine5`) by character and pool, without dumping secrets or bulk catalog contents;
+3. verify whether stored `image_url` values are directly renderable and/or whether canonical `storage_bucket`, `storage_prefix`, `primary_image_path`, `adult_image_prefix` in `content/characters.json` already provide the established general-image fallback;
+4. identify which source is the current approved source of truth for general and sex images.
 
-### 2.1 Preferred path — standalone real-dialog browser
+No DB writes, no migration, no new media table in this cut.
 
-Before using any fallback, attempt a standalone Playwright/Chromium browser process outside the in-app browser bridge if the local environment supports it.
+If `image_library` is absent but canonical primary image metadata points to an already-existing readable object, a bounded general-image fallback to that canonical primary image is allowed. Do not manufacture new media records.
 
-Preferred mechanism:
-- launch/connect a standalone Chromium instance from a temporary automation script outside the repository;
-- open only the bare-public frontend;
-- attach `page.once('dialog', async dialog => { ... await dialog.accept(); })` before clicking reset;
-- observe the exact reset confirmation text/type;
-- click the real visible `초기화` button exactly once;
-- accept exactly one real dialog;
-- continue B-H trace.
+If neither curated rows nor canonical readable image objects exist, STOP `BLOCKED_MEDIA_DATA` with evidence. Do not create fake placeholders or a new media persistence system.
 
-No repository file may be added for this browser driver.
+### B. R3 committed projection inventory
 
-If this real-dialog path works, no confirm shim is needed and full reset acceptance may include native-dialog acceptance GREEN.
+Determine exactly which already-committed facts can drive presentation without new inference/model calls:
+- current canonical scene location;
+- present NPC IDs;
+- focal actor / relevant current character;
+- latest committed Story text and current turn/revision identity;
+- any already-committed physical/clothing/sexual evidence available in the R3 context;
+- deterministic speaker/dialogue segmentation already available from R3 presentation parsing.
 
-### 2.2 Bounded fallback — one-shot confirm return shim for runtime evidence only
+Do not add a Story/Observer field solely to serve media unless the existing committed projection genuinely lacks a structurally necessary value and the change is demonstrably presentation-only. Prefer deriving media from current committed context plus deterministic parser output.
 
-If a standalone browser executable/control path is unavailable, or it fails before POST `/reset` for the same environment-only native-dialog reason, do **not** report BLOCKED_ENVIRONMENT a third time.
+### C. TTS transport inventory
 
-For B-H runtime evidence only, a temporary page-level one-shot confirm shim is now explicitly allowed under all of these constraints:
+Verify before edit/deploy:
+- canonical `voice_id` exists for each registered heroine used in acceptance;
+- `fancy-dust-7f8c` service is still an existing TEST-accessible Worker/service binding target;
+- the existing TTS Worker request/response contract is still `{ voice_id, text, direction } -> { url }` or document the exact current compatible shape;
+- no additional secret is required beyond the Service Binding.
 
-- it exists only in the fresh disposable automation page/session;
-- it is installed immediately before the single reset click;
-- save the original `globalThis.confirm` first;
-- intercept only the exact reset confirmation call from the real visible reset handler;
-- require the expected Korean reset-confirm message;
-- return `true` exactly once;
-- restore the original `confirm` immediately after that first intercepted call, including on failure if possible;
-- record invocation count and intercepted message;
-- then click the same real visible `초기화` button exactly once;
-- the remainder must execute the actual deployed `frontend-r3/app.js::resetGame()` path unchanged.
+Do not print, rotate, recreate, or migrate secrets.
 
-This fallback may **not** be used to claim that native-confirm automated acceptance is GREEN. If B-H passes using it, report:
-- `RESET_RUNTIME_GREEN`
-- `NATIVE_DIALOG_AUTOMATION: DEFERRED_ENVIRONMENT`
+## 3. Image projection contract
 
-The fallback is not a source/product fix and must never appear in git, Worker deployment, browser persistent storage, or product runtime.
+Image is presentation only. It must never become gameplay authority.
 
-Still forbidden:
-- direct API reset as a substitute for the visible reset button;
-- calling store/RPC directly to manufacture acceptance;
-- storage/localStorage/session preseed;
-- `?api=` override;
-- repository test/harness files for confirm bypass;
-- product-source changes merely to help automation.
+### Character selection
 
-## 3. Authentic reset runtime path to trace after confirmation branch
+For each committed current turn/opening:
+1. only registered Company heroine IDs are eligible;
+2. eligible character must be present in the committed current scene;
+3. prefer the committed focal heroine when eligible;
+4. otherwise use a deterministic present registered heroine only if the selection is unambiguous/relevant under existing committed projection;
+5. never show a remote/not-present character merely because that character has an image.
 
-Current source contract in `frontend-r3/app.js` is:
+### Pool/tags
 
-`visible reset button -> resetGame() -> confirm branch -> client.reset(game_id, expected_state_revision) -> consumeR3Sse -> Worker resetResponse() -> store.resetGame() -> company_r3_reset_game RPC -> existing Opening stream -> terminal context -> renderContext()/busy release`
+- Default to `general` unless existing committed evidence explicitly supports another approved pool.
+- Do NOT treat raw player intent/attempt alone as proof that a sexual act occurred.
+- A `sex` pool request is permitted only when already-committed scene/physical/sexual evidence supports a sexual scene under the existing product contract.
+- Reuse the existing image tag allowlist/selector semantics where compatible; do not add an LLM image classifier.
+- Unknown/unproven tags are discarded, not guessed.
 
-After the real dialog accept OR bounded one-shot shim allows execution past the confirm branch, trace the first actual divergence in this order:
+### Server selection
 
-B. network reset request
-- exactly one `POST /api/r3/games/:id/reset`;
-- same fresh game_id;
-- intended expected_state_revision/capability semantics;
-- HTTP/SSE lifecycle and terminal/error result.
+Use a bounded deterministic server path:
+- query only the requested eligible character + pool;
+- active curated candidates only;
+- bounded candidate count (existing donor uses at most 8 ordered by curation rank);
+- deterministic `selectImage`-equivalent scoring;
+- return one approved image or `null`;
+- no Story prompt contamination and zero additional model calls.
 
-C. Worker route
-- `resetResponse()` reached once;
-- no wrong route/method/capability/revision rejection unless that is the proven defect.
+Prefer transplanting the small pure media contract into the R3 namespace or otherwise isolating it from legacy gameplay runtime. Do not make R3 depend on the old v1 turn engine as an active gameplay authority merely to reuse media helpers.
 
-D. store layer
-- canonical `store.resetGame()` only;
-- intended RPC invoked exactly once.
+### Frontend behavior
 
-E. TEST RPC/durable mutation
-- existing `company_r3_reset_game` function/signature/grants;
-- same game/profile/capability contract preserved;
-- old turn/action/job/current chronology cleared according to current reset contract;
-- old active CSA cleared if the canonical reset contract specifies it;
-- no parallel writer.
+Use the existing R3 shells:
+- `#media-panel`
+- `#character-image`
+- `#image-status`
 
-F. existing Opening restart
-- existing Opening pipeline invoked once after reset;
-- no new fallback/opening writer.
+Require:
+- successful current request renders one approved URL with appropriate alt/status;
+- no eligible image => panel is hidden/empty without erroring the game;
+- stale prior-turn/revision success or failure cannot overwrite the latest committed turn image;
+- same committed identity is deduplicated;
+- image failure is fail-open and does not block input/choices/Story/commit;
+- refresh/re-entry reconstructs media from committed server context, not client gameplay state.
 
-G. committed fresh Turn0/readback
-- canonical new Opening Turn0 exists;
-- four usable choices;
-- player inner thought and Mind Monitor;
-- old chronology is not current authority.
+No autoplay slideshow, no image generation, no LLM ranking.
 
-H. frontend reconciliation
-- busy state releases;
-- new Turn0 renders;
-- old Story/choices/current-turn UI does not remain authoritative;
-- reset failure, if any, releases busy and exposes a bounded error.
+## 4. Character-aware server TTS contract
 
-Do not infer root cause from the historical hang. Capture the first evidence-backed runtime divergence.
+The generic whole-Story browser TTS in `frontend-r3/app.js` must be removed from the product path.
 
-## 4. Product correction policy
+### Eligibility
 
-If B-H all pass on the current deployed lineage:
-- make zero source changes;
-- make zero deployments;
-- classify the historical reset runtime defect as currently non-reproduced / likely prior deployment-state drift or intermittent evidence;
-- finish same-game fresh Turn0 -> refresh/re-entry -> clean Turn1;
-- if one-shot shim was needed, keep native-dialog automation as deferred environment evidence only.
+Only character dialogue is eligible:
+- registered known Company heroine speaker;
+- current speaker must be present in committed scene;
+- exact non-empty dialogue text;
+- canonical character must have a non-empty `voice_id`.
 
-If a deterministic product/runtime defect is proven after the confirm branch:
-- fix only the first proven boundary;
-- preserve the same reset authority/path;
-- no second endpoint, fallback reset writer, or fake client-only reset;
-- run focused tests for touched components;
-- run full npm suite when the change crosses a functional cluster or focused tests expose wider coupling;
-- deploy only actually changed TEST artifact(s);
-- rerun one fresh disposable acceptance from the beginning using the same dialog strategy.
+Always reject/skip:
+- narrator;
+- player narration/dialogue as a character voice;
+- player inner thought;
+- Mind Monitor/private thought;
+- unknown/general generated speaker without a canonical voice ID;
+- remote/not-present character.
 
-Allowed correction classes only when evidence requires them:
-- frontend reset busy/reconciliation/error lifecycle;
-- existing reset request/response plumbing;
-- existing Worker reset route;
-- existing store/RPC plumbing;
-- exact TEST artifact deployment correction;
-- only if exact TEST RPC evidence proves the deployed function itself is defective, one forward-only additive function migration.
+Server remains the final voice eligibility authority even if the client sends a character ID.
 
-DB rules:
-- never edit or blindly reapply `20260823000100_company_r3_same_game_reset`;
-- no schema redesign/new reset namespace/parallel writer;
-- if a DB correction appears necessary, prove the exact function defect first.
+### Dialogue extraction
 
-Forbidden:
-- provider retry/regeneration;
-- provider/model/temperature/token/timeout/config changes;
-- Story/Observer/CSA redesign;
-- image/TTS/timeline work;
-- Production;
-- owner/preserved/historical evidence-game mutation.
+Reuse/transplant existing deterministic speaker parsing/presentation structures. No LLM call is allowed for TTS segmentation.
 
-## 5. Fresh bare-public acceptance
+Preserve exact spoken dialogue text except bounded TTS pronunciation normalization already established by the donor contract. Do not rewrite meaning or merge different speakers.
+
+If several present NPCs speak:
+- prefer focal/current selected relevant canonical character when that character has dialogue;
+- otherwise deterministically choose the primary present speaker using established donor behavior;
+- never synthesize all Story narration as one voice.
+
+### Transport
+
+Add the R3 server TTS route under the existing R3 API namespace and use Service Binding:
+- `TTS_WORKER` -> existing service `fancy-dust-7f8c`;
+- add only the R3 Worker service binding/config required to match the already-established Company contract;
+- no browser direct call to the external TTS Worker;
+- no new API secret;
+- upstream returns a direct audio URL consumed by persistent `#audio-player`.
+
+If the Service Binding cannot be configured or the existing service contract is unavailable, STOP `BLOCKED_TTS_ENVIRONMENT`; do NOT fall back to browser `speechSynthesis`.
+
+### Toggle/replay lifecycle
+
+R3 TTS is default OFF for a fresh browser/session unless the existing R3 product preference explicitly says otherwise. Preserve the critical rule:
+- TTS OFF => zero server TTS API calls.
+
+Also require:
+- never call TTS during Story streaming before commit;
+- only committed turn/revision dialogue can enqueue;
+- dedupe same committed identity + speaker + exact text;
+- new turn cancels/drops stale prior-turn queued/active playback as donor contract does;
+- same-turn feedback revision supersedes old queued revision audio;
+- replay may reuse cached returned audio URL without another synthesis request;
+- TTS failure is presentation-only: status error + controls recover, gameplay remains usable;
+- turning TTS off stops playback and prevents late responses from starting audio.
+
+No `speechSynthesis` or `SpeechSynthesisUtterance` product fallback may remain after this cut.
+
+## 5. R3 API/security boundary
+
+Add only read-only/presentation media endpoints required by the R3 frontend, following the existing R3 route/capability conventions.
+
+Requirements:
+- media endpoints do not create turns/jobs/actions/revisions;
+- no game state mutation;
+- validate the requested game through the existing R3 game/capability boundary rather than exposing an unauthenticated arbitrary voice/image proxy;
+- character requests must be grounded in registered canonical content and current committed presence where the endpoint has enough context to enforce it;
+- errors are bounded JSON errors and never corrupt SSE/gameplay state.
+
+Do not add DB schema or RPCs for media in this cut.
+
+## 6. Deterministic regressions
+
+Add focused R3 media tests before live deployment. At minimum prove:
+
+### Image
+1. only registered present heroine can be selected;
+2. focal present heroine wins deterministic selection;
+3. remote/not-present heroine cannot be rendered;
+4. general image selection uses approved active/canonical media only;
+5. sexual pool is not selected from player intent alone;
+6. stale older image success/failure cannot overwrite current turn/revision;
+7. no candidate/image error returns fail-open presentation state and does not alter gameplay context;
+8. media request does not call Story/Observer/provider or reserve a turn.
+
+### TTS
+9. narrator/player/inner-thought/Mind-Monitor are ineligible;
+10. unknown or no-voice speaker is rejected;
+11. registered present heroine maps to exact canonical `voice_id`;
+12. server route calls Service Binding with exact character voice + dialogue text + bounded direction;
+13. TTS OFF makes zero API calls;
+14. streaming delta alone makes zero TTS calls;
+15. committed dialogue generates at most one synthesis for the dedup key;
+16. replay reuses cached URL where available;
+17. new turn and feedback revision fence stale audio;
+18. TTS failure/late response cannot block gameplay or start after OFF;
+19. source scan confirms no R3 product use of `speechSynthesis` / `SpeechSynthesisUtterance` remains.
+
+### Frozen regressions
+20. existing agency/navigation/choice-tail/CSA/draft/reset contracts remain green.
+
+Run:
+- focused R3 media/frontend/server tests;
+- full `npm.cmd test`;
+- changed JS/MJS `node --check`;
+- `git diff --check`.
+
+## 7. TEST deployment
+
+Deploy exact changed source to TEST only.
+
+Expected affected artifacts if implementation follows the proven boundaries:
+- API `game-proxy-company-r3` — media endpoints + TTS Service Binding + deterministic image/TTS presentation plumbing;
+- Frontend `gamebuilder-company-r3` — image request/render + character dialogue TTS controller replacing browser TTS.
+
+If only one artifact actually changes, deploy only that one.
+
+For R3 API config, preserve all existing vars/bindings/secrets and add only the already-established TTS Service Binding/URL configuration required by the current service contract.
+
+No Production.
+No secret printing/rotation.
+No migration.
+
+Record exact source SHA and exact Worker version IDs.
+
+## 8. Mandatory bare-public acceptance
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Use a new disposable TEST game. The two prior blocked fixtures are read-only evidence.
+No `?api=` override, no storage preseed, no direct-API gameplay substitute.
+Fresh disposable TEST games only.
 
-### Gate A — pre-reset chronology
+### Gate A — image projection
 
-Through visible Setup -> Opening:
-- reach canonical Turn0;
-- commit at least 3 ordinary visible turns;
-- record game_id/profile/current turn/latest Story/choices;
-- obtain independent server readback sufficient to distinguish old/new chronology.
-
-Optional CSA activation is allowed only if it is quick/stable and useful to prove reset clearing; it is not required.
-
-### Gate B — execute reset exactly once
-
-1. First try the standalone real-dialog path from §2.1.
-2. If unavailable for the same environment reason, use the bounded one-shot shim from §2.2.
-3. Click the real visible reset control exactly once.
-4. Require exactly one reset request after the confirmation branch.
-5. Trace B-H.
-
-Do not retry a failed product reset in the same fixture.
-
-### Gate C — fresh same-game Turn0
+Create visible Setup -> Opening and reach a scene containing at least one registered heroine with approved media.
 
 Require:
-- same game_id remains in use;
-- canonical fresh Opening/Turn0 visible;
-- old chronology/current Story/choices absent as current authority;
-- reset-cleared state agrees with independent readback;
-- four usable choices, natural player inner thought and Mind Monitor;
-- no permanent busy/unresponsive screen;
-- no console/page/network blocker.
+- current/present/focal heroine identity is visible/readable from committed context;
+- image request uses that exact eligible character;
+- returned image is demonstrably from approved canonical/active media for that character;
+- image panel renders without blocking Story/choices/input;
+- a subsequent committed turn/location/focal change cannot be overwritten by a late stale previous image request;
+- if the next scene has no eligible image character, stale old image does not remain authoritative.
 
-### Gate D — refresh/re-entry
+If no approved image can be obtained despite verified data/config, stop with exact first boundary. Do not use a web placeholder or generated image.
 
-Refresh/re-enter the same bare-public game URL:
-- reconstruct the same fresh Turn0 from server state;
-- stale pre-reset chronology must not resurrect.
+### Gate B — TTS OFF
 
-### Gate E — first post-reset Turn1
+Before enabling TTS:
+- commit at least one ordinary turn containing registered NPC dialogue;
+- prove zero R3 TTS synthesis request occurs while toggle is OFF;
+- narrator/player/inner-thought are never sent.
 
-Use one visible choice OR clear Korean free input:
-- exactly one ordinary `/turn` request/SSE/commit;
-- exact literal preserved;
-- committed turn becomes Turn1;
-- no stale `csa_operation`, reset marker, old action identity or old chronology leaks.
+### Gate C — character-aware server TTS
 
-### Gate F — mobile non-destructive spot-check
+Enable TTS through the visible R3 control, then commit or replay a committed turn with registered present NPC dialogue.
 
-At approximately 390x844 after desktop reset proof:
-- reset control remains reachable;
-- no reset/busy residue blocks controls;
-- current choices/direct input reachable.
+Require:
+- frontend sends only eligible character dialogue with canonical `character_id`;
+- server resolves that character to the canonical voice ID under deterministic tests/diagnostics;
+- request goes through R3 API -> `TTS_WORKER` Service Binding, not browser speech synthesis and not direct browser-to-TTS-worker;
+- successful upstream result provides a playable audio URL to `#audio-player`;
+- UI remains responsive while audio is synthesized/played;
+- no duplicate Story/turn/TTS synthesis for the same committed batch.
 
-Do not perform a second destructive reset solely for mobile.
+Live automation does not need to judge subjective voice acting quality by microphone. It must prove the character-specific server routing/mapping and playable returned audio transport. If audio is actually audible/verifiable through the browser harness, record it as additional evidence only.
 
-## 6. Existing source confidence and tests
+### Gate D — replay / transition / refresh
 
-Current source-level reset confidence before this lease:
-- `frontend-r3/app.js::resetGame()` uses one native confirm, one `client.reset`, SSE consumption, error readback, and finally releases busy;
-- existing local reset contract tests have passed repeatedly;
-- previous full suite: 521/521.
+Require:
+- replay of already cached latest batch does not create another synthesis request when donor cache contract applies;
+- next committed turn does not allow stale previous audio/image to become current authority;
+- refresh/re-entry reconstructs current image eligibility from server context;
+- TTS remains a UI preference/presentation sidecar and does not replay old speech automatically unless current product preference explicitly calls for it.
 
-If no source change:
-- no deployment;
-- existing tests may be rerun as confidence only;
-- live B-H reset evidence is decisive.
+### Gate E — failure-safe spot check
 
-If source changes after a proven runtime defect:
-- focused R3 reset/store/API/frontend tests;
-- full `npm.cmd test` as appropriate;
-- changed JS/MJS `node --check`;
-- `git diff --check`;
-- deploy exact affected TEST artifact(s) only and record versions.
+Do not sabotage the live provider. Use deterministic tests plus normal UI inspection to prove:
+- image/TTS status areas can show bounded failure;
+- input, four choices, CSA app, reset, history remain usable after media failure paths;
+- no turn/job/state mutation is caused by media calls.
 
-No Production.
+### Gate F — mobile
 
-## 7. Acceptance disposition
+At approximately 390x844:
+- image panel does not cover Story/actions;
+- image uses contained responsive sizing;
+- TTS toggle/replay/audio controls remain reachable;
+- four choices and direct input remain reachable;
+- no blocking overlay/overflow regression.
 
-### Full reset GREEN
+## 9. GREEN criteria
 
-Only when a real native dialog was accepted through standalone browser automation and B-H + Turn0 + refresh + Turn1 all pass.
+GREEN only if:
+- approved image source/data boundary is evidenced;
+- R3 renders the correct eligible current character image and safely clears/fences stale media;
+- generic browser whole-Story TTS is removed from the R3 product path;
+- TTS OFF produces zero synthesis calls;
+- eligible character dialogue uses canonical character voice through R3 server + `TTS_WORKER` Service Binding;
+- narrator/player/private thought are not synthesized as character dialogue;
+- media is presentation-only/fail-open and cannot mutate/block gameplay;
+- focused/full tests pass;
+- exact changed TEST artifacts are deployed and live accepted;
+- no Production/schema/provider/model/owner-game/forbidden work occurs.
 
-### Runtime GREEN with dialog automation deferred
+Do NOT claim owner-ready after this cut.
 
-Allowed when:
-- native confirm presentation was already independently proven in the two prior attempts;
-- standalone real-dialog control is unavailable due environment;
-- bounded one-shot shim is used only to cross the confirm branch;
-- authentic deployed B-H path passes;
-- same-game fresh Turn0, refresh/re-entry and clean Turn1 pass.
+## 10. After this cut
 
-Report exactly:
-- `RESET_RUNTIME_GREEN`
-- `NATIVE_DIALOG_AUTOMATION: DEFERRED_ENVIRONMENT`
+Only after media/TTS is GREEN, resume owner-remediation order:
+1. timeline/current-scene presentation residue;
+2. deferred native-confirm live automation limitation if still materially relevant;
+3. final holistic owner-style long-play acceptance across all repaired surfaces.
 
-This disposition is sufficient to move the owner-remediation sequence past the reset runtime blocker. The native-dialog automation limitation remains a deferred UX/manual-acceptance item and must not be silently called GREEN.
-
-### Product failure
-
-If B-H exposes a deterministic runtime defect, STOP at the first boundary before speculative repair unless the task explicitly permits the minimal correction above. After a correction, one fresh rerun is allowed.
-
-## 8. After reset runtime closure
-
-Once reset runtime is GREEN (full or runtime-green/dialog-deferred), resume:
-1. approved-media image projection + character-aware server TTS;
-2. timeline/current-scene presentation residue;
-3. deferred native-dialog/CSA dirty-close confirmation UX if still materially relevant;
-4. final holistic owner-style long-play acceptance.
-
-Do NOT claim owner-ready from this task alone.
-
-## 9. Terminal report
+## 11. Terminal report
 
 Post one terminal report to Issue #68 with:
-- status `WAITING_REVIEW`, `FAILED_PRODUCT`, or `BLOCKED_ENVIRONMENT` only if even B-H cannot be exercised for a new non-dialog environmental reason;
-- source/final main SHA and final CURRENT_TASK blob;
-- whether standalone real-dialog or bounded one-shot shim path was used;
-- exact shim invocation/message/restoration evidence if fallback used;
-- fresh fixture id;
-- reset request/SSE facts;
-- B-H first divergence or all-pass evidence;
-- before-reset vs after-reset readback;
-- refresh/re-entry result;
-- post-reset Turn1 result;
-- source/test/deployment changes, if any;
-- exact disposition: FULL_RESET_GREEN, RESET_RUNTIME_GREEN_WITH_DIALOG_DEFERRED, FAILED_PRODUCT, or BLOCKED_ENVIRONMENT;
+- status `WAITING_REVIEW`, `FAILED_PRODUCT`, `BLOCKED_MEDIA_DATA`, or `BLOCKED_TTS_ENVIRONMENT`;
+- source/final main SHA and CURRENT_TASK blob;
+- pre-edit image-library/storage inventory result;
+- exact image selection/projection implementation and approved source proof;
+- exact TTS eligibility/route/Service Binding implementation;
+- proof generic browser speech synthesis is removed/not used;
+- focused/full tests;
+- TEST API/frontend version IDs and binding verification;
+- fresh fixture IDs;
+- Gate A-F evidence;
+- media failure/fail-open evidence;
 - remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not generate the next task.
-
-## 10. Terminal evidence — RESET_RUNTIME_GREEN
-
-- Disposition: `RESET_RUNTIME_GREEN`; `NATIVE_DIALOG_AUTOMATION: DEFERRED_ENVIRONMENT`.
-- Starting main: `d6d91037b794a6f49071131629129cdbfa440eaf`.
-- CURRENT_TASK blob before terminal update: `efbaf9cfa3cfc297db938afc26b62a06b15c7c04`.
-- Standalone Playwright package/control path was unavailable in the local environment after the prior in-app CDP failure, so the task-authorized ephemeral fallback was used. The fallback was installed in the fresh page immediately before the visible reset click through a main-world CDP evaluation, saved the original `window.confirm`, required the exact Korean reset message, returned `true` once, and restored the original immediately. Invocation count was 1; observed message was `현재 게임을 초기화하고 Opening부터 다시 시작할까요?`; restored was true. This is not native-dialog acceptance evidence.
-- Fresh disposable fixture: `30e3c955-26b4-4ea7-9d42-3ceceb30c569`; the two prior blocked fixtures and all preserved games were untouched.
-- Gate A: visible Setup/Opening completed, fresh Turn 0 rendered with four choices/free input/Mind Monitor, and three ordinary visible turns committed through Turn 3. Profile remained `R3 Runtime QA 김도윤`, brand_strategy / intern / 29 / 178 / 72 / polite.
-- Gate B: the real visible `초기화` button was clicked exactly once after shim installation. Main-world performance resource evidence recorded exactly one `POST` target resource at `/api/r3/games/30e3c955-26b4-4ea7-9d42-3ceceb30c569/reset`; no second reset/reset path was used.
-- B–H: no divergence was observed. The deployed path returned a non-busy fresh Turn 0 with the same game ID, four choices, player inner thought, Mind Monitor, and no old Turn 3 marker. The result is consistent with the existing `resetGame -> client.reset -> resetResponse -> store.resetGame -> company_r3_reset_game -> Opening -> reconciliation` authority path; no source/runtime correction was justified.
-- Gate C: same game URL remained in use; reset UI showed Turn 0, four choices, free input, Mind Monitor, and no permanent busy state. The pre-reset current Story marker was absent after reset.
-- Gate D: refresh/re-entry preserved the same URL/game ID and reconstructed fresh Turn 0 with four choices, no old Turn 3 marker, and no busy state.
-- Gate E: one clear Korean free input, `새로운 시작 후 오늘 업무를 확인한다.`, committed a clean visible `Turn 1`; the literal remained visible in the resulting Story/context and the UI was not busy.
-- Gate F: at 390x844, Turn 1, reset control, direct input, and four choices were reachable; no busy residue blocked controls. Viewport was restored without another reset.
-- Source files changed: none. TEST deployment: none. Migration apply: none. Production/provider/model/config: untouched. Preserved evidence: untouched.
-- Read-only confidence: `npm.cmd test` 521/521 passed; `git diff --check` passed. No JS/MJS source changed, so no changed-source syntax check was required.
-- Native dialog automation remains an environment-only deferred limitation; this runtime-green result must not be reported as native-confirm automation GREEN. Stop here; do not generate the next task.
