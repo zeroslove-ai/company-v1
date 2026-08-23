@@ -1,295 +1,360 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-story-choice-tail-loss-boundary-v1
-Mode: TRACE TURN-7 CHOICE LOSS -> BOUNDED STRUCTURAL FIX ONLY IF PROVEN -> RESUME NARRATIVE ACCEPTANCE
-Updated: 2026-08-23 22:52 KST
+Status: READY
+Task ID: company-r3-high-parity-csa-app-draft-ui-v1
+Mode: PORT DONOR CSA PRESENTATION/DRAFT UX -> PRESERVE R3 SINGLE-OP CHRONOLOGY -> DEPLOY FRONTEND TEST -> LIVE CSA UX ACCEPTANCE
+Updated: 2026-08-23 21:53 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5385982766`
-Operator review: Issue #68 comment `5386002999`
+Previous terminal: Issue #68 comment `5386083733`
+Operator review: Issue #68 comment `5386104461`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path and do not create a new ops/recovery branch.
 
-## 0. Frozen accepted baseline — preserve
+## 0. Accepted baseline — preserve
 
-Accepted executable/source before this task:
-- `4d84b12b2733f9510f5a4b92bef22041976cca5d`
+Accepted executable/source baseline after the previous GREEN cut:
+- `2a3611f5de3906d7c797259173fa0d5ed19977d0`
 
-Current accepted TEST artifacts:
-- API `game-proxy-company-r3` version `279cbde2-fe76-4816-81f0-8f3fc27a9f1b`
+Current main before this registration is a source/test/docs descendant with no unreviewed executable drift:
+- `ad0ca902c9c7d133e42329d6db2c7db5f56ac9d2`
+
+Current TEST artifacts:
+- API `game-proxy-company-r3` version `c7b0f0fe-9c20-4cec-8af0-8e27508b44ff`
 - Frontend `gamebuilder-company-r3` version `e139f60f-00b6-49ed-891b-070dd2143f57`
 - bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Freeze as GREEN unless direct contradictory evidence appears:
-- browser automation recovery on a clean session;
-- high/executive first-arrival Opening, selected rank/department preservation, optional/private unfamiliar CSA app;
-- low-rank Opening;
-- player-inner-thought committed pipeline and visible panel;
+Freeze as GREEN unless direct contradictory product evidence appears:
+- first-day / first-arrival Opening for low and high/executive ranks while preserving selected department/rank;
+- private `상식개변` app is unfamiliar/private/optional and never forced by Opening;
+- committed player-inner-thought pipeline and visible player panel;
 - character-specific first-person NPC Mind Monitor direction;
-- exact choice click literal round-trip;
-- canonical navigation/agency/choice dispatch;
-- CSA chronological APPLY/CHANGE/REMOVE and post-CSA continuation;
-- mid/end refresh/re-entry reconstruction from the latest acceptance campaign;
-- ~390x844 mobile reachability/no-overflow/no-blocking-overlay;
-- already accepted choice-tail forms: plain numbering, symmetric whole-line `**...**` / `__...__`, and symmetric number-token-only emphasis such as `**1.** 행동`.
+- exact player agency/navigation and choice-button dispatch;
+- supported Story choice-tail formats including blank-line-separated terminal 1–4 choices;
+- chronological CSA APPLY/CHANGE/REMOVE, each as exactly one normal Story turn;
+- ordinary post-CSA continuation with no stale `csa_operation`;
+- refresh/re-entry reconstruction and ~390x844 mobile reachability from prior acceptance.
 
-Do not rerun high-rank Opening, browser recovery or mobile merely to accumulate more green evidence.
+Do not reopen Story/Observer/runtime choice semantics in this task. Do not change provider/model/config, R3 server turn kernel, content catalog semantics, migrations, reset behavior, image/TTS or timeline/history presentation.
 
-## 1. Decisive product failure to trace
+## 1. Product gap and donor authority
 
-Preserved disposable TEST campaign:
-- game `2241e4e8-559f-42b4-ae7d-962c93d006d3`
+Current R3 gap:
+- `frontend-r3/csa.js` uses the correct R3 chronological operation path, but presents a crude immediate list of active rules and all inactive presets.
+- edits are effectively coupled to the immediate APPLY/CHANGE/REMOVE control rather than a high-parity local draft experience;
+- most of the existing modal shell in `frontend-r3/index.html` is unused: Home / 플레이어 정보 / NPC 정보 / 상식개변 / 매뉴얼 tabs and `#csa-app-draft-bar` already exist.
 
-The campaign reached eight committed ordinary turns with no retry/regeneration.
+Approved presentation/interaction donors are read-only references:
+- `src/frontend/pages/csa-app.js`
+- `src/frontend/pages/csa-app-state.js`
+- `src/frontend/pages/csa-product-ui.js`
 
-Turn 7 exact literal:
-- `업무 이야기를 잠시 멈추고 윤민아 대리에게 취미나 주말에 즐기는 일을 물어보며 편하게 대화합니다.`
+The donor demonstrates:
+- five-tab app navigation;
+- local draft editing;
+- dirty-count bar;
+- undo/revert;
+- unsaved-close protection;
+- richer player/NPC/status presentation;
+- mobile modal lifecycle and focus/scroll behavior.
 
-Observed live:
-- Turn 7 committed successfully;
-- Story body visibly contained four natural numbered next-action choices;
-- after commit the current actionable choice region exposed zero buttons; direct input remained available;
-- Turn 8 ordinary refusal/self-state continuation committed and four buttons returned, but that does not clear Turn 7;
-- no blocking console/page/network error;
-- refresh/re-entry and mobile later worked.
+The donor is NOT runtime authority. Do not revive any legacy API or mutation semantics from it.
 
-Current source fact at `4d84b12...`:
-- `runtime-r3/domain/observer-normalizer.js::projectChoices()` already treats structurally valid Story choices as canonical and keeps them even when Observer choices mismatch, emitting only `choices_observer_mismatch`;
-- therefore an Observer mismatch alone cannot explain zero choices if `storyChoiceTail()` succeeds;
-- current `storyChoiceTail()` looks only for the final four physical lines after trimming trailing blank lines and delegates each to the bounded `choiceLine()` structural parser;
-- frontend `choiceTail()` must remain structurally symmetric with the server.
+R3 remains authoritative for:
+- bounded 9-rule preset catalog only;
+- current R3 context/state as server truth;
+- one structured `csa_operation` per normal `/turn` request;
+- one APPLY, CHANGE or REMOVE = exactly one streamed Story/Observer/commit turn;
+- no zero-turn CSA state writer from the visible app.
 
-Do not guess the missing format from the phrase “four natural numbered choices.” Prove the exact stored bytes/line layout first.
+## 2. Required high-parity R3 app UX
 
-## 2. Mandatory read-only loss-boundary trace before editing
+### A. Modal lifecycle
 
-Before changing source, inspect the preserved Turn 7 read-only. Do not revise/retry/reset/delete/replay the fixture.
+Use the existing R3 modal shell.
 
-Recover as much as the canonical TEST read surfaces permit, using read-only context/history/turn data and browser evidence; a read-only TEST DB query is permitted only if required to recover the already-committed raw turn and must not mutate anything.
+Require:
+- open from `📱 상식개변 앱`;
+- functional Home / 플레이어 정보 / NPC 정보 / 상식개변 / 매뉴얼 tabs;
+- close button, Escape and backdrop use the same close guard;
+- while open, background/body scrolling is appropriately contained;
+- on clean close, focus returns to the opener when practical;
+- applying a real operation must close/yield the overlay before the normal Story turn starts so the modal cannot intercept gameplay controls.
 
-Capture:
-1. exact raw committed Story text for Turn 7, especially the final 12 physical lines with visible escaped characters/blank lines;
-2. exact `observer_raw.choices` if persisted/readable;
-3. exact `observer_applied.choices` and warnings;
-4. exact committed turn `choices` array;
-5. current context/readback choices for that turn/latest projection if available;
-6. frontend presentation `choiceTail()` result or equivalent deterministic reproduction;
-7. rendered DOM button count already observed as 0.
+Do not create a second modal architecture if the existing shell can be used.
 
-Classify the FIRST loss boundary exactly:
-- A: raw Story does not actually contain an unambiguous terminal four-choice block;
-- B: raw Story contains an unambiguous four-choice block but current server `storyChoiceTail()/choiceLine()` rejects its exact bounded layout;
-- C: server parser returns four choices but `projectChoices()/normalizeObserver()` loses them;
-- D: normalized/applied has four but persistence loses them;
-- E: persistence/readback has four but view/frontend parser loses them;
-- F: frontend has four but DOM/render lifecycle loses them;
-- G: evidence insufficient to classify safely.
+### B. Five tabs, R3 data only
 
-Post the exact classification and evidence in the terminal report.
+Home:
+- show only meaningful values that actually exist in current R3 context/catalog, such as current game/turn/time and active-rule count;
+- provide a clear route to the CSA-management tab;
+- do not fabricate level/EXP/unlock values if R3 does not expose them.
 
-If classification is G, STOP `BLOCKED_EVIDENCE`; do not speculate or edit source.
+플레이어 정보:
+- show available committed setup/profile/current player values already present in R3 context;
+- omit unavailable fields rather than inventing them.
 
-## 3. Authorized source correction — only after exact proof
+NPC 정보:
+- show known/current R3 characters from available committed context/content;
+- indicate current-scene presence when known;
+- show current committed Mind Monitor only when actually available for that NPC;
+- do not infer hidden mind, location or state that server context does not provide.
 
-A source change is authorized only if the read-only trace proves a deterministic product boundary.
+상식개변:
+- show currently active R3 rules clearly;
+- show the bounded nine preset rules with human-readable label/content/strength/category information supplied by the existing catalog;
+- expose only scopes/counterparty scopes allowed by the chosen preset;
+- provide a readable completed-rule preview from catalog data where possible;
+- do not expose custom/freeform rule creation.
 
-### If B — bounded Story-tail structural representation
+매뉴얼:
+- explain the current R3 product truth, not the donor legacy truth:
+  - only the current nine presets are available;
+  - editing is local until explicit Apply;
+  - each Apply/Change/Remove consumes exactly one Story turn;
+  - unrelated later play remains ordinary gameplay;
+  - the app is optional and never required by the game.
 
-Add only the exact evidenced conventional layout needed to recognize the same four Story-authored literals.
+### C. Single-operation local draft contract
 
-Examples of potentially bounded structural layouts are NOT pre-approved facts; implement only if actually evidenced, such as:
-- blank separator lines between otherwise valid numbered terminal choices;
-- one purely structural Markdown/list separator around the exact terminal group;
-- another symmetric wrapper form that does not alter inner action text.
+R3 does NOT support the donor's multi-operation batch transaction. Implement a single pending operation draft.
+
+Require:
+- at most one distinct staged operation at a time;
+- selecting a preset, changing an active rule's allowed scope/counterparty, or marking a rule for removal changes local draft state only;
+- while dirty, no `/turn` POST, no state revision change, no committed-turn change and no canonical CSA mutation may occur;
+- dirty bar shows `미적용 변경 1건` plus an explicit revert/undo control and an explicit Apply control;
+- revert restores the draft from the current committed R3 context and returns to clean state;
+- attempting to start a second distinct rule edit while one operation is dirty must show a bounded in-app notice requiring the current change to be applied or reverted first;
+- never silently batch, auto-apply or silently discard the first edit.
+
+Removal UX:
+- selecting remove/deactivate first marks the rule locally as `해제 예정` or equivalent;
+- server state remains active until explicit Apply;
+- revert cancels the pending removal with no server mutation.
+
+### D. Unsaved-close protection
+
+When clean:
+- close / Escape / backdrop closes without a discard prompt.
+
+When dirty:
+- all close paths must ask whether to discard the one unapplied change;
+- Cancel keeps the modal open and preserves the exact staged draft;
+- Confirm discards the draft and closes;
+- no network/gameplay request may be sent by either close outcome.
+
+Use a browser-native confirm only if it remains reliable in the deployed UI; an existing bounded in-app confirmation is also acceptable. Do not add a new global modal framework.
+
+### E. Apply handoff — preserve R3 chronology
+
+Map the one staged draft to exactly one existing R3 operation shape:
+
+Activate:
+`{ operation: 'activate', template_id, subject_scope, counterparty_scope }`
+
+Update:
+`{ operation: 'update', id, template_id, subject_scope, counterparty_scope }`
+
+Deactivate:
+`{ operation: 'deactivate', id, template_id, subject_scope }`
 
 Requirements:
-- Story remains the sole author of choice action text;
-- recover exactly four ordered 1→4 distinct non-empty actions;
-- preserve each inner action literal character-for-character apart from existing outer whitespace handling and the specifically evidenced structural delimiter;
-- server and frontend readers must support the same structural set;
-- strip terminal choice presentation from narrative body only when the same canonical four choices are available;
-- Observer mismatch may warn but must not erase valid Story choices.
+- exactly one `onOperation` handoff per user Apply;
+- use the existing `submit()` / `client.turn()` / SSE / reconciliation path as the sole transport;
+- no direct legacy `/csa`, `/api/app-state`, `/api/app-validate`, app transaction or second fetch path;
+- no sequential multi-turn auto-apply from one click;
+- busy state disables Apply/edit controls and fences duplicate submission;
+- the overlay must stop intercepting clicks before the Story turn dispatches.
 
-### If C/D/E/F
+If the CSA UI needs to know whether the existing submit path committed/recovered-committed versus failed/not-sent, `frontend-r3/app.js` may gain the smallest Promise/boolean result plumbing around that SAME existing submit/reconciliation path. Do not duplicate transport logic.
 
-Fix only the proven first-loss stage. Do not widen parser grammar if parsing was already successful.
+After successful commit:
+- local draft clears/rebases from the newly committed context;
+- reopening reflects the committed active rule exactly.
 
-### If A
+After true failure/not-sent:
+- do not claim success;
+- prior committed server state remains canonical;
+- show a useful bounded error;
+- keep the staged draft available for user correction/manual retry if that is the smallest safe behavior;
+- never automatically resubmit.
 
-Do not fabricate choices. Stop `FAILED_PROVIDER_CONTRACT` after recording the exact raw tail unless there is an already-existing bounded product contract path that is broken independently of provider content. Do not add fallback-authored choices, retry or a second LLM call in this task.
+### F. Player-visible literal
 
-Forbidden regardless of classification:
-- no general Markdown parser;
-- no fuzzy/semantic choice matching;
-- no punctuation/Unicode normalization sweep;
-- no prior-turn choice fallback;
-- no deterministic fabricated choices;
-- no retry/regeneration or second Story/Observer call;
-- no provider/model/temperature/token/timeout/config tuning;
-- no DB migration/schema/RLS/grant/reset changes;
-- no donor CSA UI/image/TTS work;
-- no Production;
-- no owner/preserved-game mutation.
+The current R3 CSA helper may replace the English `Apply/Change/Remove ... for ...` copy with deterministic natural Korean app-action text, provided structured semantics are unchanged.
 
-## 4. Deterministic regressions
+Requirements:
+- use catalog labels instead of raw IDs where possible;
+- the literal must clearly represent the exact app action and selected scope;
+- exact literal is submitted only when the user presses Apply;
+- no hidden extra action or narrative decision is added.
 
-If source changes, first encode the exact preserved Turn 7 raw shape as a deterministic regression before fixing it.
+## 3. Hard architecture boundaries
 
-At minimum prove:
-1. exact preserved Turn 7 shape reproduces zero choices before the fix and four exact literals after it, if classification B/C/D/E/F warrants a fix;
-2. all previously accepted plain/whole-line/number-token wrapper forms remain unchanged;
-3. malformed/mixed/unbalanced/wrong-numbering/duplicate/empty/non-terminal pseudo-choice layouts still fail closed;
-4. if blank separator lines are the proven root, only blank structural separators inside the terminal four-choice group are ignored; arbitrary prose between choices remains fail-closed;
-5. Observer mismatch cannot erase structurally valid Story-authored choices;
-6. frontend and server recover identical literals;
-7. `renderChoices()` submits the exact recovered full literal once;
-8. player thought/MM/agency/navigation/CSA chronology regressions touched by the change remain green.
+This is a frontend high-parity cut.
 
-Run relevant focused R3 tests, full `npm test`, changed JS/MJS `node --check`, and `git diff --check`.
+Expected changed scope is limited to:
+- `frontend-r3/csa.js`;
+- optionally one new small pure frontend-r3 draft-state helper if it materially improves deterministic testing;
+- `frontend-r3/app.js` only for minimal existing-submit completion plumbing if proven necessary;
+- existing `frontend-r3/index.html` / CSS only for small missing hooks or parity styling that cannot be achieved with the current donor-lineage shell;
+- R3 frontend/CSA tests.
 
-## 5. TEST-only deployment
+Do NOT:
+- change `runtime-r3/**`;
+- change R3 API routes or turn semantics;
+- change `content/csa_presets.json` or catalog semantics;
+- import/execute legacy `src/frontend/pages/*` code in production R3; use it only as a donor reference;
+- call legacy `/api/app-state`, `/api/app-validate` or zero-turn `/csa` mutation paths;
+- add multi-operation app transactions;
+- add custom/freeform CSA authoring;
+- add automatic retry/regeneration;
+- change provider/model/temperature/token/timeout/config;
+- add DB migration/schema/RLS/grant changes;
+- touch reset, timeline/history residue, media/image, TTS, Production, or owner/preserved games.
 
-Only if executable source changes, deploy only the affected R3 TEST artifacts from the exact reviewed source.
+## 4. Deterministic regressions required
 
-Preserve existing bindings/secrets. Do not print, rotate, request, copy or transfer secrets.
-No Production, migration or provider/model/config change.
-Record exact source SHA and Worker version IDs.
+At minimum add/maintain tests proving:
+1. five tabs are reachable and render meaningful R3-shaped data without legacy API calls;
+2. a local Activate draft produces zero `onOperation` calls before Apply;
+3. changing allowed scope/counterparty for an active rule produces zero handoff before Apply;
+4. pending Remove produces zero handoff before Apply and renders as pending removal;
+5. dirty bar is exactly one pending change and Revert returns clean state;
+6. dirty close Cancel preserves the draft and open modal;
+7. dirty close Confirm discards and closes with zero operation calls;
+8. attempting a second distinct edit while dirty does not batch or replace the first silently;
+9. Apply emits exactly one structured Activate operation and one exact Korean literal;
+10. Change emits exactly one structured Update operation;
+11. Remove emits exactly one structured Deactivate operation;
+12. busy/applying state disables/fences duplicate operation submission;
+13. successful operation rebase/reopen reflects committed state without stale draft;
+14. failure/not-sent does not present the operation as applied and does not auto-resubmit;
+15. R3 CSA implementation contains no legacy `/api/app-state`, `/api/app-validate`, batch transaction or custom-rule runtime path;
+16. existing chronological CSA contracts remain GREEN: APPLY/CHANGE/REMOVE each one Story/Observer/commit turn, failed CSA atomic, duplicate fenced, post-APPLY ordinary turn contains no stale `csa_operation`;
+17. if `app.js` is touched, agency/navigation/choice-tail/turn-transport regressions remain green.
 
-## 6. Mandatory live acceptance after a justified fix
+Run:
+- focused R3 frontend/CSA/turn-transport tests;
+- full `npm.cmd test`;
+- changed JS/MJS `node --check`;
+- `git diff --check`.
+
+## 5. TEST deployment
+
+If boundaries are respected, this should require a frontend-only TEST deployment.
+
+- Keep TEST API at `c7b0f0fe-9c20-4cec-8af0-8e27508b44ff` unless source inspection proves an API artifact was genuinely changed; changing API is not authorized by default.
+- Deploy exact reviewed frontend source to `gamebuilder-company-r3` TEST only.
+- preserve all bindings/secrets exactly; do not print, request, rotate, copy or recreate secrets.
+- no Production, migration or provider/model/config change.
+
+Record exact source SHA and frontend Worker version.
+
+## 6. Mandatory bare-public live acceptance
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
 No `?api=` override, storage preseed or direct-API gameplay substitute. Fresh disposable TEST games only.
 
-### Gate A — exact structural closure
+### Gate 1 — donor-parity app surface
 
-Create one fresh game and reach at least one ordinary committed turn whose Story uses the newly supported exact structure if the provider naturally emits it; if provider does not emit that form, the deterministic exact-shape regression remains the proof for the structural variant, while live must still show four usable Story-authored choices through normal provider output.
+Setup -> Opening, then open the app through the visible button.
 
 Require:
-- four visible actionable buttons when Story has a supported terminal four-choice block;
-- committed/readback choices exactly equal the Story inner literals;
-- one visible choice click -> exactly one normal streamed commit with exact literal;
-- no duplicate choice text left as narrative presentation;
-- no console/network blocker.
+- modal is visually usable on desktop;
+- Home / 플레이어 정보 / NPC 정보 / 상식개변 / 매뉴얼 tabs are all reachable;
+- each tab shows meaningful R3-backed content rather than blank donor placeholders or fabricated values;
+- CSA tab presents active state and the nine-rule preset experience in a materially higher-parity form than the old immediate card dump;
+- no legacy API network calls occur;
+- no console/page/network blocker.
 
-### Gate B — bounded narrative continuation
+### Gate 2 — local draft / unsaved protection
 
-Use one fresh game and commit 8–10 ordinary turns after Opening, mixing:
-- at least three visible choice clicks;
-- free input;
-- direct NPC conversation/follow-up;
-- explicit movement/location change;
-- work-context action;
-- non-work/social action;
-- refusal/change-of-mind or self-state action.
+On an inactive preset:
+1. stage a valid preset/scope selection without Apply;
+2. verify dirty bar shows one unapplied change;
+3. verify no gameplay POST, no committed turn/revision change and no active-rule mutation;
+4. attempt close and choose Cancel: modal stays open and staged values remain;
+5. Revert: draft becomes clean and server state remains unchanged;
+6. stage again, close and Confirm discard: modal closes and server state remains unchanged.
 
-Inspect every turn that visually contains four Story choices. FAIL if any supported unambiguous four-choice terminal block again produces zero committed/current buttons.
+Also prove a second distinct edit cannot silently batch/replace the first dirty operation.
 
-Also sample:
-- exact player literal remains narrative center;
-- time progresses plausibly;
-- location/presence coherent;
-- player thought remains first-person/action-safe;
-- relevant NPC MM remains first-person/character-specific;
-- choices are meaningfully diverse;
-- no CSA compliance→unsupported positive emotion inference;
-- streaming remains visible/non-blocking.
+### Gate 3 — chronological Apply / Change / Remove
 
-One mid-campaign refresh/re-entry is sufficient because high-rank/mobile/refresh were already GREEN in the preceding acceptance unless the changed frontend code directly affects those surfaces. If frontend choice parsing changes, perform one ~390x844 spot-check that current four choices and direct input remain reachable; do not repeat the full prior mobile campaign.
+On a fresh disposable game:
+- stage APPLY locally, then explicit Apply once;
+- require exactly one `POST /api/r3/games/:id/turn` with one `csa_operation`, expected normal turn identity and the exact Korean app literal;
+- require visible SSE Story and exactly one committed next turn;
+- reopen app and verify committed active state.
 
-No retry-until-pass. A new genuine product defect is terminal evidence.
+Then:
+- stage one allowed CHANGE locally; verify server unchanged before Apply; Apply once -> exactly one next Story turn and committed updated state;
+- stage REMOVE locally; verify rule still active before Apply; Apply once -> exactly one next Story turn and committed inactive state after terminal;
+- after busy clears, controls must be usable and no stale-disabled lifecycle regression may return.
+
+Immediately after the CSA sequence submit one unrelated ordinary Korean free-input action:
+- payload must contain no stale `csa_operation`;
+- exact literal must remain the Story center;
+- one ordinary streamed turn commits;
+- no duplicate request/job/turn.
+
+Do not induce provider failure merely to prove a failure UI; deterministic regression is sufficient unless a natural live failure occurs.
+
+### Gate 4 — mobile spot-check
+
+At approximately 390x844:
+- modal fits and scrolls;
+- all five tabs remain reachable, allowing horizontal tab scrolling only if intentional and obvious;
+- CSA form controls and sticky/visible draft bar are reachable;
+- no horizontal overflow hides Apply/Revert/Close;
+- dirty-close protection remains usable;
+- after Apply/close, normal gameplay choices/direct input are not blocked by the overlay.
+
+Visually inspect the rendered app; DOM presence alone is insufficient.
 
 ## 7. GREEN criteria
 
 GREEN only if:
-- the preserved Turn 7 first-loss boundary is proven, not guessed;
-- any source correction is limited to that proven boundary;
-- exact deterministic reproducer passes;
-- previously accepted choice formats remain green and malformed cases remain fail-closed;
-- fresh live 8–10-turn campaign has no supported Story-four-choice -> zero-button loss;
-- exact choice click round-trip remains single-commit;
-- narrative agency/navigation/thought/MM/time/streaming remain healthy;
+- high-parity five-tab R3 app is materially restored using the existing donor shell;
+- all displayed values come from current R3 context/catalog or are clearly static manual copy;
+- draft edits are strictly local until explicit Apply;
+- at most one pending operation exists;
+- unsaved close/revert behavior is truthful;
+- APPLY/CHANGE/REMOVE remain exactly one normal chronological Story turn each;
+- no legacy API/batch/custom/zero-turn mutation path is reintroduced;
+- an unrelated post-CSA ordinary turn remains clean;
+- desktop and ~390x844 app UX are usable;
+- deterministic tests/full suite/deployed bare-public acceptance pass;
 - no forbidden work occurred.
 
 Do NOT claim owner-ready after this task.
 
-## 8. Remaining owner-remediation after narrative-surface GREEN
+## 8. Remaining owner-remediation after this cut
 
 Do not implement here:
-1. high-parity Company donor CSA UI + draft/unsaved-change behavior;
-2. approved-media image projection + character-aware server TTS;
-3. deployed same-game reset integration failure;
-4. timeline/current-scene presentation residue;
-5. final holistic owner-style long-play acceptance.
+1. approved-media image projection + character-aware server TTS;
+2. deployed same-game reset integration failure;
+3. timeline/current-scene presentation residue;
+4. final holistic owner-style long-play acceptance.
 
 ## 9. Completion report
 
 Post to Issue #68:
-- preserved Turn 7 exact raw tail excerpt/layout and first-loss classification A–G;
-- observer raw/applied/persisted/readback/presentation evidence;
-- exact changed files/source SHA, or explicit no-source-change decision;
-- focused/full/syntax/diff validation;
-- TEST Worker versions if redeployed;
-- deterministic exact-shape regression result;
-- fresh live fixture and 8–10-turn coverage;
-- choice-button loss recurrence/non-recurrence;
-- sampled agency/thought/MM/time/location findings;
-- any remaining objective defects.
+- source SHA and exact changed files;
+- donor elements reused conceptually and donor runtime elements explicitly NOT imported;
+- focused/full/syntax/diff results;
+- TEST frontend Worker version and confirmation API version stayed frozen;
+- fresh fixture IDs;
+- five-tab desktop evidence;
+- local-draft no-network/no-revision evidence;
+- dirty close Cancel/Confirm and Revert evidence;
+- exact network/turn counts for APPLY/CHANGE/REMOVE;
+- ordinary post-CSA no-stale-operation evidence;
+- ~390x844 visual/interaction evidence;
+- console/network diagnostics and remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK.
-
-## Terminal evidence — 2026-08-23
-
-Classification: B — the preserved Turn 7 Story contained an unambiguous terminal four-choice block, but the server `storyChoiceTail()` accepted only four adjacent physical lines and rejected the exact blank-line-separated layout. `observer_raw.choices` already held four literals; `projectChoices()` therefore emitted `choices_projection_dropped` and `observer_applied.choices: null` before persistence. This was not an Observer-mismatch, persistence, frontend lifecycle, or provider-contract loss.
-
-Preserved fixture read-only evidence (`2241e4e8-559f-42b4-ae7d-962c93d006d3`, Turn 7):
-
-```text
-[33] <BLANK>
-[34] 한리브 대리는 아무 말 없이 자리에서 일어나 커피포트 쪽으로 걸어갔다. 사무실 안은 여전히 부드러운 오후의 공기가 흐르고 있었다.
-[35] <BLANK>
-[36] ---
-[37] <BLANK>
-[38] 1. "감사합니다. 꼭 빌려서 읽어보고 싶어요"라고 답하며 윤민아 대리에게 책을 빌려 달라고 부탁한다.
-[39] <BLANK>
-[40] 2. "마케팅 에세이면 저도 관심 있어요. 어떤 내용인지 조금 더 들려주실 수 있나요?"라고 이어서 물어본다.
-[41] <BLANK>
-[42] 3. 고개를 끄덕이며 "관심 있습니다"라고 짧게 답하고, 그다음에 자리로 돌아가 오후 업무를 계속 파악한다.
-[43] <BLANK>
-[44] 4. 사무실 문쪽에서 손목 진동이 다시 느껴져, 잠시 자리를 비워 상식개변 앱을 확인한다.
-```
-
-- `observer_raw.choices`: the four exact literals above.
-- `observer_applied.choices`: `null`; warnings: `choices_projection_dropped`.
-- committed Turn 7 `choices`: `[]`.
-- The preserved browser observation recorded zero current choice buttons with free input still available. A later stale capability prevented a new context fetch for that old fixture (`JWT issued at future`), but the read-only TEST DB row plus the preserved DOM observation fully proved B.
-- Existing frontend `frontend-r3/render.js::choiceTail()` already skips blank separators. The deterministic frontend regression confirms it returns the same four exact literals when canonical choices are present; the zero-button result was downstream of the server loss.
-
-Bounded correction:
-
-- `runtime-r3/domain/observer-normalizer.js`: terminal choice-tail scanning now skips only blank structural separators while requiring ordered 1–4, distinct, non-empty lines. No fuzzy/semantic matching, normalization sweep, fallback, retry, or provider change.
-- `test/r3-source-correction.test.mjs`: exact preserved Turn 7 literals and malformed/previously accepted forms.
-- `test/r3-frontend-contract.test.mjs`: exact frontend parity for the same blank-line-separated tail and full-literal presentation.
-- No frontend runtime source change was needed because its existing reader was already structurally symmetric.
-
-Validation:
-
-- focused choice-tail/frontend suite: 38/38 PASS;
-- full `npm.cmd test`: 516/516 PASS;
-- changed JS/MJS `node --check`: PASS;
-- `git diff --check`: PASS;
-- exact-head CI for final main `475f0a01c1b31c1b3e9bc124b26e6f4691b893d8`: run `32640373861`, SUCCESS;
-- source executable deployed to TEST from `2a3611f5de3906d7c797259173fa0d5ed19977d0`; API `game-proxy-company-r3` version `c7b0f0fe-9c20-4cec-8af0-8e27508b44ff`; frontend remained `e139f60f-00b6-49ed-891b-070dd2143f57`.
-
-Fresh bare-public acceptance:
-
-- disposable game `f2d7de4a-7705-4322-9416-3b95a62e8a57` at the bare public URL only;
-- Opening plus 9 ordinary committed turns; scenario steps were recorded separately from committed turn numbers;
-- 4 visible choice clicks and 5 free-input turns, including direct NPC follow-up, social/work context, explicit movement to lunch, refusal/self-state, and continued work conversation;
-- every committed turn read back `choices` count 4, `observer_raw.choices` count 4, and `observer_applied.choices` count 4; no recurrence of the zero-button loss;
-- final browser state: committed Turn 9, 4 visible choice buttons, saved status, no error, zero console error/warn entries;
-- no retry/regeneration, reset, migration, Production access, provider/model/config tuning, or preserved-game mutation.
-
-Final state: source/test work is complete enough for operator review. Do not claim owner-ready; remaining owner-remediation items in this task remain out of scope.
