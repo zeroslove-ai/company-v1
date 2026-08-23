@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-final-holistic-owner-style-long-play-v5
 Mode: SOURCE-FROZEN FINAL HOLISTIC OWNER-STYLE LONG-PLAY ACCEPTANCE
 Updated: 2026-08-24 08:15 KST
@@ -495,3 +495,16 @@ Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING
 Do not create the next task yourself.
 Do not patch a discovered failure in V5.
 Do not touch Production.
+
+## V5 execution terminal record — 2026-08-24
+
+Terminal disposition: `FAILED_PRODUCT_TTS_ENQUEUE`
+
+- Lease: Issue #68 comment `5389065820`.
+- Start/final main: `8ab227c2bd6428eaf4adcd49935b8b362070b7ab` (source-frozen; no source/deploy/config/test changes).
+- Accepted executable/source: `5709c4a894430b74cf5a985da57747c1cafcfd15`.
+- Active TEST API/frontend/legacy versions remained `bee01bf9-b79f-433e-9cfb-6fc09a2379cc`, `71416b75-9cca-45ee-9b32-7cf209f16395`, and `7ea46aaf-493f-4323-bc1f-f5ab8d47477d`; deployment count remained zero.
+- Preflight remained green: full `npm.cmd test` 547/547 PASS and `git diff --check` PASS.
+- Fresh Campaign A only: game `dbed1a69-9af1-463e-a990-a5ce8c50be98`, player `서진우`, 브랜드전략팀, 임원, age 38, 181cm/78kg, 차분한 말투. Opening and 15 committed ordinary turns passed; 7 free-text submissions and 5 distinct native visible choice clicks were captured with exact literals and one `/turn` POST each. CSA draft/revert/apply/update/remove chronology passed with exact `csa_operation` evidence; refresh/re-entry at Turn 11 reconstructed the game and Turns 12–15 committed. History showed Opening + 15 turns chronologically.
+- First decisive failure: on Turn 15 a strict-valid registered heroine line from `서원희` was visibly present. TTS OFF had `aria-pressed=false` and zero `/media/tts` requests. One visible enable click changed it to `aria-pressed=true`; one visible replay click activated the `▶` control, but produced zero `/media/tts` requests/responses and the page audio element remained `currentSrc=""`, `readyState=0`, paused. This is a real enqueue failure, not autoplay: replay was explicitly clicked after the visible ON state, and no provider/direct browser TTS call was observed.
+- Campaign B was not started; no retry, regeneration, provider/model/config change, deployment, DB write, or preserved-fixture mutation occurred. The fresh Campaign A fixture remains read-only.
