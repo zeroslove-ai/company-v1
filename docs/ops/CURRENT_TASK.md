@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-tts-end-to-end-live-acceptance-v1
 Mode: SOURCE-FROZEN TTS END-TO-END LIVE ACCEPTANCE ONLY
 Updated: 2026-08-24 06:34 KST
@@ -214,7 +214,18 @@ Terminal disposition on full success:
 
 This does NOT authorize Production and does NOT claim owner-ready. Holistic V5 must be a separate next task after operator review.
 
-## 10. Completion protocol
+## 10. Terminal evidence — projection gate stopped before TTS
+
+- Fresh disposable bare-public game created through the TEST UI: `08a6fe64-1e61-4b7c-a07f-73c2aa3cbdcf`.
+- Visible setup completed with player `테스트 사용자`, 브랜드전략팀, 인턴, and no preserved game was touched.
+- Scenario step 1 / committed turn 1: intended literal `서원희 차장에게 인사하고 오늘 일정이 궁금하다고 묻는다.`; UI reached `Turn 1` and `저장되었습니다.`.
+- TTS baseline was visibly OFF (`aria-pressed="false"`); the Network trace after the turn contained zero `/media/tts` requests.
+- The committed Story visibly contained heroine dialogue, including `"안녕하세요. 테스트 사용자 씨, 어서 오세요."`, but the current frontend projection contained zero `.narrative-dialogue` cards and no projected `data-speaker-id`. Therefore raw/applied dialogue parity, canonical actor binding, and the qualifying TTS candidate could not be proven.
+- TTS was not clicked after the projection failure. No TTS request, provider call, replay, next-turn action, source change, deploy, DB write, migration, reset, or Production access occurred.
+- Terminal disposition: `FAILED_PRODUCT_DIALOGUE_NORMALIZATION` (projection gate failure; stop before TTS).
+- Validation: `npm test` 544 passed / 0 failed; `git diff --check` passed.
+
+## 11. Completion protocol
 
 At completion post a NEW Issue #68 terminal comment recording:
 - start main / final main / current task blob;
