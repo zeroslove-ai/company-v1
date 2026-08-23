@@ -65,7 +65,7 @@ function renderContext(context) {
   renderState({ scene: $('scene-state'), player: $('player-situation') }, view);
   renderPlayerInnerThought($('player-inner-thought'), view.playerInnerThought);
   renderFocalCharacter($('focal-character'), view.scene.focal_actor);
-  renderHistory($('story-history'), view.history, { actors: view.actorNames });
+  $('story-history')?.replaceChildren();
   if ($('turn-number')) $('turn-number').textContent = `Turn ${view.committedTurn}`;
   if ($('day-time')) $('day-time').textContent = `Day ${view.time.day ?? 1} · ${String(Math.floor((view.time.minute ?? 0) / 60)).padStart(2, '0')}:${String((view.time.minute ?? 0) % 60).padStart(2, '0')}`;
   const latest = view.history.at(-1);

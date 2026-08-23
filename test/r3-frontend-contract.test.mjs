@@ -38,6 +38,14 @@ test('R3 frontend sends exact literal input through one server turn endpoint', (
   assert.match(app, /historyExport/);
 });
 
+test('R3 normal Story surface is latest-only while History owns full chronology', () => {
+  assert.match(app, /\$\('story-history'\)\?\.replaceChildren\(\);/);
+  assert.doesNotMatch(app, /renderHistory\(\$\('story-history'/);
+  assert.match(app, /renderHistory\(\$\('history-list'/);
+  assert.match(app, /const latest = view\.history\.at\(-1\)/);
+  assert.match(app, /renderNarrative\(\$\('current-story'/);
+});
+
 test('R3 boot fallback is dismissed after boot and API origin survives game URL updates', () => {
   assert.match(app, /setHidden\('boot-fallback', true\)/);
   assert.match(app, /setBootFailure\(error\)/);
