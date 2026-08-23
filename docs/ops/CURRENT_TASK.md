@@ -1,106 +1,171 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-mobile-cold-start-p0-v1
-Mode: P0 CLEAN-SESSION BOOT RECOVERY -> TEST DEPLOY -> SELF-ACCEPTANCE -> HUMAN-LIKE REPLAY
-Updated: 2026-08-23 16:58 KST
+Status: READY
+Task ID: company-r3-bare-public-owner-readiness-v1
+Mode: BARE PUBLIC URL INDEPENDENT END-TO-END QA -> ROOT-FIX OBJECTIVE DEFECTS -> OWNER-READY GATE
+Updated: 2026-08-23 15:42 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Owner defect evidence / operator review: Issue #68 comment `5384590975`
+Previous terminal: Issue #68 comment `5384668398`
+Operator review: accepted mobile cold-start P0 root fix and mandatory self-acceptance.
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. This is one executable wake task created from the previous `WAITING_OWNER_DECISION` hold after a real user-visible P0 defect and explicit owner correction instruction.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path or an ops/recovery branch.
 
 ## 0. Binding baseline
 
-Preserve unless this task proves the exact boot defect requires a narrow change:
+Accepted executable/source baseline:
 - product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
 - A-prime engine/live-first canon PR #96 head `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
-- accepted executable source `19a4c2b8d9d2d1e3fc4a93c184d4b52e785af300`;
+- accepted cold-start executable source `2511ce2a741a769d06aae2f71996185189f30480`;
+- prior terminal docs checkpoint main `20e9bf3505928a61122ffb727f7ba165e9aa7b9c`;
 - TEST API `game-proxy-company-r3` version `e4317d6f-9bfe-4774-a744-90789d066d4e`;
-- TEST frontend `gamebuilder-company-r3` version `e0b654d7-06e1-4851-92a3-02af5cf5ba59`;
-- reset migration `20260823000100_company_r3_same_game_reset` already applied exactly once to TEST;
+- TEST frontend `gamebuilder-company-r3` version `731cc702-2451-442a-895c-2d10c38dccc9`;
+- same-game reset migration `20260823000100_company_r3_same_game_reset` already applied exactly once to TEST;
 - `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md` remains binding.
 
-## 1. P0 evidence
+Accepted/frozen evidence that this task must not reopen without new contradictory evidence:
+- cold-start root cause: public frontend used relative `/api/r3`, causing frontend-origin `/api/r3/catalogs` -> HTTP 404 / empty body -> `Response.json()` failure;
+- root fix: canonical public `gamebuilder-company-r3` resolves to `game-proxy-company-r3`; explicit `?api=` override remains supported for diagnostics but is forbidden for this task's acceptance path;
+- clean desktop/mobile bare-URL Setup shell after fix: GREEN;
+- one fresh bare-URL Setup -> Opening -> Turn1 -> refresh/re-entry: GREEN;
+- six-turn post-fix human-like replay: GREEN;
+- capability boundary, feedback revision/continuation, same-game reset, history/export/TTS and previously accepted ordinary continuity remain frozen unless this task produces new real evidence;
+- CSA rules 7/9 remain frozen provider/model capability exceptions; do not rerun or tune them.
 
-Owner opened the public R3 TEST frontend on a mobile browser and was blocked before gameplay by the visible fallback:
+## 1. Why another pass is required
 
-`게임 화면을 불러오지 못했습니다: Failed to execute 'json' on 'Response': Unexpected end of JSON input`
+The P0 proved a specific QA blind spot: prior live/browser evidence could succeed through an explicit `?api=` override, warm storage, or an already-created game while the actual bare public user entry path was broken.
 
-This invalidates the prior owner-ready/green hold classification. HTTP 200, DOM existence, previously warm browser sessions, or already-created disposable games do not satisfy clean-session boot acceptance.
+The owner must not be used as the next basic integration test. Before handing the URL back, independently verify that the real public path is usable beyond one repaired smoke session and that retained user-facing controls also work from the same resolved API origin.
 
-## 2. Objective
+## 2. Hard acceptance-path rules
 
-Find and fix the exact clean-session cold-start failure so a real new user can open the public TEST URL, complete Korean Setup, see Opening, submit Turn1, refresh/re-enter, and continue normally on both desktop and mobile clean contexts.
+For all acceptance evidence in this task:
+- start from the bare public frontend URL `https://gamebuilder-company-r3.zeroslove.workers.dev`;
+- no `?api=` query override;
+- no pre-supplied `game_id` query;
+- no localStorage/sessionStorage preseed;
+- no cookie/storage reuse from previous R3 games;
+- no direct API gameplay substitute for a UI action;
+- no devtools/request injection to make the path work;
+- use fresh disposable TEST games only;
+- Production is forbidden.
 
-## 3. Required execution sequence
+Read-only API/DB inspection after a visible UI action is allowed to verify persistence and diagnose an observed defect.
 
-1. **Reproduce first; do not guess.**
-   - Use the exact currently deployed R3 TEST frontend/API discovered from live deployment metadata.
-   - Use a genuinely clean browser/storage context with no prior game/localStorage/session state.
-   - Reproduce on mobile viewport; also check clean desktop.
-   - Capture browser console and required initial network requests.
-   - Identify the exact request and response causing `Response.json()` to fail: status, content-type, body length/body validity, redirect/error behavior, and caller path.
+## 3. Required independent campaigns
 
-2. **Classify root cause.**
-   - Determine whether the defect is API empty/truncated/non-JSON response, frontend incorrect endpoint/origin/request path, unconditional JSON parsing of a valid empty response, deployment/static asset mismatch, or another concrete transport/bootstrap defect.
-   - Do not infer from HTTP 200 alone.
+Run two genuinely independent clean-browser campaigns against the deployed public TEST frontend.
 
-3. **Apply the smallest root fix.**
-   - Fix the actual defective layer.
-   - Do not hide an API/server defect behind a generic client fallback.
-   - If frontend response handling itself is unsafe, add only the minimal correct status/content-type/body handling while keeping actionable visible errors.
-   - No new architecture, compatibility layer, parser, retry loop, auth framework, or unrelated refactor.
+### Campaign A — mobile-first real-user path
 
-4. **Focused regression protection.**
-   - Add/update only deterministic focused coverage for the concrete cold-start regression and directly touched bootstrap boundary.
-   - Do not chase test-count parity or revive obsolete tests.
+Use a fresh mobile context at approximately 390x844.
 
-5. **TEST deployment.**
-   - Deploy only affected R3 TEST artifact(s).
-   - Preserve existing `R3_GAME_ACCESS_SECRET` binding and accepted baseline semantics.
-   - No Production.
-   - No provider/model/temperature/token/CSA7/9 changes.
-   - No unrelated migration/schema/RLS/grant/secret changes.
+Required:
+1. bare public URL -> Korean Setup shell visible and usable;
+2. create a new disposable game through visible Setup UI;
+3. Opening visibly completes;
+4. continue at least 8 committed ordinary turns;
+5. include both Story choice buttons and Korean free input;
+6. include at least:
+   - one direct NPC conversation and follow-up;
+   - one non-work/social action;
+   - one refusal/change-of-mind/self-state action;
+   - one location/scene movement;
+7. refresh after a normal committed turn and continue the same game;
+8. verify no loader/fallback covers Story or controls;
+9. visually inspect screenshots at Setup/Opening and mid-game, including action controls at the bottom of the mobile viewport;
+10. inspect console and required network requests for uncaught errors, 404/empty-body JSON failures, CORS failures, dead controls, or wrong API origin.
 
-6. **Mandatory clean-session self-acceptance before owner retest.**
-   - fresh clean desktop browser -> public frontend URL -> setup shell visible and usable;
-   - fresh clean mobile browser/viewport -> public frontend URL -> setup shell visible and usable;
-   - create one fresh disposable R3 game through the visible UI;
-   - Korean Setup succeeds;
-   - Opening visibly renders;
-   - one ordinary Turn1 submits and commits;
-   - refresh and re-entry return the same game correctly;
-   - no blocking fallback surface;
-   - no uncaught console exception;
-   - no required-request network failure or JSON parse failure;
-   - screenshot(s) visually inspected, not merely captured;
-   - HTTP 200/DOM presence alone is insufficient evidence.
+### Campaign B — independent desktop path
 
-7. **Narrow replay after fix.**
-   - Continue 5–10 ordinary human-like browser turns around boot/re-entry/refresh and normal action flow.
-   - Include at least one free-form Korean input and one choice-button action.
-   - Check that the fix did not regress Story streaming, choice readiness, game persistence, agency, or navigation.
+Use a second fresh desktop browser context and a different disposable game.
 
-## 4. Stop/continue rule
+Required:
+1. bare public URL -> new Korean Setup -> Opening;
+2. continue at least 8 committed ordinary turns using a materially different route/action style from Campaign A;
+3. alternate choice and free-input actions;
+4. exercise refresh/re-entry;
+5. exercise one latest-turn feedback revision through the visible UI, then continue with one ordinary turn;
+6. exercise same-game reset once through the visible UI, verify canonical new Opening exactly once, then submit and commit one post-reset Turn1;
+7. exercise history/export presentation and one retained TTS control in the visible state they claim to support;
+8. exercise one already-known-green representative CSA rule through the visible app: apply -> verify revision changes without consuming gameplay turn -> one relevant ordinary Story turn -> remove -> verify readback. Do not use frozen CSA 7/9 and do not turn this into a nine-rule matrix;
+9. visually inspect screenshots before and after the user-facing sidecar operations;
+10. inspect console/network and persisted readback.
 
-- If the same or another objective boot/load/network blocker remains, keep this task active and continue root-fix/redeploy/replay within this scope.
-- If a different unrelated P0/P1 is discovered during mandatory replay, report exact evidence to Issue #68 and stop for operator re-scope only when necessary.
-- Do **not** ask the owner to reproduce or retest until the clean-session self-acceptance gate above is fully green.
+Minimum combined ordinary human-like gameplay: 16 committed turns across the two independent games, excluding Opening, reset Opening, feedback transaction, and CSA apply/remove transactions.
 
-## 5. Completion report required in Issue #68
+## 4. What to inspect on every critical step
 
-Report:
-- exact root cause;
-- changed files and final source SHA;
-- affected TEST artifact(s) and deployed version IDs;
-- focused test result;
-- clean desktop cold-start evidence;
-- clean mobile cold-start evidence;
-- Setup -> Opening -> Turn1 evidence;
-- refresh/re-entry evidence;
-- console/network result;
-- 5–10 turn replay result;
-- screenshot visual-inspection result;
-- final classification.
+Verify actual usability and evidence, not DOM existence:
+- request goes to `game-proxy-company-r3.zeroslove.workers.dev`, never frontend-origin `/api/r3/*` on the canonical public host;
+- Korean literal action submitted by the UI matches stored literal action;
+- one visible click creates at most one intended job/turn;
+- Story streaming becomes visible without blocking the reading surface;
+- terminal commit returns controls to ready state;
+- current choices are enabled and map to their full current literal action;
+- free input remains usable;
+- refresh/re-entry restores the same committed game state;
+- NPC identity, location/presence, scene_note, refusal/self-state and direct follow-up continuity remain coherent;
+- no obvious Story action/target/topic substitution;
+- no pageerror/uncaught console error/required-request failure;
+- no bootstrap fallback or empty/non-JSON response parse error;
+- screenshots are actually visually reviewed.
 
-Then set this same `CURRENT_TASK.md` to `WAITING_REVIEW` and STOP for operator review. Do not create a report-only branch/file or a new CURRENT_TASK path.
+For sampled critical turns compare submitted literal -> Story -> observer -> state/readback. Do not call a campaign green only because turns committed.
+
+## 5. Defect handling
+
+If an objective defect is found:
+- capture exact visible + network/state evidence first;
+- classify root cause before source change;
+- apply only the smallest coherent root fix if the defect clearly belongs to the current public-path/frontend/integration surface;
+- add only focused deterministic regression coverage;
+- deploy only affected TEST artifact(s);
+- replay the exact reproducer from a new clean bare-URL context, then resume the remaining campaign;
+- do not ask the owner to reproduce it.
+
+If a materially unrelated P0/P1 requires architecture/product authority outside this task, stop at `WAITING_REVIEW` with exact evidence for operator re-scope rather than inventing a broad fix.
+
+Do not:
+- change provider/model/temperature/token limits merely to pass QA;
+- rerun/tune frozen CSA7/9;
+- add hidden retry/regeneration or a second Story writer;
+- add a generic parser/semantic gate/compatibility framework;
+- change DB schema/RLS/grants/migrations unless a new deterministic defect proves it necessary and operator re-scopes first;
+- touch Production;
+- mutate preserved historical/QA evidence games.
+
+## 6. Completion gate
+
+This task may report GREEN only if all of the following are demonstrated on the deployed TEST version:
+- mobile clean bare-URL campaign GREEN;
+- independent desktop clean bare-URL campaign GREEN;
+- at least 16 combined ordinary committed turns with human-like action review;
+- refresh/re-entry GREEN in both campaigns;
+- mobile action controls visibly usable;
+- feedback revision + continuation GREEN from bare public path;
+- same-game reset + post-reset Turn1 GREEN from bare public path;
+- history/export + retained TTS control usable from bare public path;
+- one representative non-frozen CSA apply/effect/remove/readback GREEN from bare public path;
+- no frontend-origin `/api/r3/*` request on canonical public host;
+- no blocking fallback, uncaught console exception, required-request failure, empty/non-JSON parse failure, or known objective P0/P1 defect;
+- screenshots visually inspected;
+- visible/narrative state agrees with persisted readback on sampled critical turns.
+
+If all are GREEN, set this same file to `WAITING_REVIEW`, post the full terminal report to Issue #68, and STOP for operator review. Do not send the owner a test request yourself.
+
+## 7. Required terminal report
+
+Report in Issue #68:
+- exact starting and final main/source SHAs;
+- TEST API/frontend version IDs actually exercised;
+- Campaign A game ID, turn count and coverage summary;
+- Campaign B game ID, turn count and coverage summary;
+- bare-URL network-origin proof;
+- refresh/re-entry evidence for both;
+- feedback/reset/history/TTS/representative-CSA evidence;
+- sampled literal -> Story -> observer/state findings;
+- console/network findings;
+- screenshot visual-inspection findings;
+- any source/test/deploy changes made and why;
+- final classification and any remaining objective defect.
