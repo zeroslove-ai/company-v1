@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-high-parity-csa-app-draft-ui-v1
 Mode: PORT DONOR CSA PRESENTATION/DRAFT UX -> PRESERVE R3 SINGLE-OP CHRONOLOGY -> DEPLOY FRONTEND TEST -> LIVE CSA UX ACCEPTANCE
-Updated: 2026-08-23 21:53 KST
+Updated: 2026-08-23 22:39 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5386083733`
 Operator review: Issue #68 comment `5386104461`
@@ -358,3 +358,18 @@ Post to Issue #68:
 - console/network diagnostics and remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK.
+
+## 10. Worker terminal evidence — WAITING_REVIEW
+
+- Final source HEAD and `origin/main`: `fad4d7f5cd637cf77b9613335eeaef2302c03853`.
+- Commits: `36635a80168c6c421a40d843a4c294878df9e61a`, `5c90d497214364418b7b98b2e37c26484cf3d783`, `fad4d7f5cd637cf77b9613335eeaef2302c03853`.
+- Changed files: `frontend-r3/app.js`, `frontend-r3/csa-draft.js`, `frontend-r3/csa-entry.css`, `frontend-r3/csa.js`, `test/r3-csa-contract.test.mjs`, `test/r3-csa-draft.test.mjs`, `test/r3-frontend-contract.test.mjs`.
+- Focused tests: 34/34 pass. Full `npm.cmd test`: 521/521 pass. JS syntax checks and `git diff --check`: pass.
+- TEST frontend deployment: `gamebuilder-company-r3` version `74f14b2c-fcb0-47ce-b14d-ecb90ece7ff1`; API remained frozen at `c7b0f0fe-9c20-4cec-8af0-8e27508b44ff`.
+- Disposable fixtures: `148272f3-1e93-4366-9d99-f83763d021b5` and `2fbc514d-d8d4-4850-b54e-82a6d21cbb7f`; preserved games were not reset or modified.
+- Desktop: Opening loaded with four Story-owned choices and free input; all five tabs rendered; player labels, current-scene NPCs, and out-of-scene catalog NPCs were visible from current R3 context/catalog.
+- Local draft: one preset staged with Turn 0 unchanged and zero network requests; revert returned to no pending change. Native dirty-close Cancel/Confirm automation was attempted, but the Chrome dialog bridge stalled after opening the confirm prompt; this is recorded as an acceptance-harness limitation, not a product pass claim.
+- Chronology on fixture `2fbc514d-d8d4-4850-b54e-82a6d21cbb7f`: Apply Turn 0→1, Change Turn 1→2, Remove Turn 2→3; each emitted exactly one POST `/api/r3/games/:id/turn` (with the expected preflight response also observed).
+- Ordinary post-CSA input `회의실로 가서 오늘 업무를 확인한다.` committed Turn 3→4; captured payload contained `action_id`, `expected_turn`, and `literal_action` only, with no stale `csa_operation`.
+- Mobile 390×844: free input remained visible and usable; CSA app opened with the five-tab modal and local draft controls; viewport override was reset afterward.
+- Remaining objective defect: dirty-close Cancel/Confirm could not be fully evidenced through the current browser native-dialog bridge. No provider/model, API, migration, production, preserved-game reset, or legacy runtime change was made.
