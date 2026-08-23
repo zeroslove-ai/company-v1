@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-final-holistic-owner-style-long-play-v4
 Mode: SOURCE-FROZEN FINAL PRODUCT ACCEPTANCE -> NEW CLEAN OWNER-STYLE LONG PLAY -> CROSS-FEATURE EXIT MATRIX -> OWNER-READY CANDIDATE ONLY IF ALL GREEN
-Updated: 2026-08-24 04:22 KST
+Updated: 2026-08-24 04:25 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5387987026`
 Operator review: Issue #68 comment `5388000283`
@@ -418,5 +418,19 @@ At completion post to Issue #68:
 - exact disposition.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post the terminal report, and stop.
+
+## Terminal report — FAILED_PRODUCT / WAITING_REVIEW
+
+- Execution identity: `company-r3-final-holistic-owner-style-long-play-v4` + `9713f027ed5937498cbd47c6a1997882118ffd36` + `main`
+- Start HEAD: `d6ff117fc0b163e970e3b7122ec965bb172cb697`
+- Fresh Campaign A: `ec8a906c-e540-4be4-b959-0ec0208c076d`
+- Profile (Unicode): `\uC724\uC11C\uC900 / \uC2E0\uC0AC\uC5C5TF (\uC2E0\uADDC \uC0AC\uC5C5) / \uC784\uC6D0 (\uC804\uB7B5 \uAD8C\uD55C)`
+- Result: `FAILED_PRODUCT`
+
+The first decisive failure was the required TTS ON path. With TTS OFF, the observed browser Network stream contained zero `/media/tts` requests. After enabling the visible TTS control (`aria-pressed=true`), committed Turn 17 contained present `서혜진` character dialogue, but no R3 `/media/tts` request occurred and the audio element remained `src=null`, paused. The uniquely identified visible `▶` replay control was clicked once; it produced no `/media/tts` request and no audio URL. The fresh game is preserved read-only in `.tmp/company-r3-final-holistic-owner-style-long-play-v4-failure.md`.
+
+Campaign A had Opening + Turns 1–17, 9 free inputs, and 5 visible choice clicks, plus the required CSA APPLY → ordinary → CHANGE → ordinary → REMOVE → ordinary sequence and refresh/re-entry. History showed `18` committed turns with Turn 0 through Turn 17 in the overlay. Mobile `390x844` inspection showed no horizontal overflow and reachable Story/choices/direct-input/CSA/TTS/History controls. The sampled image state fail-opened (`#character-image` hidden, no source, zero natural dimensions). One visible feedback revision was submitted once; no explicit failure appeared and the current Story remained Turn 17. A subsequent distinct visible choice was observed single-shot without retry; it did not reach commit or explicit failure during the bounded observation and the UI remained at Turn 17. Campaign B was not started after the decisive failure.
+
+No source files, provider/model/config, database/schema/RPC/migration, TEST deployment, Production, preserved fixture, reset, direct gameplay API, hidden writer, automatic retry, or regeneration was used. Full source tests and preflight were already green before acceptance: `npm.cmd test` 537/537, syntax PASS, `git diff --check` PASS, API `09dac4f4-1131-41c4-94a8-dfd59e5d02d8`, frontend `71416b75-9cca-45ee-9b32-7cf209f16395`. Final disposition: `FAILED_PRODUCT / WAITING_REVIEW`; do not continue Campaign A, start Campaign B, retry, or generate a next task.
 
 Do not create/start another task yourself.
