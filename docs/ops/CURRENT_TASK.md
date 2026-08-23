@@ -1,201 +1,206 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-bare-public-owner-readiness-v1
-Mode: BARE PUBLIC URL INDEPENDENT END-TO-END QA -> ROOT-FIX OBJECTIVE DEFECTS -> OWNER-READY GATE
-Updated: 2026-08-23 15:45 KST
+Status: READY
+Task ID: company-r3-owner-canon-p0-agency-navigation-v1
+Mode: OWNER CANON SYNC -> P0 AGENCY/NAVIGATION ROOT FIX -> TEST DEPLOY -> BARE-PUBLIC REPLAY
+Updated: 2026-08-23 16:17 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5384668398`
-Operator review: accepted mobile cold-start P0 root fix and mandatory self-acceptance.
+Previous terminal: Issue #68 comment `5384792909`
+Owner manual-play override: Issue #68 comment `5384780073`
+Operator review: Issue #68 comment `5384803629`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path or an ops/recovery branch.
 
-## 0. Binding baseline
+## 0. Binding authority and starting baseline
 
-Accepted executable/source baseline:
-- product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
-- A-prime engine/live-first canon PR #96 head `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
-- accepted cold-start executable source `2511ce2a741a769d06aae2f71996185189f30480`;
-- prior terminal docs checkpoint main `20e9bf3505928a61122ffb727f7ba165e9aa7b9c`;
-- TEST API `game-proxy-company-r3` version `e4317d6f-9bfe-4774-a744-90789d066d4e`;
-- TEST frontend `gamebuilder-company-r3` version `731cc702-2451-442a-895c-2d10c38dccc9`;
-- same-game reset migration `20260823000100_company_r3_same_game_reset` already applied exactly once to TEST;
-- `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md` remains binding.
+Highest current product authority for this task:
+- explicit owner manual-play override `5384780073`; it supersedes conflicting prior L0/L1/L2/L3 assumptions;
+- product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627` where not superseded by the owner override;
+- A-prime engine/live-first canon PR #96 head `9d44c4719fa6b098d53cac5cf946b93fafa6786b` where not superseded by the owner override;
+- `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md` remains the QA operating policy, but its old frozen/deferred conclusions are superseded where owner comment `5384780073` explicitly changed the product decision.
 
-Accepted/frozen evidence that this task must not reopen without new contradictory evidence:
-- cold-start root cause: public frontend used relative `/api/r3`, causing frontend-origin `/api/r3/catalogs` -> HTTP 404 / empty body -> `Response.json()` failure;
-- root fix: canonical public `gamebuilder-company-r3` resolves to `game-proxy-company-r3`; explicit `?api=` override remains supported for diagnostics but is forbidden for this task's acceptance path;
-- clean desktop/mobile bare-URL Setup shell after fix: GREEN;
-- one fresh bare-URL Setup -> Opening -> Turn1 -> refresh/re-entry: GREEN;
-- six-turn post-fix human-like replay: GREEN;
-- capability boundary, feedback revision/continuation, same-game reset, history/export/TTS and previously accepted ordinary continuity remain frozen unless this task produces new real evidence;
-- CSA rules 7/9 remain frozen provider/model capability exceptions; do not rerun or tune them.
+Starting executable/deployment baseline:
+- accepted executable/source SHA before this remediation: `2511ce2a741a769d06aae2f71996185189f30480`;
+- current main checkpoint at registration: `e2c320188ff4e8ffb66bd444d3fdcb98394c69cc`;
+- TEST API: `game-proxy-company-r3` version `e4317d6f-9bfe-4774-a744-90789d066d4e`;
+- TEST frontend: `gamebuilder-company-r3` version `731cc702-2451-442a-895c-2d10c38dccc9`;
+- no Production access or deployment is authorized.
 
-## 1. Why another pass is required
+Known open blockers that must remain tracked but are NOT all implementation scope of this cut:
+- deployed same-game reset failed during the previous bare-public campaign; do not call reset GREEN;
+- CSA APPLY/CHANGE/REMOVE zero-turn semantics are superseded and must later become chronological streamed enactment turns;
+- Opening/player-inner-thought/Mind Monitor, high-parity CSA UI, required image/TTS sidecars, time/timeline presentation all remain owner-required follow-up work.
 
-The P0 proved a specific QA blind spot: prior live/browser evidence could succeed through an explicit `?api=` override, warm storage, or an already-created game while the actual bare public user entry path was broken.
+## 1. Owner evidence — this task's exact P0 scope
 
-The owner must not be used as the next basic integration test. Before handing the URL back, independently verify that the real public path is usable beyond one repaired smoke session and that retained user-facing controls also work from the same resolved API origin.
+Read owner game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531` READ-ONLY. Never reset, revise, retry, or mutate it.
 
-## 2. Hard acceptance-path rules
+Confirmed defects from the owner's actual public TEST play:
 
-For all acceptance evidence in this task:
-- start from the bare public frontend URL `https://gamebuilder-company-r3.zeroslove.workers.dev`;
-- no `?api=` query override;
-- no pre-supplied `game_id` query;
-- no localStorage/sessionStorage preseed;
-- no cookie/storage reuse from previous R3 games;
-- no direct API gameplay substitute for a UI action;
-- no devtools/request injection to make the path work;
-- use fresh disposable TEST games only;
-- Production is forbidden.
+### P0-A — player action/target substitution
+Owner Turn3 literal:
+`이메이 사원. 일단 공자룰 좀 확인해보게나`
 
-Read-only API/DB inspection after a visible UI action is allowed to verify persistence and diagnose an observed defect.
+Observed defect:
+- Story did not preserve the addressed target/request or ask for clarification;
+- instead it invented a voluntary player action opening/reading the CSA app.
 
-## 3. Required independent campaigns
+Required invariant:
+- Story may resolve ambiguity naturally, including asking/portraying clarification, but it may not replace the player's actor/target/action/topic/refusal/self-state with another voluntary player action;
+- mentioning a rule/app/topic must not itself authorize opening, scrolling, reading, applying, changing, or closing the CSA app unless the player's action actually does that.
 
-Run two genuinely independent clean-browser campaigns against the deployed public TEST frontend.
+### P0-B — deterministic canonical navigation ignored
+Owner Turn4 literal:
+`직원 라운지로 이동한다`
 
-### Campaign A — mobile-first real-user path
+Canonical destination: `employee_lounge`.
 
-Use a fresh mobile context at approximately 390x844.
+Observed defect:
+- Story remained in `brand_strategy_office`;
+- invented app scrolling/reading/closing actions;
+- Observer retained the old location;
+- Commit persisted the wrong scene;
+- Turn5 continued the contaminated office worldline with 이메이 still present.
 
-Required:
-1. bare public URL -> Korean Setup shell visible and usable;
-2. create a new disposable game through visible Setup UI;
-3. Opening visibly completes;
-4. continue at least 8 committed ordinary turns;
-5. include both Story choice buttons and Korean free input;
-6. include at least:
-   - one direct NPC conversation and follow-up;
-   - one non-work/social action;
-   - one refusal/change-of-mind/self-state action;
-   - one location/scene movement;
-7. refresh after a normal committed turn and continue the same game;
-8. verify no loader/fallback covers Story or controls;
-9. visually inspect screenshots at Setup/Opening and mid-game, including action controls at the bottom of the mobile viewport;
-10. inspect console and required network requests for uncaught errors, 404/empty-body JSON failures, CORS failures, dead controls, or wrong API origin.
+Required invariant:
+- when the player explicitly chooses a uniquely resolved canonical location movement, the turn must move to that canonical destination and the resulting Story/Observer/Commit must agree;
+- old-location NPC presence must not leak into the destination without actual destination-phase evidence;
+- exact canonical navigation authority must not depend on the Story model deciding whether to honor movement.
 
-### Campaign B — independent desktop path
+## 2. Required execution sequence
 
-Use a second fresh desktop browser context and a different disposable game.
+### A. Sync the existing canon first
+Before accepting any runtime correction:
+1. inventory the EXISTING binding product/narrative/runtime contract docs already in this repository; do not create a new architecture/canon file merely to restate the owner comment;
+2. update only the existing authority documents necessary to make the owner decisions explicit and non-conflicting, at minimum recording:
+   - player agency/action fidelity is top-level product authority;
+   - every new game is the player's first day/first arrival at the company regardless of rank;
+   - player discovers the CSA app and may be curious/tempted, but using it is never a mandatory quest;
+   - CSA APPLY/CHANGE/REMOVE is now a chronological streamed enactment turn, NOT zero-turn mutation (implementation deferred to the later CSA cut, but canon must be corrected now);
+   - player inner thought and NPC Mind Monitor first-person requirements;
+   - high-parity CSA UI and required image/TTS sidecars are not owner-ready deferrals;
+3. if an older contract directly contradicts these decisions, amend/supersede that exact text rather than adding another competing authority layer.
 
-Required:
-1. bare public URL -> new Korean Setup -> Opening;
-2. continue at least 8 committed ordinary turns using a materially different route/action style from Campaign A;
-3. alternate choice and free-input actions;
-4. exercise refresh/re-entry;
-5. exercise one latest-turn feedback revision through the visible UI, then continue with one ordinary turn;
-6. exercise same-game reset once through the visible UI, verify canonical new Opening exactly once, then submit and commit one post-reset Turn1;
-7. exercise history/export presentation and one retained TTS control in the visible state they claim to support;
-8. exercise one already-known-green representative CSA rule through the visible app: apply -> verify revision changes without consuming gameplay turn -> one relevant ordinary Story turn -> remove -> verify readback. Do not use frozen CSA 7/9 and do not turn this into a nine-rule matrix;
-9. visually inspect screenshots before and after the user-facing sidecar operations;
-10. inspect console/network and persisted readback.
+Do not redesign A-prime. This is canon synchronization, not an architecture restart.
 
-Minimum combined ordinary human-like gameplay: 16 committed turns across the two independent games, excluding Opening, reset Opening, feedback transaction, and CSA apply/remove transactions.
+### B. Reproduce/classify P0-A and P0-B before source change
+Use owner game only for read-only evidence. For active reproduction use fresh disposable TEST games.
 
-## 4. What to inspect on every critical step
+Trace for each reproducer:
+`submitted literal -> Story request context -> Story output -> observer raw/applied -> state_after -> committed readback`.
 
-Verify actual usability and evidence, not DOM existence:
-- request goes to `game-proxy-company-r3.zeroslove.workers.dev`, never frontend-origin `/api/r3/*` on the canonical public host;
-- Korean literal action submitted by the UI matches stored literal action;
-- one visible click creates at most one intended job/turn;
-- Story streaming becomes visible without blocking the reading surface;
-- terminal commit returns controls to ready state;
-- current choices are enabled and map to their full current literal action;
-- free input remains usable;
-- refresh/re-entry restores the same committed game state;
-- NPC identity, location/presence, scene_note, refusal/self-state and direct follow-up continuity remain coherent;
-- no obvious Story action/target/topic substitution;
-- no pageerror/uncaught console error/required-request failure;
-- no bootstrap fallback or empty/non-JSON response parse error;
-- screenshots are actually visually reviewed.
+Determine the exact loss/substitution point. Do not assume both failures share one cause.
 
-For sampled critical turns compare submitted literal -> Story -> observer -> state/readback. Do not call a campaign green only because turns committed.
+Inspect specifically:
+- how the literal action is placed into Story context and which instructions can override it;
+- whether CSA context/app state is over-salient and induces invented app interaction;
+- whether R3 already has a structural/canonical navigation resolver or exact catalog authority and where its destination is lost before Story/observer/commit;
+- whether observer/commit can overwrite an already resolved canonical movement with stale Story evidence.
 
-## 5. Defect handling
+### C. Smallest generic root correction
+Fix P0-A/P0-B generically, not as two hard-coded Korean phrases.
 
-If an objective defect is found:
-- capture exact visible + network/state evidence first;
-- classify root cause before source change;
-- apply only the smallest coherent root fix if the defect clearly belongs to the current public-path/frontend/integration surface;
-- add only focused deterministic regression coverage;
-- deploy only affected TEST artifact(s);
-- replay the exact reproducer from a new clean bare-URL context, then resume the remaining campaign;
-- do not ask the owner to reproduce it.
+Allowed direction:
+- strengthen the existing Story action-fidelity contract with static prompt/context wording if the loss is prompt-side;
+- use existing structured/canonical catalog information for exact unique location navigation;
+- carry an already-resolved exact canonical destination through the existing Story/observer/commit flow so it cannot be silently converted back to the source scene;
+- ensure destination-phase presence is reconstructed from valid destination evidence, not source-scene leakage.
 
-If a materially unrelated P0/P1 requires architecture/product authority outside this task, stop at `WAITING_REVIEW` with exact evidence for operator re-scope rather than inventing a broad fix.
+Forbidden:
+- keyword-intent parser;
+- new NER/fuzzy semantic matcher;
+- semantic classifier/gate;
+- deterministic general-purpose action executor;
+- second Story LLM or repair LLM;
+- hidden retry/regeneration;
+- provider/model/temperature/token-limit change;
+- hard-code only `이메이` or `직원 라운지` as a special case;
+- resurrect old v1/v2 generic physical/action DSL or legacy Story->Extract browser orchestration;
+- unrelated CSA enactment implementation in this cut;
+- unrelated reset/schema/migration fix in this cut unless the P0 source investigation proves an inseparable shared deterministic root and operator authority is obtained first.
 
-Do not:
-- change provider/model/temperature/token limits merely to pass QA;
-- rerun/tune frozen CSA7/9;
-- add hidden retry/regeneration or a second Story writer;
-- add a generic parser/semantic gate/compatibility framework;
-- change DB schema/RLS/grants/migrations unless a new deterministic defect proves it necessary and operator re-scopes first;
-- touch Production;
-- mutate preserved historical/QA evidence games.
+### D. Focused regression coverage
+Add/update only focused tests needed for the exact generic invariants.
 
-## 6. Completion gate
+At minimum cover:
+1. addressed NPC/request literal cannot become unrequested player CSA-app interaction;
+2. exact unique canonical location movement resolves to the destination through Story projection and committed state;
+3. destination movement does not carry source NPCs without destination evidence;
+4. same-location/unknown/ambiguous location text fails open without fabricated movement;
+5. existing choice/free-input normal turns remain usable.
 
-This task may report GREEN only if all of the following are demonstrated on the deployed TEST version:
-- mobile clean bare-URL campaign GREEN;
-- independent desktop clean bare-URL campaign GREEN;
-- at least 16 combined ordinary committed turns with human-like action review;
-- refresh/re-entry GREEN in both campaigns;
-- mobile action controls visibly usable;
-- feedback revision + continuation GREEN from bare public path;
-- same-game reset + post-reset Turn1 GREEN from bare public path;
-- history/export + retained TTS control usable from bare public path;
-- one representative non-frozen CSA apply/effect/remove/readback GREEN from bare public path;
-- no frontend-origin `/api/r3/*` request on canonical public host;
-- no blocking fallback, uncaught console exception, required-request failure, empty/non-JSON parse failure, or known objective P0/P1 defect;
-- screenshots visually inspected;
-- visible/narrative state agrees with persisted readback on sampled critical turns.
+Full repository suite is not a completion criterion by itself; run it only if touched dependencies justify it.
 
-If all are GREEN, set this same file to `WAITING_REVIEW`, post the full terminal report to Issue #68, and STOP for operator review. Do not send the owner a test request yourself.
+### E. TEST-only deploy
+If source changes:
+- deploy only affected R3 TEST artifact(s);
+- preserve current secret bindings;
+- no Production;
+- no migration/schema/RLS/grant/provider/model/config change.
 
-## 7. Required terminal report
+### F. Mandatory bare-public live acceptance
+Use the bare canonical frontend URL only:
+`https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Report in Issue #68:
-- exact starting and final main/source SHAs;
-- TEST API/frontend version IDs actually exercised;
-- Campaign A game ID, turn count and coverage summary;
-- Campaign B game ID, turn count and coverage summary;
-- bare-URL network-origin proof;
-- refresh/re-entry evidence for both;
-- feedback/reset/history/TTS/representative-CSA evidence;
-- sampled literal -> Story -> observer/state findings;
-- console/network findings;
-- screenshot visual-inspection findings;
-- any source/test/deploy changes made and why;
-- final classification and any remaining objective defect.
+No `?api=`, no preseeded game_id/storage, no direct-API substitute for gameplay.
 
-## 8. Execution result — WAITING_REVIEW
+Run at least three fresh independent disposable fixtures:
 
-Execution identity:
-- TASK_ID: `company-r3-bare-public-owner-readiness-v1`
-- CURRENT_TASK blob at lease: `4caf00aa95dcacb138a8986ae745c93815c7ed2a`
-- expected branch: `main`
-- starting main/source HEAD: `536f93bd782d449673a8f675ccea586ef61e7f5f`
-- accepted executable/source SHA: `2511ce2a741a769d06aae2f71996185189f30480`
-- final main HEAD: `b251daa9fb0af8dc61359c02900f33f3bf6ce9d1` (this docs-only terminal checkpoint)
+Fixture 1 — owner agency motif:
+- establish a scene with a registered NPC;
+- send the exact owner literal `이메이 사원. 일단 공자룰 좀 확인해보게나` where valid for the created setup;
+- PASS only if target/request intent is respected or ambiguity is naturally clarified, and the player does NOT spontaneously operate the CSA app unless requested.
 
-Campaign evidence:
-- Campaign A mobile fresh bare URL game: `057628e5-21a0-488c-b65b-91fac36db549`; 8 ordinary committed turns. Setup, Opening, mobile controls, choice/free-input mixing, direct NPC conversation and follow-up, non-work/social action, refusal/self-state, movement, refresh/re-entry, and mid-game screenshot inspection were completed.
-- Campaign B desktop fresh bare URL game: `51efe18b-1bc3-435f-a178-bb2d8ee223e4`; 10 ordinary committed turns before the reset gate. The campaign included a materially different choice/free-input route, refresh/re-entry, feedback revision plus one continuation turn, representative non-frozen CSA apply/effect/removal/readback, history/export presentation, and TTS toggle/replay.
-- Combined ordinary committed turns before the failed reset gate: 18. The required post-reset Turn 1 was not performed because retry-until-pass is forbidden and the reset gate failed.
-- TEST artifacts exercised: API `game-proxy-company-r3` version `e4317d6f-9bfe-4774-a744-90789d066d4e`; frontend `gamebuilder-company-r3` version `731cc702-2451-442a-895c-2d10c38dccc9`.
+Fixture 2 — owner navigation motif:
+- from `brand_strategy_office` or another confirmed non-lounge source, submit exact `직원 라운지로 이동한다`;
+- PASS only if Story + observer + committed state end at canonical `employee_lounge` and stale source NPCs do not teleport;
+- refresh/re-entry must preserve the destination.
 
-Reset gate failure:
-- In Campaign B, the visible `초기화` control and confirmation were used once. The reset stream did not return the UI to a canonical new Opening/Turn 0; the original tab became unresponsive during reset processing.
-- Independent same-game re-entry/read-only verification of game `51efe18b-1bc3-435f-a178-bb2d8ee223e4` after approximately 5 seconds and again after approximately 18 seconds still showed the prior `Turn 10`, the original Opening, old chronology, and no reset Opening. The reset acceptance condition therefore FAILED.
-- Static source tracing shows the intended path is frontend `resetGame()` -> `POST /games/:id/reset` -> `resetResponse()` -> `store.resetGame()` -> `company_r3_reset_game` RPC -> Opening stream. The local reset contract tests pass, but deployed TEST behavior contradicts that contract. The remaining boundary is TEST runtime/RPC/deployment integration; no deterministic source-only defect was isolated, and schema/migration or deployed-state changes require operator investigation and re-scope.
+Fixture 3 — independent generic regression:
+- use a different canonical location movement and a different addressed-NPC action/topic;
+- verify the fix is generic rather than phrase-specific.
 
-Other required evidence:
-- Visible Story continuity and controls were reviewed on both campaigns; A had the required mobile bottom controls visible. B feedback revision/continuation, CSA apply/effect/ordinary-turn/remove/active-zero readback, history dialog with MD/TXT controls, and TTS toggle/replay were exercised. Browser download events were not observed by the harness after clicking the visible MD/TXT controls, so export is not claimed as a fully green file-download assertion.
-- App dev-log reads were empty for the exercised tabs. The CDP Network event buffer retained no events, so this run does not claim a complete event-level origin proof; the campaigns did start from the bare canonical public URL and completed visible API-backed Setup/Opening/turn flows without the prior frontend-origin 404 bootstrap failure.
-- Screenshots were captured and visually inspected for mobile Setup/Opening/mid-game and desktop Setup/Opening/CSA before/after/history states.
-- No preserved v1/v2/historical game was modified. No Production access, migration apply, deployment, provider/model change, source/test change, or retry loop was performed. The focused/full local test result was `495 passed, 0 failed`; this does not override the deployed reset failure.
+Then continue 5–8 ordinary human-like turns across the fixtures, including choice + free input, one refusal/self-state action, one non-work/social action, and one direct NPC follow-up. Inspect complete turn text qualitatively, not merely commit/state shape.
 
-Final classification:
-- `WAITING_REVIEW` — owner-ready gate FAILED at same-game reset/post-reset Turn 1. Do not report GREEN or owner-ready. Issue #68 owner manual override `5384780073` also invalidates the prior owner-ready assumptions and requires product-canon remediation before a later handoff; do not create that next task here.
+## 3. Acceptance criteria
+
+This task is acceptable only if:
+- owner canon decisions are synchronized into existing authority docs without creating another competing canon layer;
+- exact P0-A reproducer is fixed on deployed TEST;
+- exact P0-B canonical navigation reproducer is fixed on deployed TEST;
+- independent generic fixture also passes;
+- Story does not invent voluntary player CSA-app operation from topic mention alone;
+- canonical navigation Story/observer/commit/readback agree;
+- source-location NPCs do not leak into destination without evidence;
+- no new agency substitution, fake identity, location/presence contradiction, blocking fallback, console/network blocker, or duplicate turn is found in the narrow replay;
+- screenshots/turn transcripts are actually inspected;
+- no forbidden provider/model/Production/migration changes occurred.
+
+Do NOT claim owner-ready after this cut. The owner override explicitly requires additional remediation phases.
+
+## 4. Next blockers after this cut
+
+Do not implement them inside this task unless separately re-scoped after review. Preserve them explicitly in the terminal report:
+1. CSA APPLY/CHANGE/REMOVE chronological streamed enactment-turn implementation and anti-hijack/private-emotion boundary;
+2. Opening first-arrival motivation + player inner thought + first-person character-specific Mind Monitor + choice diversity/time progression;
+3. high-parity Company-v1 donor CSA UI;
+4. required approved-media image projection + character-aware server TTS;
+5. deployed same-game reset integration failure from previous terminal;
+6. timeline/current-scene UI residuals and holistic owner-style product acceptance.
+
+## 5. Completion report
+
+Post to Issue #68:
+- exact canon docs changed and what conflicting authority was superseded;
+- P0-A and P0-B root causes separately;
+- executable source SHA and changed paths;
+- focused/full test results actually run;
+- TEST artifact version IDs deployed;
+- three bare-public fixture IDs and exact submitted literals;
+- literal -> Story -> observer -> committed state findings;
+- refresh/presence evidence for navigation;
+- screenshots/transcript qualitative review;
+- any remaining objective defect;
+- confirmation that reset and later owner-remediation phases remain open.
+
+Then set this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK yourself.
