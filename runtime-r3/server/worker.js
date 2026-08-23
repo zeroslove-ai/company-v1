@@ -9,10 +9,16 @@ import { R3_MAX_PROGRESS_WRITES, R3_PROGRESS_INTERVAL_CHARS } from './job-policy
 import { body, errorResponse, json, R3_CORS_HEADERS, sse } from './http.js';
 import { bearerCapability, issueGameCapability, requireGameAccessSecret, verifyGameCapability } from './game-capability.js';
 import { R3_ATTEMPT_FENCE_CONFLICT } from './store.js';
-import { createR3Provider, sanitizeObserverFailure } from './provider.js';
+import { createR3Provider, sanitizeObserverFailure, sanitizeObserverFailureEvidence } from './provider.js';
 import { SupabaseR3Store } from './supabase-store.js';
 import { loadWorkerCanonicalContent } from '../domain/worker-content.js';
 import { projectCurrentMedia, resolveCommittedTtsBatch, resolveCommittedTtsVoice, selectApprovedImage } from '../domain/media.js';
+
+function observerFailureState(error) {
+  const code = sanitizeObserverFailure(error);
+  const evidence = sanitizeObserverFailureEvidence(error);
+  return { code, evidence, warnings: ['observer_failed', code, ...(evidence.observer_finish_warning ? [evidence.observer_finish_warning] : [])] };
+}
 
 export function createR3Worker({ store, provider, content, gameAccessSecret, env = {} } = {}) {
   if (!store || !provider || !content) throw new Error('r3_worker_requires_store_provider_content');
@@ -157,8 +163,8 @@ async function processOpening({ store, provider, content, gameId, emit }) {
   const before = await store.context(gameId); if (before.turns.length) { mark('terminal_commit', { replay: true }); emit('terminal', { status: 'committed', context: before }); return; }
   emit('meta', { game_id: gameId, turn_number: 0 }); let storyText = ''; mark('story_request_start');
   for await (const delta of provider.story({ opening: true, context: before, content, onTiming: mark })) { storyText += String(delta); emit('story_delta', { text: String(delta) }); }
-  mark('story_complete'); let observer = {}; let observerFailed = false; let observerFailureCode = null; mark('observer_start'); try { observer = await provider.observe({ context: before, literalAction: '', storyText, content }); mark('observer_complete'); } catch (error) { observerFailed = true; observerFailureCode = sanitizeObserverFailure(error); mark('observer_failed', { observer_error_code: observerFailureCode }); }
-  const normalized = normalizeObserver(observer, { storyText, content, currentState: before.state.state }); if (observerFailed) normalized.warnings.unshift('observer_failed', observerFailureCode);
+  mark('story_complete'); let observer = {}; let observerFailed = false; let observerFailureCode = null; let observerFailureWarnings = []; let observerFailureEvidence = {}; mark('observer_start'); try { observer = await provider.observe({ context: before, literalAction: '', storyText, content }); mark('observer_complete'); } catch (error) { observerFailed = true; const failure = observerFailureState(error); observerFailureCode = failure.code; observerFailureWarnings = failure.warnings; observerFailureEvidence = failure.evidence; mark('observer_failed', { observer_error_code: observerFailureCode, ...observerFailureEvidence }); }
+  const normalized = normalizeObserver(observer, { storyText, content, currentState: before.state.state }); if (observerFailed) normalized.warnings.unshift(...observerFailureWarnings);
   const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: 0 });
   const context = await store.createOpening(gameId, { expectedRevision: before.state.revision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: observer, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
   mark('terminal_commit');
@@ -238,9 +244,9 @@ async function processFeedback({ store, provider, content, gameId, attempt, snap
     mark('story_complete');
     let rawObserver = {}; let observerFailed = false; let observerFailureCode = null; mark('observer_start');
     try { rawObserver = await provider.observe({ context: before, literalAction, storyText, content }); mark('observer_complete'); }
-    catch (error) { observerFailed = true; observerFailureCode = sanitizeObserverFailure(error); mark('observer_failed', { observer_error_code: observerFailureCode }); }
+    catch (error) { observerFailed = true; const failure = observerFailureState(error); observerFailureCode = failure.code; observerFailureWarnings = failure.warnings; observerFailureEvidence = failure.evidence; mark('observer_failed', { observer_error_code: observerFailureCode, ...observerFailureEvidence }); }
     const normalized = normalizeObserver(rawObserver, { storyText, content, currentState: before.state.state });
-    if (observerFailed) normalized.warnings.unshift('observer_failed', observerFailureCode);
+    if (observerFailed) normalized.warnings.unshift(...observerFailureWarnings);
     const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: attempt.targetTurnNumber });
     const context = await store.commitFeedbackRevision({ gameId, attemptId: attempt.attemptId, attempt, revisionRequestId: attempt.revisionRequestId, expectedTurn: attempt.targetTurnNumber, expectedStateRevision: attempt.expectedStateRevision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: rawObserver, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
     mark('terminal_commit'); emit('terminal', { status: 'committed', context });
@@ -272,8 +278,8 @@ async function processTurn({ store, provider, content, gameId, job, emit }) {
   try {
     for await (const delta of provider.story({ literalAction: attempt.literalAction, context: storyContext, csaOperation, content, onTiming: mark })) { const text = String(delta); storyText += text; emit('story_delta', { text }); if (writes < R3_MAX_PROGRESS_WRITES && (writes === 0 || storyText.length - lastProgress >= R3_PROGRESS_INTERVAL_CHARS)) { await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText }); writes += 1; lastProgress = storyText.length; } }
     mark('story_complete'); await store.markStoryComplete({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
-    let rawObserver = {}; let observerFailed = false; let observerFailureCode = null; mark('observer_start'); try { rawObserver = await provider.observe({ literalAction: attempt.literalAction, storyText, context: storyContext, csaOperation, content }); mark('observer_complete'); } catch (error) { observerFailed = true; observerFailureCode = sanitizeObserverFailure(error); mark('observer_failed', { observer_error_code: observerFailureCode }); }
-    const normalized = normalizeObserver(rawObserver, { storyText, content, currentState: storyContext.state.state }); if (observerFailed) normalized.warnings.unshift('observer_failed', observerFailureCode);
+    let rawObserver = {}; let observerFailed = false; let observerFailureCode = null; let observerFailureWarnings = []; let observerFailureEvidence = {}; mark('observer_start'); try { rawObserver = await provider.observe({ literalAction: attempt.literalAction, storyText, context: storyContext, csaOperation, content }); mark('observer_complete'); } catch (error) { observerFailed = true; const failure = observerFailureState(error); observerFailureCode = failure.code; observerFailureWarnings = failure.warnings; observerFailureEvidence = failure.evidence; mark('observer_failed', { observer_error_code: observerFailureCode, ...observerFailureEvidence }); }
+    const normalized = normalizeObserver(rawObserver, { storyText, content, currentState: storyContext.state.state }); if (observerFailed) normalized.warnings.unshift(...observerFailureWarnings);
     if (navigationIntent) normalized.warnings.unshift('canonical_navigation_applied');
     const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: attempt.turnNumber, navigationIntent, content });
     const stateAfter = csaOperation ? applyR3Csa({ state: reduced.state, content, rawOperations: [csaOperation], catalog: createR3CsaCatalog(content.csaPresets) }) : reduced.state;

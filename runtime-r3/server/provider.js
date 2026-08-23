@@ -10,6 +10,7 @@ export const R3_OBSERVER_FAILURE_CODES = Object.freeze([
   'r3_observer_json_invalid',
   'r3_observer_unknown'
 ]);
+const R3_OBSERVER_FINISH_CLASSES = new Set(['length', 'stop', 'other', 'unknown']);
 
 const STORY_SYSTEM_PROMPT = 'Write natural Korean Company interactive fiction as plain text, not JSON. Never escape quotation marks or other ordinary prose punctuation with backslashes. The user context contains the canonical product and a story contract; follow that contract as a hard boundary. For ordinary turns, preserve the submitted literal player action exactly and narrate its consequences without replacing it. The supplied player_agency_contract is a fixed hard boundary: preserve the explicit player actor, target, action, movement/destination, request, refusal, self-state, topic, and intent; consequences are allowed around or after the chosen beat, but do not replace, invert, redirect, or contradict the explicit choice. An explicit player self-state remains true for the chosen scene beat, so do not inject same-beat NPC approach or dialogue that makes that self-state impossible unless the literal permits that interaction. Player input is not automatic proof of external outcome or NPC compliance. Use only the registered Company setting, location, and actors; include workplace and social context without turning the story into a productivity, helpdesk, or chat-assistant task. When active_rules contains an institutional rule, treat every non-empty active rule as an authoritative current-world institutional/system fact already in force, not an optional suggestion or possible future rule. Preserve each rule\'s exact stated content and exact subject/counterparty scope. If an active rule includes execution_timing with request_triggered=true, its when_triggered and future_deferral_allowed values are authoritative after you recognize the stated trigger; do not convert a recognized trigger into a future deferral. When the current scene, literal player action, or naturally narrated consequence materially concerns a rule\'s scoped premise or observable consequence, make that premise visibly true in natural narration and do not silently ignore it. For an active rule whose own mode=on_player_request or request-triggered trigger says it executes on an eligible counterparty request, a current literal player action that is that direct eligible request satisfies the trigger in this turn; begin the rule-required behavior in this same Story turn. A pending_csa_operation is already the exact player app action for this turn: show its immediate institutional/world consequence naturally, without a tutorial, repeated rule explanation, or app-control narration beyond what the submitted literal supports. On later turns, do not substitute the app or rule for an unrelated literal player action. Do not refuse, delay, substitute another action, or route the result to a future discussion because ordinary workplace or social norms would otherwise object. NPC reluctance, embarrassment, anger, protest, hesitation, surprise, dislike, or discomfort may shape the emotional tone, but those feelings cannot veto the rule\'s stated institutional execution. Rule execution alone must not manufacture affection, comfort, consent, desire, romance, obedience-as-personality, trust, relationship, or player sexual state unless the rule itself explicitly states it. Do not force exposition when the scene has no meaningful connection to a rule, and do not mechanically quote or copy the rule text merely to satisfy the contract. Apply only the stated content and scope; activation alone must never imply personal affection, comfort, consent, desire, romance, obedience, relationship, or player sexual state. If the literal player action names a canonical destination, preserve that exact canonical destination name in the Story evidence rather than shortening it to a generic room label. End every Story with one unambiguous final section containing exactly four distinct, natural, complete literal player actions numbered 1 through 4, one action per line. Those four strings are the only choice source and must be visibly present verbatim in the current Story for the Observer to copy. Do not emit OOC, control markers, semantic taxonomies, outcome classifiers, or a second author voice.';
 const OPENING_STORY_SYSTEM_PROMPT = `${STORY_SYSTEM_PROMPT} Opening-only product and agency law before the first literal player input: show the player discovering or recognizing the unfamiliar private app named in product.app_name/product.title while NPCs remain ignorant until the player reveals it. Passive scene exposure is allowed, including the private app being present, appearing, visible, or available for the player to notice, but do not make the player choose or perform an interaction. Do not author any voluntary player speech or reply, nod or gesture, movement, touching, clicking, typing, opening, closing, hiding the app, drinking, eating, reviewing, working, acknowledging, deciding, accepting, refusing, or other intentional player action. Do not state or imply a completed player choice. End with the player still free to choose among the four Story-authored actions or free-form input.`;
@@ -103,9 +104,17 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
         const raw = payload?.choices?.[0]?.message?.content;
         if (typeof raw !== 'string') throw observerFailureError('r3_observer_message_missing');
         try { return JSON.parse(raw.replace(/^```json\s*/i, '').replace(/\s*```$/, '')); }
-        catch { throw observerFailureError('r3_observer_json_invalid'); }
+        catch {
+          throw observerFailureError('r3_observer_json_invalid', {
+            observerFinishClass: sanitizeObserverFinishClass(payload?.choices?.[0]?.finish_reason),
+            observerCompletionTokens: boundedCompletionTokens(payload?.usage?.completion_tokens)
+          });
+        }
       } catch (error) {
-        throw observerFailureError(sanitizeObserverFailure(error));
+        throw observerFailureError(sanitizeObserverFailure(error), {
+          observerFinishClass: error?.observerFinishClass,
+          observerCompletionTokens: error?.observerCompletionTokens
+        });
       } finally { handle?.cancel(); }
     }
   };
@@ -119,7 +128,34 @@ export function sanitizeObserverFailure(error) {
   return 'r3_observer_unknown';
 }
 
-function observerFailureError(code) { const error = new Error(code); error.code = code; return error; }
+export function sanitizeObserverFailureEvidence(error) {
+  if (sanitizeObserverFailure(error) !== 'r3_observer_json_invalid') return {};
+  const finishClass = R3_OBSERVER_FINISH_CLASSES.has(error?.observerFinishClass) ? error.observerFinishClass : 'unknown';
+  const evidence = { observer_finish_warning: `r3_observer_finish_${finishClass}` };
+  if (Number.isSafeInteger(error?.observerCompletionTokens) && error.observerCompletionTokens >= 0 && error.observerCompletionTokens <= 1_000_000) {
+    evidence.observer_completion_tokens = error.observerCompletionTokens;
+  }
+  return evidence;
+}
+
+function sanitizeObserverFinishClass(value) {
+  if (value === 'length' || value === 'stop') return value;
+  if (typeof value === 'string' && value.trim()) return 'other';
+  return 'unknown';
+}
+
+function boundedCompletionTokens(value) {
+  return Number.isSafeInteger(value) && value >= 0 && value <= 1_000_000 ? value : null;
+}
+
+function observerFailureError(code, details = {}) {
+  const error = new Error(code); error.code = code;
+  if (code === 'r3_observer_json_invalid') {
+    error.observerFinishClass = R3_OBSERVER_FINISH_CLASSES.has(details.observerFinishClass) ? details.observerFinishClass : 'unknown';
+    error.observerCompletionTokens = details.observerCompletionTokens;
+  }
+  return error;
+}
 
 function timeoutError(code) { const error = new Error(code); error.code = code; return error; }
 function timeoutPromise(ms, code, onTimeout) { let timer; const promise = new Promise((_, reject) => { timer = setTimeout(() => { onTimeout?.(); reject(timeoutError(code)); }, Math.max(0, ms)); }); return { promise, cancel: () => clearTimeout(timer) }; }
