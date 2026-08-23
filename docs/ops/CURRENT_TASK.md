@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-post-apply-next-interaction-v1
 Mode: CLASSIFY POST-APPLY STALL -> FIX NEXT-INTERACTION LIFECYCLE -> REDEPLOY TEST -> RESUME CSA LIVE ACCEPTANCE
 Updated: 2026-08-23 18:56 KST
@@ -255,3 +255,22 @@ Do not implement these inside this task:
 4. deployed same-game reset integration failure;
 5. timeline/current-scene UI residue;
 6. final holistic owner-style long-play acceptance.
+
+## 11. Watcher terminal evidence
+
+Result: GREEN for this bounded cut; owner-ready is not claimed.
+
+- Primary root classification: A (UI dispatch/control/overlay/focus prevented POST). On preserved failed fixture `c7ef0a23-0513-44c0-ab6c-7f02711487b9`, the post-APPLY unrelated action did not emit a click/submit network request. Hit-testing the submit center returned `#csa-app-overlay` (`role=dialog`) over `#submit-action`; there was no POST, no SSE, and no Turn 3 job. The visible input remained and no useful error was shown. No retry was performed.
+- Exact source correction: `frontend-r3/csa.js` hides the CSA overlay before dispatching an operation; `frontend-r3/app.js` calls `csaUi.sync()` after `state.busy` clears. Regression coverage was added in `test/r3-frontend-contract.test.mjs`.
+- Source commit: `cbb4f3581e692e67e7849591bee280e967e99b7f` (pushed to `origin/main`).
+- TEST frontend deployment: `gamebuilder-company-r3` version `28ff4453-962a-4d2e-bb95-611c76329b1b`. API remained accepted version `c8c0b390-db3e-45cf-900d-70a91cbab231`.
+- Fresh bare-public disposable fixture: `be06c9f2-d08c-47c4-803d-c53e07536c2a`. Preserved failed fixture was not modified.
+- Gate 1: Opening Turn 0; ordinary free-input Turn 1; visible APPLY produced exactly one streamed committed Turn 2; the unrelated exact literal `윤민아 대리를 따라 복도로 나가 괜찮은지 조용히 확인한다.` produced an actual POST/SSE and committed Turn 3 in about 15.6 seconds with no `csa_operation`, visible Story, cleared input, and enabled submit control. The request used the ordinary path and preserved the literal action.
+- Gate 2: after the APPLY terminal, CHANGE and REMOVE were reachable and enabled after busy cleared. CHANGE produced exactly one streamed committed Turn 4; the CSA app reopened with the active card controls usable.
+- Gate 3: visible choice Turn 5, REMOVE produced exactly one streamed committed Turn 6, refresh/re-entry restored Turn 0 through Turn 6 and active rule count 0 with zero active effect cards, then visible choices continued through Turns 7 and 8. An explicit player self-state free input committed Turn 9 with the exact literal preserved. This provides 10 chronological turns (Turn 0 through Turn 9), two-plus visible choice clicks, movement/social interaction, and explicit self-state agency.
+- Story/choice findings: post-operation Story remained workplace/social and supplied four distinct choices; no CSA tutorial/escalation collapse was observed. Mind Monitor after the sequence showed neutral/private text such as `차분함` and `실용적`, with no affection, comfort, desire, arousal, attraction, excitement, trust, or liking claim caused by compliance alone.
+- Mobile: with a temporary 390x844 viewport, the fresh DOM exposed four enabled choice buttons plus visible/enabled direct-input, execute, and CSA-app controls. The viewport override was reset before completion.
+- Diagnostics: browser console error/warn logs were empty after the live sequence. Gate 1 captured HTTP 200 `text/event-stream` for the ordinary Turn 3 request; client abort after terminal SSE was the expected stream cleanup. No stale CSA operation was present on the ordinary request.
+- Deterministic validation: focused suite 54/54 PASS; full `npm.cmd test` 507/507 PASS; changed JS/MJS syntax checks PASS; `git diff --check` PASS.
+- Forbidden operations not performed: Production, provider/model/config tuning, timeout changes, migration/schema/RLS/grant changes, reset, secret changes, and owner/preserved-game mutation.
+- Remaining objective defects for this cut: none observed. Further owner-remediation phases remain explicitly out of scope in section 10.
