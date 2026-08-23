@@ -1,262 +1,243 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-observer-fail-open-error-provenance-v1
-Mode: FREEZE OBSERVER COMPLETENESS SOURCE -> CLASSIFY SANITIZED OBSERVER FAIL-OPEN ERROR -> API-ONLY TEST -> ONE FRESH DIAGNOSTIC REPRODUCTION
-Updated: 2026-08-24 06:31 KST
+Status: READY
+Task ID: company-r3-tts-end-to-end-live-acceptance-v1
+Mode: SOURCE-FROZEN TTS END-TO-END LIVE ACCEPTANCE ONLY
+Updated: 2026-08-24 06:34 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5388504312`
-Operator review: Issue #68 comment `5388523048`
+Previous terminal: Issue #68 comment `5388575659`
+Operator review: Issue #68 comment `5388589127`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery/source branch. Work on `main` only.
 
-## 0. Frozen reviewed lineage
+## 0. Accepted source and TEST baseline — freeze
 
-Reviewed source under diagnosis:
-- `16835882d55a11c10b47d1bc60e2e034eecec4d4`
+Accepted executable/source:
+- `fcaed189913229472d0e793a3338331463f10359`
 
-Terminal main before this registration:
-- `ace131f35024e31efb2b6200acb9594d6812d421`
-- direct docs-only child of source `16835882...`.
+Reviewed terminal main before this registration:
+- `ed2c3cf931500b2a09fbc231465d0db65fbc1af7`
+- direct docs-only child of accepted source `fcaed189...`.
 
-Source change already reviewed:
-- `runtime-r3/server/provider.js`
-- `test/r3-opening-contract.test.mjs`
-- completeness contract only; no model/options/runtime persistence changes.
+Accepted TEST artifacts:
+- API `game-proxy-company-r3@df7cbc85-6f8a-4247-9d39-1a7a8f2c5aea`
+- Frontend `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`
+- bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Reported validation on that source:
-- focused Observer/provider/media/source set: 35/35 PASS
-- full `npm.cmd test`: 541/541 PASS
-- syntax: PASS
-- `git diff --check`: PASS
+Accepted validation from the preceding cut:
+- focused provider/worker/observer/media: 20/20 PASS
+- full `npm.cmd test`: 544/544 PASS
+- syntax/diff checks: PASS
+- Wrangler API dry-run: PASS
 
-TEST artifacts at terminal:
-- API `game-proxy-company-r3@23d5ccee-004a-4923-9717-cb715222267c`
-- frontend frozen `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`
-
-Freeze unchanged:
-- Observer dialogue completeness prompt semantics from source `16835882...`
-- quote-escape normalizer parity
-- server committed-dialogue TTS authorization
-- frontend TTS/media behavior
-- choice dispatch, agency, navigation, canonical identity
-- CSA chronology
-- reset/current-scene/History
-- timeout terminalization
-- DB schema/RPC/migrations
-- provider model/options/timeouts/token budgets
+Freeze as already GREEN:
+- Observer dialogue completeness contract;
+- quote-escape evidence parity;
+- sanitized Observer fail-open provenance taxonomy;
+- server exact committed-dialogue TTS authorization;
+- TTS_WORKER binding and heroine voice mappings;
+- TTS fresh-session OFF => zero calls;
+- approved image grounding/fail-open;
+- exact visible choice dispatch;
+- player agency/navigation/canonical identity;
+- Story-owned exact-four choices;
+- CSA draft/Revert/APPLY/CHANGE/REMOVE chronology;
+- reset/current-scene/History;
+- turn timeout/terminalization;
+- browser `speechSynthesis` absent.
 
 Preserved READ ONLY games include:
-- owner manual game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`
-- prior Observer omission fixture `be0a3e57-e36d-4f5a-86b9-75d60e2dfbef`
-- current whole-Observer failure fixture `dad18276-dfff-4eb5-9277-90cc12f7a41e`
-- every previously preserved fixture.
+- owner manual game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`;
+- prior Observer omission fixture `be0a3e57-e36d-4f5a-86b9-75d60e2dfbef`;
+- prior whole-Observer failure fixture `dad18276-dfff-4eb5-9277-90cc12f7a41e`;
+- successful provenance diagnostic fixture `81cf07ae-ccc2-42c6-8e3c-fd8339efe133`;
+- all previously preserved holistic/media/identity/CSA fixtures.
 
-## 1. Correct classification of terminal 5388504312
+Do not mutate, reset, revise, retry, or regenerate any preserved game.
 
-Do NOT classify the fresh result as a proven normal Observer response that violated the new dialogue-completeness prompt.
+## 1. Purpose
 
-READ ONLY evidence for game `dad18276-dfff-4eb5-9277-90cc12f7a41e`, Turn 1:
-- Story contains multiple clearly attributed direct quoted lines from registered heroine 서원희;
-- the heroine is present in committed `present_actor_ids`;
-- `observer_raw = {}`;
-- `observer_applied.dialogue_lines = []`;
-- warnings include `observer_failed` and `choices_observer_mismatch`.
+The prior diagnostic fresh game proved a normal committed turn can now contain:
+- non-empty `observer_raw`;
+- registered/present heroine dialogue candidates;
+- non-empty committed `observer_applied.dialogue_lines`;
+- no `observer_failed` or sanitized Observer error code.
 
-Current runtime boundary in `runtime-r3/server/worker.js`:
-- `provider.observe()` is inside a broad `try/catch`;
-- on any throw, runtime sets the raw observer to `{}`;
-- the exception identity is discarded;
-- only generic `observer_failed` is persisted.
+The remaining unproven owner-ready media requirement is the browser-visible TTS path after a valid committed heroine dialogue projection.
 
-Therefore current evidence cannot distinguish at least:
-- `r3_observer_timeout`;
-- provider HTTP failure (`r3_provider_<status>`);
-- response/body JSON parse failure;
-- missing provider message/content;
-- final Observer JSON parse/truncation;
-- another bounded Observer transport/shape exception.
+This task is acceptance only. Do not patch source.
 
-The next repair cannot be selected until this boundary is proven.
+Required end-to-end path:
+`committed heroine dialogue -> frontend current view -> visible TTS ON -> R3 /media/tts -> server committed-dialogue authorization -> TTS_WORKER binding -> audio URL -> audio element/cache -> Replay with zero new synthesis`.
 
-## 2. Goal — error provenance only
+Then prove a later committed turn cannot apply a stale prior-turn async result as current media/TTS state.
 
-Add the minimum bounded observability needed to preserve a sanitized Observer fail-open error class while keeping the existing fail-open product behavior.
+Do not start holistic V5 in this task.
 
-Required behavior:
-1. successful Observer behavior is byte/semantic unchanged;
-2. Observer failure still MUST NOT block Story commit;
-3. failure still yields empty raw Observer semantics for normalization;
-4. a stable sanitized error code identifies the failure class;
-5. no raw provider body, prompt, secret, stack, arbitrary exception message, or user text is persisted;
-6. the code is available in committed evidence/warnings and preferably the existing timing event if that can be done without a second authority;
-7. all existing generic `observer_failed` compatibility evidence may remain, but the exact bounded code must additionally be recoverable.
+## 2. Preflight — no drift, zero deploy
 
-Preferred stable classes:
-- `r3_observer_timeout`
-- `r3_observer_provider_http`
-- `r3_observer_response_json_invalid`
-- `r3_observer_message_missing`
-- `r3_observer_json_invalid`
-- `r3_observer_unknown`
+Before gameplay prove:
+1. current main is a docs-only descendant of `fcaed189913229472d0e793a3338331463f10359`;
+2. source files from that accepted commit are unchanged on main;
+3. TEST API is exactly `df7cbc85-6f8a-4247-9d39-1a7a8f2c5aea`;
+4. TEST frontend is exactly `71416b75-9cca-45ee-9b32-7cf209f16395`;
+5. if artifacts match, deployment count for this task is ZERO;
+6. run full `npm.cmd test` and record exact count;
+7. `git diff --check` must pass.
 
-If existing source already has a more precise stable code for a branch, preserve it rather than inventing a duplicate vocabulary.
+If source or deployment drift exists, stop `BLOCKED_DEPLOYMENT_OR_SOURCE_DRIFT`; do not redeploy or repair within this task unless the only discrepancy is a provably docs-only main descendant and deployed executable remains exact.
 
-## 3. Expected source boundary
+## 3. Hard prohibitions
 
-Expected files:
-- `runtime-r3/server/provider.js` — classify only Observer response/parse boundary where necessary;
-- `runtime-r3/server/worker.js` — preserve sanitized Observer error code through existing fail-open path;
-- focused tests for provider/worker fail-open provenance.
-
-Do not change other files unless a deterministic failing test proves unavoidable. If scope would broaden into gameplay semantics, stop `BLOCKED_OBSERVER_PROVENANCE_SCOPE`.
-
-## 4. Mandatory deterministic tests
-
-Before live deployment, cover at minimum:
-- Observer timeout -> Story commit remains fail-open + sanitized timeout code persisted;
-- provider non-2xx -> fail-open + sanitized provider HTTP class;
-- invalid top-level HTTP response JSON/body -> sanitized response JSON class;
-- missing `choices[0].message.content` -> sanitized missing-message class;
-- malformed/truncated Observer content JSON -> sanitized Observer JSON class;
-- unknown thrown error -> sanitized unknown class only, no raw message leakage;
-- successful Observer -> no failure code and existing normalized output unchanged;
-- generic `observer_failed` remains if existing contracts/tests depend on it;
-- Story choices continue to come from Story tail/fail-open path exactly as before;
-- no retry or second Observer request is introduced;
-- full accepted suite remains GREEN.
-
-Run:
-- focused provider/worker/observer/media tests;
-- full `npm.cmd test`;
-- `node --check` for changed JS/MJS;
-- `git diff --check`.
-
-Record exact counts.
-
-## 5. Hard prohibitions
-
-Do NOT in this task:
-- change `OBSERVER_DIALOGUE_COMPLETENESS_PROMPT` wording;
-- change Story prompt semantics;
-- change model, `temperature`, thinking mode, `max_tokens`, Observer timeout, Story timeout;
-- add retry/regeneration;
-- add a second Observer call;
-- add Story dialogue parser/fallback;
-- parse Story in frontend for TTS;
-- change normalizer grounding rules;
-- change media/TTS authorization or frontend TTS;
+Do NOT:
+- edit product source/tests/content/config;
+- deploy API or frontend when preflight versions match;
+- change prompts, model, `max_tokens`, temperature, thinking, timeouts;
+- add retry/regeneration or a second Observer;
+- add Story parser/fallback;
+- change normalizer/media/TTS/frontend behavior;
 - change DB schema/table/RPC/migration/RLS/grants;
-- change content/voice mapping;
 - touch Production;
-- mutate/retry/reset any preserved game.
+- use direct provider/TTS worker calls from the browser;
+- use `?api=` override, storage/localStorage preseed, DOM mutation, synthetic/direct JS submit, or direct gameplay API;
+- mutate preserved games.
 
-Do not guess that `max_tokens=1600` is the cause. Prove the exact class first.
+Read-only DB/context inspection is allowed only to verify committed evidence after visible bare-public actions.
 
-## 6. TEST deployment
+## 4. Fresh bare-public game and projection-first gate
 
-If deterministic tests are GREEN:
-- deploy exact diagnostic source to TEST API `game-proxy-company-r3` only;
-- frontend remains exactly `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`;
-- frontend deploy count 0;
-- preserve all existing env/model/options/timeouts/token budgets/secrets/TTS_WORKER binding;
-- no Production and no migration.
+Use only the bare public frontend and create ONE NEW disposable TEST game through visible setup.
 
-Record exact API Worker version.
+If TTS persisted state opens ON, visibly switch it OFF before the qualifying ordinary turn. Do not modify storage directly.
 
-## 7. Fresh live diagnostic — one attempt, no manufacture
+Reach one natural ordinary committed turn likely to contain direct dialogue from a registered heroine. One natural free-form input is allowed; do not retry/regenerate the same semantic action to manufacture a favorable projection.
 
-Use only bare public frontend:
-`https://gamebuilder-company-r3.zeroslove.workers.dev`
+Before TTS ON, prove for the SAME committed turn:
+- exact visible Story dialogue text;
+- exact heroine canonical `actor_id` and name;
+- heroine is in committed `present_actor_ids`;
+- `observer_raw.dialogue_lines` contains the exact heroine speaker/text candidate;
+- `observer_applied.dialogue_lines` contains the accepted exact same speaker/text;
+- frontend current view contains that committed dialogue projection;
+- canonical repository `voice_id` exists for the heroine;
+- no `observer_failed` warning and no sanitized Observer failure code.
 
-Create ONE new disposable TEST game through visible UI.
-Do not use `?api=` override, localStorage/storage preseed, DOM mutation, direct gameplay API, direct provider API, or preserved game reuse.
-
-Use one natural ordinary turn after Opening. Prefer a simple visible interaction likely to contain registered heroine dialogue, but do not retry/regenerate the same semantic action to force a failure or success.
-
-If the Observer succeeds:
-- record `observer_raw` non-empty/shape and whether qualifying heroine dialogue is present;
-- record no observer failure code;
-- classify terminal `OBSERVER_FAILURE_NOT_REPRODUCED`;
-- do not infer the prior failure cause and do not start TTS/holistic acceptance in this task.
-
-If the Observer fail-opens:
-- prove `observer_raw={}` or equivalent fail-open state;
-- prove generic `observer_failed` behavior remains;
-- capture the exact sanitized error code;
-- classify according to that code and STOP.
-
-Expected terminal dispositions:
+If Observer fail-opens, preserve the new fixture and STOP with the exact provenance disposition:
 - `DIAGNOSED_OBSERVER_TIMEOUT`
 - `DIAGNOSED_OBSERVER_PROVIDER_HTTP`
 - `DIAGNOSED_OBSERVER_RESPONSE_JSON_INVALID`
 - `DIAGNOSED_OBSERVER_MESSAGE_MISSING`
 - `DIAGNOSED_OBSERVER_JSON_INVALID`
-- `DIAGNOSED_OBSERVER_UNKNOWN`
-- `OBSERVER_FAILURE_NOT_REPRODUCED`
-- `BLOCKED_OBSERVER_PROVENANCE_SCOPE`
+- `DIAGNOSED_OBSERVER_UNKNOWN`.
 
-No repair of the diagnosed cause inside this task.
+If Observer succeeds but a clearly qualifying registered/present heroine line is absent from `observer_raw.dialogue_lines`, STOP `FAILED_PRODUCT_OBSERVER_DIALOGUE_OMISSION`.
 
-## 8. Terminal evidence for this execution
+If raw candidate exists but the valid line is absent from `observer_applied.dialogue_lines`, STOP `FAILED_PRODUCT_DIALOGUE_NORMALIZATION`.
 
-Implementation source commit:
-- `fcaed18` (`r3 classify Observer fail-open errors`)
-- changed files: `runtime-r3/server/provider.js`, `runtime-r3/server/worker.js`, `test/r3-observer-failure-provenance.test.mjs`
+Do not touch TTS after any projection failure.
 
-Implemented sanitized taxonomy:
-- `r3_observer_timeout`
-- `r3_observer_provider_http`
-- `r3_observer_response_json_invalid`
-- `r3_observer_message_missing`
-- `r3_observer_json_invalid`
-- `r3_observer_unknown`
+## 5. TTS OFF baseline
 
-The provider emits only one of these stable codes for an Observer failure. The worker preserves fail-open `{}` Observer semantics, keeps generic `observer_failed`, adds the sanitized code to committed warnings, and emits the same code in the existing `observer_failed` timing event. Raw provider bodies, status text, arbitrary exception messages, prompts, secrets, and user text are not persisted as error provenance. No retry or second Observer call was added; Story-authored choices remain the committed choice source.
+With the qualifying committed turn current and TTS visibly OFF:
+- observed browser `/media/tts` request count for that turn must be 0;
+- no browser-direct external TTS provider request;
+- no browser `speechSynthesis`;
+- no stale prior-game audio should be represented as current-turn synthesized dialogue.
 
-Validation:
-- focused provider/worker/observer/media set: `20/20 PASS`;
-- full `npm.cmd test`: `544/544 PASS`;
-- `node --check` for all three changed JS/MJS files: PASS;
-- `git diff --check`: PASS;
-- Wrangler API dry-run: PASS.
+## 6. TTS ON end-to-end acceptance
 
-TEST deployment:
-- API `game-proxy-company-r3@df7cbc85-6f8a-4247-9d39-1a7a8f2c5aea`;
-- frontend unchanged: `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`;
-- frontend deploy count: `0`;
-- no Production, migration, schema/RPC/RLS, secret, model, prompt, option, timeout, token-budget, retry, parser, media, or TTS change.
+After all projection preconditions are proven:
+1. click the visible TTS toggle ON exactly once;
+2. prove browser sends the R3 `/media/tts` request for an exact current committed heroine speaker/text batch;
+3. request speaker id and text must match committed `observer_applied.dialogue_lines`, not raw Story parsing or client invention;
+4. R3 media endpoint must return success with a valid audio URL;
+5. source contract must still route server-side through `TTS_WORKER`; browser must not call the external TTS worker/provider directly;
+6. returned URL must be assigned to the persistent audio element/current TTS cache;
+7. UI must not show `Voice unavailable` for the successful eligible request;
+8. autoplay policy may be separately recorded as a browser limitation only after a valid URL/cache is proven;
+9. record exact `/media/tts` request count and status.
 
-Fresh live diagnostic through the bare public UI:
-- game: `81cf07ae-ccc2-42c6-8e3c-fd8339efe133`;
-- one ordinary action, committed Turn 1: `이메이 사원에게 인사하고, 오늘 일정이 궁금하다고 묻는다.`;
-- Story committed with four Story-authored choices;
-- read-only committed context showed non-empty `observer_raw` with `scene_note`, `mind_monitor`, `present_actor_ids`, four `choices`, and four qualifying `dialogue_lines`; `observer_applied` was also present;
-- no `observer_failed` warning and no sanitized Observer failure code; the applied context had only existing dialogue projection diagnostics;
-- no TTS, additional turn, retry, regeneration, reset, or preserved-game mutation was performed.
+Failure classifications:
+- eligible current projection + visible ON but zero R3 `/media/tts` => `FAILED_PRODUCT_TTS_ENQUEUE`;
+- request sent but `dialogue_not_committed`/authorization rejection => `FAILED_PRODUCT_TTS_AUTHORIZATION`;
+- authorized request reaches R3 service path but TTS binding/upstream fails => `FAILED_PRODUCT_TTS_SERVICE` with exact bounded status/error evidence;
+- valid audio URL obtained but audible autoplay alone is blocked => `BROWSER_AUTOPLAY_LIMITATION`, not a server authorization failure.
 
-Disposition: `OBSERVER_FAILURE_NOT_REPRODUCED`.
-All preserved fixtures remained READ ONLY.
+Stop on the first decisive failure. Do not repair it in this task.
 
-## 9. Completion protocol
+## 7. Replay cache
 
-At completion report to Issue #68:
-- starting main;
-- source SHA and final main SHA;
-- changed files;
-- exact sanitized error taxonomy implemented;
-- proof no raw error/provider body/secret leakage;
-- focused/full/syntax/diff results;
-- TEST API version and unchanged frontend version;
-- fresh game id/turn;
-- Story/Observer success-or-fail-open state;
-- exact observer error code if reproduced;
-- confirmation request count stayed one Observer attempt;
-- confirmation no prompt/model/token/timeout/retry/parser/frontend/DB/migration/Production change;
-- confirmation all preserved fixtures remained READ ONLY;
+After one successful current-turn audio URL/cache fill:
+- record `/media/tts` count immediately before Replay;
+- click visible Replay exactly once;
+- Replay must use the current cached audio where the existing contract applies;
+- `/media/tts` synthesis request delta for Replay must be 0;
+- replayed identity must still correspond to the same current committed heroine dialogue;
+- no `speechSynthesis`.
+
+If Replay emits a new synthesis request for an already cached identical current-turn batch, STOP `FAILED_PRODUCT_TTS_REPLAY_CACHE`.
+
+## 8. Next-turn stale fencing
+
+After successful Replay:
+1. visibly switch TTS OFF before submitting the next ordinary action, to keep next-turn synthesis count deterministic;
+2. submit one distinct natural ordinary action through the public UI exactly once;
+3. require exactly one durable next-turn commit;
+4. if Observer fails, record the exact new provenance code but do not retry;
+5. current Story/view identity must advance to the new committed turn;
+6. no late async response from the prior turn may overwrite the new turn's current dialogue/media identity;
+7. with TTS OFF, the next turn must generate zero new `/media/tts` requests;
+8. persistent cached audio may remain replayable as historical/current cache behavior if that is the existing contract, but it must not be mislabeled or auto-applied as synthesized dialogue for the new turn.
+
+If stale prior-turn async state overwrites current-turn identity, STOP `FAILED_PRODUCT_TTS_STALE_FENCE`.
+
+## 9. GREEN exit
+
+GREEN only if all are proven in one fresh disposable game:
+- projection-first gate GREEN;
+- TTS OFF = zero calls;
+- visible TTS ON sends correct R3 request;
+- server authorization succeeds;
+- server binding returns valid audio URL;
+- browser uses returned URL without direct provider call;
+- Replay adds zero synthesis requests;
+- subsequent distinct turn commits once;
+- next-turn TTS OFF = zero calls;
+- no stale prior-turn media/TTS overwrite;
+- no Observer failure during the qualifying TTS turn;
+- no source/deploy/provider/model/DB/Production change;
+- full tests remain GREEN.
+
+Terminal disposition on full success:
+`TTS_END_TO_END_GREEN`.
+
+This does NOT authorize Production and does NOT claim owner-ready. Holistic V5 must be a separate next task after operator review.
+
+## 10. Completion protocol
+
+At completion post a NEW Issue #68 terminal comment recording:
+- start main / final main / current task blob;
+- accepted executable source;
+- deployed API/frontend versions and deployment count 0;
+- full test count and diff check;
+- fresh disposable game id;
+- qualifying turn number/action;
+- heroine id/name/voice mapping;
+- exact raw/applied dialogue evidence;
+- Observer warnings/provenance state;
+- TTS OFF request count;
+- TTS ON request identity/count/status;
+- audio URL/cache evidence;
+- proof server R3 path and no browser-direct provider request;
+- Replay request delta;
+- next-turn commit and TTS OFF count;
+- stale-fencing evidence;
+- any autoplay-only limitation separately;
+- preserved fixtures READ ONLY confirmation;
+- zero source/deploy/provider/model/DB/migration/Production changes;
 - exact disposition.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal report, and stop.
 
-Do not generate the next task yourself. Do not start holistic V5. Do not claim owner-ready.
+Do not create the next task yourself. Do not start holistic V5. Do not claim owner-ready.
