@@ -201,6 +201,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /If the current Story does not ground a useful scene_note, return an empty string/i);
   assert.match(observerSystem, /natural first-person Korean/i);
   assert.match(observerSystem, /player_inner_thought/i);
+  assert.match(observerSystem, /required and must be non-empty/i);
 
   const correctedLocation = normalizeObserver({ location: { location_id: 'brand_strategy_office', quote: '브랜드전략팀 회의실에 들어선다.' } }, { storyText: '브랜드전략팀 회의실에 들어선다.', content, currentState: state });
   assert.equal(correctedLocation.location.location_id, 'brand_strategy_meeting_room');
