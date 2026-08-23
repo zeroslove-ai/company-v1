@@ -78,6 +78,73 @@ test('committed dialogue is the only TTS input and canonical voice is exact', ()
   assert.equal(resolveCommittedTtsVoice({ content, speakerId: 'remote', spokenText: batch.text }).eligible, false);
 });
 
+test('server authorizes each exact current heroine batch without reselecting frontend primary', () => {
+  const heroine2 = content.characters.heroine2;
+  const heroine5 = content.characters.heroine5;
+  const heroine2Quote = heroine2.name + ' said "Mina exact line".';
+  const heroine5Quote = heroine5.name + ' said "May exact line".';
+  const context = contextFor({
+    present: ['heroine2', 'heroine5'],
+    story: heroine2Quote + '\n' + heroine5Quote,
+    observerApplied: {
+      focal_actor: { actor_id: 'heroine5', quote: heroine5Quote },
+      dialogue_lines: [
+        { speaker_id: 'heroine2', text: 'Mina exact line', evidence_quote: heroine2Quote },
+        { speaker_id: 'heroine5', text: 'May exact line', evidence_quote: heroine5Quote }
+      ]
+    }
+  });
+  assert.equal(resolveCommittedTtsBatch({ context, content, speakerId: 'heroine5', spokenText: 'May exact line' })?.text, 'May exact line');
+});
+
+test('server TTS authorization keeps exact latest-turn and fail-open boundaries', () => {
+  const heroine2 = content.characters.heroine2;
+  const heroine5 = content.characters.heroine5;
+  const heroine2Quote = heroine2.name + ' said "Mina exact line".';
+  const heroine5Quote = heroine5.name + ' said "May exact line".';
+  const current = contextFor({
+    present: ['heroine2', 'heroine5'],
+    story: heroine2Quote + '\n' + heroine5Quote,
+    observerApplied: {
+      focal_actor: { actor_id: 'heroine5', quote: heroine5Quote },
+      dialogue_lines: [
+        { speaker_id: 'heroine2', text: 'Mina exact line', evidence_quote: heroine2Quote },
+        { speaker_id: 'heroine5', text: 'May exact line', evidence_quote: heroine5Quote }
+      ]
+    }
+  });
+  assert.equal(resolveCommittedTtsBatch({ context: current, content, speakerId: 'heroine2', spokenText: 'Mina exact line' })?.text, 'Mina exact line');
+  assert.equal(resolveCommittedTtsBatch({ context: current, content, speakerId: 'heroine5', spokenText: 'May exact line' })?.text, 'May exact line');
+  assert.deepEqual(resolveCommittedTtsVoice({ content, speakerId: 'heroine5', spokenText: 'May exact line' }), { eligible: true, voice_id: heroine5.voice_id });
+  assert.equal(resolveCommittedTtsBatch({ context: current, content, speakerId: 'heroine5', spokenText: 'May exact' }), null);
+  assert.equal(resolveCommittedTtsBatch({ context: current, content, speakerId: 'heroine5', spokenText: 'Mina exact line' }), null);
+
+  const stale = { ...current, state: { ...current.state, committed_turn: 2 }, turns: [
+    { turn_number: 1, revision: 1, story_text: heroine5Quote, observer_applied: { dialogue_lines: [{ speaker_id: 'heroine5', text: 'May exact line', evidence_quote: heroine5Quote }] } },
+    { turn_number: 2, revision: 1, story_text: heroine2Quote, observer_applied: { dialogue_lines: [{ speaker_id: 'heroine2', text: 'Mina exact line', evidence_quote: heroine2Quote }] } }
+  ] };
+  assert.equal(resolveCommittedTtsBatch({ context: stale, content, speakerId: 'heroine5', spokenText: 'May exact line' }), null);
+
+  const absent = contextFor({ present: ['heroine2'], story: heroine5Quote, observerApplied: { dialogue_lines: [{ speaker_id: 'heroine5', text: 'May exact line', evidence_quote: heroine5Quote }] } });
+  assert.equal(resolveCommittedTtsBatch({ context: absent, content, speakerId: 'heroine5', spokenText: 'May exact line' }), null);
+
+  const general = contextFor({ present: ['general_seo_hyejin'], story: '서혜진 said "General line".', observerApplied: { dialogue_lines: [{ speaker_id: 'general_seo_hyejin', text: 'General line', evidence_quote: '서혜진 said "General line".' }] } });
+  assert.equal(resolveCommittedTtsBatch({ context: general, content, speakerId: 'general_seo_hyejin', spokenText: 'General line' }), null);
+  assert.equal(resolveCommittedTtsBatch({ context: current, content, speakerId: 'narrator', spokenText: 'May exact line' }), null);
+  assert.equal(resolveCommittedTtsBatch({ context: current, content, speakerId: 'player', spokenText: 'May exact line' }), null);
+  assert.equal(resolveCommittedTtsBatch({ context: current, content, speakerId: 'heroine5', spokenText: 'Mind Monitor line' }), null);
+
+  const observerFailed = contextFor({ present: ['heroine5'], story: heroine5Quote, observerApplied: { warnings: ['observer_failed'], dialogue_lines: [] } });
+  assert.equal(resolveCommittedTtsBatch({ context: observerFailed, content, speakerId: 'heroine5', spokenText: 'May exact line' }), null);
+
+  const multiLineQuote = heroine5.name + ' said "First line" and then "Second line".';
+  const multiLine = contextFor({ present: ['heroine5'], story: multiLineQuote, observerApplied: { dialogue_lines: [
+    { speaker_id: 'heroine5', text: 'First line', evidence_quote: multiLineQuote },
+    { speaker_id: 'heroine5', text: 'Second line', evidence_quote: multiLineQuote }
+  ] } });
+  assert.equal(resolveCommittedTtsBatch({ context: multiLine, content, speakerId: 'heroine5', spokenText: 'First line Second line' })?.text, 'First line Second line');
+});
+
 test('media routes read committed state, never call the provider, and use the TTS binding contract', async () => {
   const store = new InMemoryR3Store();
   store.listImageCandidates = async () => [{ image_id: 'heroine1-main', image_url: 'https://approved.test/heroine1.jpg', curation_rank: 1, image_pool: 'general' }];

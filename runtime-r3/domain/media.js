@@ -125,8 +125,7 @@ export function selectApprovedImage({ candidates = [], projection } = {}) {
 
 export function resolveCommittedTtsBatch({ context, content, speakerId, spokenText } = {}) {
   const projection = projectCurrentMedia({ context, content });
-  const lines = selectPrimaryDialogueLines({ dialogueLines: projection.dialogue_lines, presentActorIds: context?.state?.state?.scene?.present_actor_ids, focalActorId: context?.state?.state?.scene?.focal_actor_id });
-  const batches = batchDialogueLines(lines);
+  const batches = batchDialogueLines(projection.dialogue_lines);
   return batches.find(batch => batch.character_id === speakerId && batch.text === text(spokenText)) ?? null;
 }
 
