@@ -16,7 +16,7 @@ const sidecarState = { ttsEnabled: false };
 const RECOVERY_POLL_MS = 1500;
 const RECOVERY_TIMEOUT_MS = 120000;
 const $ = id => document.querySelector(`#${id}`);
-const csaUi = createR3CsaUi({ documentRef: document, getContext: () => state.context, getCatalog: () => state.catalogs?.csa_presets, getBusy: () => state.busy, onOperation: operation => { const { literal_action: literalAction, ...csaOperation } = operation; submit(literalAction, { csaOperation }); } });
+const csaUi = createR3CsaUi({ documentRef: document, getContext: () => state.context, getCatalog: () => state.catalogs?.csa_presets, getBusy: () => state.busy, onOperation: operation => { const { literal_action: literalAction, ...csaOperation } = operation; return submit(literalAction, { csaOperation }); } });
 
 function setStatus(message, error = false) { const node = $('status-banner'); if (node) { node.textContent = message; node.dataset.error = error ? 'true' : 'false'; } }
 function setHidden(id, hidden) { const node = $(id); if (node) node.hidden = hidden; }
@@ -243,13 +243,14 @@ async function openOpening() {
 }
 
 async function submit(value = null, { retryFailed = false, csaOperation = null } = {}) {
-  if (state.busy || !state.gameId) return;
+  if (state.busy || !state.gameId) return { kind: 'not_sent' };
   if (state.context?.job?.status === 'failed' && !retryFailed) {
     setStatus('r3_turn_failed: use the explicit retry control', true);
-    return;
+    return { kind: 'not_sent' };
   }
   const input = $('player-action'); const literalAction = value ?? input?.value ?? '';
-  if (!literalAction.trim()) { setStatus('다음 행동을 직접 입력해 주세요.', true); return; }
+  let outcome = { kind: 'unknown' };
+  if (!literalAction.trim()) { setStatus('다음 행동을 직접 입력해 주세요.', true); return { kind: 'not_sent' }; }
   state.busy = true; setStatus('Story를 생성하는 중입니다.'); if ($('current-story')) $('current-story').replaceChildren();
   csaUi.sync();
   const expectedTurn = (state.context?.state?.committed_turn ?? 0) + 1;
@@ -265,9 +266,10 @@ async function submit(value = null, { retryFailed = false, csaOperation = null }
     }
     await consumeR3Sse(turnResponse, handleEvent);
     if (input) input.value = '';
+    outcome = { kind: 'committed' };
     setStatus('저장되었습니다.');
   } catch (error) {
-    await reconcileTurnTransport({
+    outcome = await reconcileTurnTransport({
       gameId: state.gameId,
       client,
       expectedTurn,
@@ -280,6 +282,7 @@ async function submit(value = null, { retryFailed = false, csaOperation = null }
     });
   }
   finally { state.busy = false; csaUi.sync(); refreshChoices(); }
+  return outcome;
 }
 
 async function setup(event) {

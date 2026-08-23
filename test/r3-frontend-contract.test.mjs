@@ -101,8 +101,12 @@ test('R3 free-input submit readiness mirrors the busy and failed guards', () => 
   assert.doesNotMatch(app, /submit-action\.disabled = false/);
 });
 
-test('R3 CSA operation closes its modal before the normal turn can stream and re-syncs controls after busy clears', () => {
-  assert.match(csa, /function transact\(operation\) \{[\s\S]*overlay\.hidden = true;[\s\S]*onOperation/);
+test('R3 CSA draft applies one operation after the modal yields and re-syncs after busy clears', () => {
+  assert.match(csa, /async function applyDraft\(\)[\s\S]*overlay\.hidden = true;[\s\S]*onOperation/);
+  assert.match(csa, /stageCsaOperation/);
+  assert.match(csa, /requestClose/);
+  assert.match(csa, /documentRef\.addEventListener\?\.\('keydown'/);
+  assert.match(csa, /event\.target === overlay/);
   assert.match(app, /finally \{ state\.busy = false; csaUi\.sync\(\); refreshChoices\(\); \}/);
 });
 

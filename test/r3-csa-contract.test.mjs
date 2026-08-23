@@ -111,10 +111,11 @@ test('ordinary free input stays Story-first after a CSA operation', async () => 
   assert.equal(ordinary.at(-1).data.status, 'committed'); assert.equal(calls.at(-2).csaOperation, null); assert.equal(ordinary.at(-1).data.context.turns.at(-1).literal_action, 'I walk to the lounge and greet my colleague.');
 });
 
-test('frontend CSA controls submit a structured operation through the normal turn client', () => {
+test('frontend CSA draft UI uses one existing turn handoff and no legacy app writer', () => {
   const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8'); const app = fs.readFileSync(new URL('../frontend-r3/app.js', import.meta.url), 'utf8');
   const html = fs.readFileSync(new URL('../frontend-r3/index.html', import.meta.url), 'utf8');
-  assert.match(source, /onOperation/); assert.doesNotMatch(source, /client\.csa/); assert.match(source, /각 변경은 Story 턴을 사용합니다/); assert.match(html, /각 변경은 다음 Story 턴으로 기록됩니다/); assert.doesNotMatch(html, /턴을 만들지 않습니다/); assert.match(app, /csa_operation/); assert.match(app, /client\.turn/);
+  assert.match(source, /stageCsaOperation/); assert.match(source, /미적용 변경 1건/); assert.match(source, /onOperation/); assert.match(source, /overlay\.hidden = true/); assert.match(source, /상식개변 적용/); assert.doesNotMatch(source, /client\.csa|\/api\/app-state|\/api\/app-validate|batch/i);
+  assert.match(html, /data-tab="home"/); assert.match(html, /data-tab="player"/); assert.match(html, /data-tab="npc"/); assert.match(html, /data-tab="csa"/); assert.match(html, /data-tab="manual"/); assert.match(app, /csa_operation/); assert.match(app, /client\.turn/); assert.match(app, /return submit\(literalAction/);
 });
 
 test('Story/Observer boundary states that compliance does not prove private positive emotion', () => {

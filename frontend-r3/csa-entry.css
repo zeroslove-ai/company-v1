@@ -57,6 +57,55 @@
   font-size: .78rem;
 }
 
+.csa-app-draft-bar {
+  flex-wrap: wrap;
+}
+
+.csa-app-draft-bar > span {
+  flex: 1 1 12rem;
+  color: #f9d38a;
+  font-weight: 700;
+}
+
+.csa-app-draft-bar small {
+  display: block;
+  margin-top: .2rem;
+  color: #ffc0c0;
+  font-weight: 400;
+}
+
+.csa-app-draft-bar button,
+.csa-app-body button {
+  min-height: 2.45rem;
+  border: 1px solid #5d8da7;
+  border-radius: .5rem;
+  padding: .45rem .75rem;
+  color: #f5fbff;
+  background: #294d61;
+  font: inherit;
+  cursor: pointer;
+}
+
+.csa-app-draft-bar button:disabled,
+.csa-app-body button:disabled {
+  cursor: not-allowed;
+  opacity: .52;
+}
+
+.csa-app-body h3,
+.csa-app-body h4 {
+  margin: .15rem 0;
+}
+
+.csa-app-body section > h4 {
+  color: #d8f0ff;
+}
+
+.csa-app-effect-card.pending-delete {
+  border-color: #c88f67;
+  opacity: .78;
+}
+
 @media (max-width: 720px) {
   .csa-entry-panel {
     position: static;
