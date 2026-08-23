@@ -379,7 +379,7 @@ Only after media/TTS is GREEN, resume owner-remediation order:
 
 TERMINAL_OUTCOME: FAILED_PRODUCT
 SOURCE_IMPLEMENTATION_SHA: 25688dd4c478b72ace1ad514e99498fc3469cfc0
-TERMINAL_CONTROL_COMMIT: pending
+TERMINAL_CONTROL_COMMIT: bb40371
 
 ### Implementation and verification
 
