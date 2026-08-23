@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-observer-fail-open-error-provenance-v1
 Mode: FREEZE OBSERVER COMPLETENESS SOURCE -> CLASSIFY SANITIZED OBSERVER FAIL-OPEN ERROR -> API-ONLY TEST -> ONE FRESH DIAGNOSTIC REPRODUCTION
-Updated: 2026-08-24 06:18 KST
+Updated: 2026-08-24 06:31 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5388504312`
 Operator review: Issue #68 comment `5388523048`
@@ -199,7 +199,47 @@ Expected terminal dispositions:
 
 No repair of the diagnosed cause inside this task.
 
-## 8. Completion protocol
+## 8. Terminal evidence for this execution
+
+Implementation source commit:
+- `fcaed18` (`r3 classify Observer fail-open errors`)
+- changed files: `runtime-r3/server/provider.js`, `runtime-r3/server/worker.js`, `test/r3-observer-failure-provenance.test.mjs`
+
+Implemented sanitized taxonomy:
+- `r3_observer_timeout`
+- `r3_observer_provider_http`
+- `r3_observer_response_json_invalid`
+- `r3_observer_message_missing`
+- `r3_observer_json_invalid`
+- `r3_observer_unknown`
+
+The provider emits only one of these stable codes for an Observer failure. The worker preserves fail-open `{}` Observer semantics, keeps generic `observer_failed`, adds the sanitized code to committed warnings, and emits the same code in the existing `observer_failed` timing event. Raw provider bodies, status text, arbitrary exception messages, prompts, secrets, and user text are not persisted as error provenance. No retry or second Observer call was added; Story-authored choices remain the committed choice source.
+
+Validation:
+- focused provider/worker/observer/media set: `20/20 PASS`;
+- full `npm.cmd test`: `544/544 PASS`;
+- `node --check` for all three changed JS/MJS files: PASS;
+- `git diff --check`: PASS;
+- Wrangler API dry-run: PASS.
+
+TEST deployment:
+- API `game-proxy-company-r3@df7cbc85-6f8a-4247-9d39-1a7a8f2c5aea`;
+- frontend unchanged: `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`;
+- frontend deploy count: `0`;
+- no Production, migration, schema/RPC/RLS, secret, model, prompt, option, timeout, token-budget, retry, parser, media, or TTS change.
+
+Fresh live diagnostic through the bare public UI:
+- game: `81cf07ae-ccc2-42c6-8e3c-fd8339efe133`;
+- one ordinary action, committed Turn 1: `이메이 사원에게 인사하고, 오늘 일정이 궁금하다고 묻는다.`;
+- Story committed with four Story-authored choices;
+- read-only committed context showed non-empty `observer_raw` with `scene_note`, `mind_monitor`, `present_actor_ids`, four `choices`, and four qualifying `dialogue_lines`; `observer_applied` was also present;
+- no `observer_failed` warning and no sanitized Observer failure code; the applied context had only existing dialogue projection diagnostics;
+- no TTS, additional turn, retry, regeneration, reset, or preserved-game mutation was performed.
+
+Disposition: `OBSERVER_FAILURE_NOT_REPRODUCED`.
+All preserved fixtures remained READ ONLY.
+
+## 9. Completion protocol
 
 At completion report to Issue #68:
 - starting main;
