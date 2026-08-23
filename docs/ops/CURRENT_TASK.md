@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-current-scene-timeline-residue-v1
 Mode: FREEZE ACCEPTED R3 PRODUCT -> TRACE NORMAL-SURFACE HISTORY DUPLICATION -> LATEST-CURRENT-SCENE ONLY -> FRONTEND TEST DEPLOY -> BARE-PUBLIC ACCEPTANCE
-Updated: 2026-08-24 00:59 KST
+Updated: 2026-08-24 02:04 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5386905332`
 Operator review: Issue #68 comment `5386933280`
@@ -243,7 +243,34 @@ Do NOT claim owner-ready on completion.
 
 If GREEN, the only planned next stage is a separate operator-registered final holistic owner-style long-play acceptance across all frozen features. Do not create or start that next task yourself.
 
-## 8. Terminal handling
+## 8. Terminal result — frontend latest-only correction
+
+Execution identity: `company-r3-current-scene-timeline-residue-v1` / task blob `530c1d8dc39988a4eba938e2bf98585dae096ab6` / branch `main`.
+
+Source and control commits:
+- Source commit: `79a9921` (`fix(r3): keep normal story surface latest-only`), pushed to `origin/main`.
+- Changed files: `frontend-r3/app.js`, `test/r3-frontend-contract.test.mjs`.
+- Root cause correction: `renderContext()` now clears the non-authoritative `#story-history`; `#current-story` remains the only normal current Story surface. `view.history`, `context.turns`, `renderHistory()`, History overlay, exports, readback, persistence, choices, input, media, TTS, CSA, and gameplay authority are unchanged.
+
+Validation:
+- Focused frontend/render/history set: 102 passed.
+- Full `npm.cmd test`: 529 passed.
+- `node --check frontend-r3/app.js`, `node --check test/r3-frontend-contract.test.mjs`, and `git diff --check`: passed.
+- Frontend TEST-only deploy: `gamebuilder-company-r3`, version `cac2033d-aa56-4a99-aa02-92c8087222d3`.
+- API unchanged: `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`.
+
+Live evidence:
+- Pre-edit disposable reproduction: `92596ab1-712c-4edd-aee6-a7ab414cc60a`; Turn 2 normal surface had two stale cards (Opening and Turn 1) in `#story-history` while Turn 2 was also in `#current-story`; History overlay retained Turns 0–2.
+- Post-deploy fresh disposable acceptance game: `ea8f3b9d-68e2-4057-97d7-1debbad36bad`.
+- Gate A: Turn 0 Opening had 0 normal history cards; Turn 1 had 0 cards/current Turn 1; Turns 2–4 each had 0 cards and only the latest current Story, with four choices and direct input enabled.
+- Gate B: Turn 4 History overlay had exactly `Turn 0` through `Turn 4` (5 cards/actions) in canonical order and closed without mutation.
+- Gate C: refresh/re-entry preserved Turn 4 as authority, normal history remained empty, current Story/choices/Mind/media state reloaded coherently.
+- Gate D: refresh follow-up committed Turn 5; an additional bounded request-count probe committed Turn 6 with exactly one POST `/api/r3/games/<id>/turn`, normal history 0, current Story 1, four choices, and no image/TTS duplicate request observed.
+- Gate E at 390x844: current Story, Mind Monitor, four choices, direct input, enabled TTS control, and History button were reachable; History overlay showed `Turn 0`–`Turn 6`, was closable, and document/body width stayed 375px (no horizontal overflow). This disposable had no committed image projection, so the media panel correctly remained absent.
+
+No Production access, migration/schema/RPC change, provider/model/config change, preserved-game mutation/reset, owner-game mutation, PR/merge, or next-task creation occurred.
+
+## 9. Terminal handling
 
 On completion:
 1. post exact source SHA and changed files;
