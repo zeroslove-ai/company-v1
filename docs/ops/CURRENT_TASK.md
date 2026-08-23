@@ -1,286 +1,284 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-current-scene-timeline-residue-v1
-Mode: FREEZE ACCEPTED R3 PRODUCT -> TRACE NORMAL-SURFACE HISTORY DUPLICATION -> LATEST-CURRENT-SCENE ONLY -> FRONTEND TEST DEPLOY -> BARE-PUBLIC ACCEPTANCE
-Updated: 2026-08-24 02:04 KST
+Status: READY
+Task ID: company-r3-final-holistic-owner-style-long-play-v1
+Mode: SOURCE-FROZEN FINAL PRODUCT ACCEPTANCE -> OWNER-STYLE LONG PLAY -> CROSS-FEATURE EXIT MATRIX
+Updated: 2026-08-24 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5386905332`
-Operator review: Issue #68 comment `5386933280`
+Previous terminal: Issue #68 comment `5387013183`
+Terminal correction: Issue #68 comment `5387015260`
+Operator review: Issue #68 comment `5387196217`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery branch. Work on `main` only.
 
-## 0. Accepted baseline — freeze
+## 0. Source-frozen baseline
 
-Accepted executable/source before this cut:
-- `dd3eef3df57707cfc801c93f4b5444d49a822319`
+Accepted executable/source:
+- `79a9921b0248912bd8453a26c83443f8da481cb4`
 
 Current main before this registration:
-- `6fb1614d9a0e0a91028a4baaacce88a577170c73`
-- docs-only descendant of the accepted executable; no later executable drift.
+- `53999d3ef8534385bedca29baf2df8e454e513e5`
+- docs-only descendant of the accepted executable.
 
-Current accepted TEST artifacts:
+Accepted TEST artifacts:
 - API `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`
-- Frontend `gamebuilder-company-r3` version `3f4b6c4f-4201-4ca5-8800-cbf2fe9137a0`
-- bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
+- Frontend `gamebuilder-company-r3` version `cac2033d-aa56-4a99-aa02-92c8087222d3`
+- Bare public frontend: `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Fresh media acceptance fixture — READ ONLY:
-- `04408c93-13e7-4fb6-a840-06e11fabe870`
+Owner game — READ ONLY, never reset/revise/retry/mutate:
+- `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`
 
-Freeze all previously accepted product behavior, including:
-- first-day/first-arrival Opening and selected department/rank preservation;
-- exact player agency, target/action/refusal/self-state/topic/intent authority;
-- canonical navigation/location/presence behavior;
-- committed player inner thought and character-specific first-person Mind Monitor;
-- Story-owned exact four choices and accepted formatting variants;
-- chronological CSA APPLY/CHANGE/REMOVE, one operation = one normal Story turn;
-- high-parity five-tab CSA draft/apply UI and one-pending-operation behavior;
-- ordinary post-CSA turns without stale `csa_operation`;
-- same-game reset runtime GREEN; native-confirm automation remains separately deferred and must not be reopened here;
-- approved deterministic image projection;
-- grounded turn-scoped focal/dialogue projection in `observer_applied`;
-- character-aware R3 server TTS through `TTS_WORKER -> fancy-dust-7f8c`;
-- TTS OFF => zero calls; no narrator/player/private-thought/Mind Monitor synthesis;
-- replay/cache/stale fencing/fail-open media behavior;
-- browser `speechSynthesis` / `SpeechSynthesisUtterance` remains absent from R3 product path;
-- desktop/mobile core controls and refresh/re-entry behavior.
+Previously accepted disposable evidence fixtures are also read-only unless explicitly needed for readback comparison. Use fresh disposable TEST games for mutable acceptance.
 
-Media cut validation already accepted:
-- focused `test/r3-approved-media.test.mjs`: 7/7 PASS;
-- full `npm.cmd test`: 528/528 PASS;
-- syntax/diff checks PASS;
-- bare-public image + TTS OFF/ON + replay/refresh + 390x844 mobile GREEN.
+This task is ACCEPTANCE ONLY.
 
-Do not redesign or re-open any frozen subsystem in this task.
+### Hard rule: no source repair inside this task
 
-## 1. Exact remaining owner defect
+Do not edit runtime/frontend/test/config/provider code during the holistic run.
+Do not redeploy merely to retry a failed product observation.
+Do not regenerate/retry a failed Story to manufacture a pass.
+Do not change provider/model/temperature/token/timeout/config/secrets.
+Do not change DB schema/RPC/migration/RLS/grants.
+Do not access Production.
 
-Owner authority `5384780073` requires the normal gameplay surface to present the current scene cleanly:
-- Opening/early-turn cards must not remain as stray residual content after later turns;
-- History must remain available through the intended History presentation;
-- the current Story must not be duplicated as both a history card and current-turn Story.
+If any decisive product failure occurs:
+1. preserve the fresh fixture;
+2. capture exact literal action, raw/current Story, committed/readback state, DOM/network evidence needed to classify it;
+3. STOP `FAILED_PRODUCT` / `WAITING_REVIEW`;
+4. do not patch it in this task.
 
-Current source evidence at accepted executable `dd3eef3...`:
-- `frontend-r3/r3-view-model.js` correctly preserves `view.history = turns` as committed presentation/history data;
-- `frontend-r3/app.js::renderContext()` currently executes `renderHistory($('#story-history'), view.history, ...)`, rendering the full committed chronology into the normal gameplay story panel;
-- the same function then takes `latest = view.history.at(-1)` and renders that same latest Story again into `#current-story`;
-- `frontend-r3/openHistory()` already renders the full history separately into `#history-list` inside the dedicated History overlay;
-- exports also use committed `context.turns` independently.
+A later operator task will isolate the first proven failure.
 
-Therefore the leading root-cause hypothesis is presentation duplication in the normal frontend shell, not server chronology/persistence corruption.
+## 1. Frozen product contracts under final review
 
-This cut is presentation-only. Do not change persisted turns, committed history, Story/Observer/reducer semantics, or History export authority.
+The final run must evaluate the product as one game, not as isolated subsystem tests.
 
-## 2. Mandatory pre-edit live trace
+Freeze and verify together:
+- every new game is first day / first arrival / first appointment regardless selected rank;
+- selected department/rank remains authoritative, including executive/senior profiles;
+- private CSA app discovery is optional/curious, never a forced quest;
+- exact player actor/target/action/movement/request/refusal/self-state/topic/intent is preserved;
+- player intent/attempt is not automatically external success or NPC consent;
+- canonical navigation/location/presence is coherent with Story and committed state;
+- Story is the sole author of exactly four current choices when it emits a supported terminal 1–4 block;
+- no authored/fabricated fallback choices and no Observer veto of a structurally valid Story tail;
+- player inner thought is visible, natural first-person Korean, substantive, and does not invent decisions/outcomes;
+- Mind Monitor is character-specific natural first-person Korean and does not convert CSA compliance into affection/comfort/desire/romance/trust;
+- ordinary conversation/movement/work/social scenes advance time plausibly; time is not frozen at 09:00;
+- CSA APPLY/CHANGE/REMOVE are chronological normal Story turns; one operation = one turn;
+- later unrelated ordinary actions are literal-action-first and are not hijacked by CSA;
+- high-parity five-tab CSA app retains local draft/revert/apply behavior and one pending operation at a time;
+- approved image selection is deterministic, present-character grounded, fail-open, and never gameplay authority;
+- TTS is character-aware server TTS through R3 API -> `TTS_WORKER`, with TTS OFF => zero synthesis calls;
+- narrator/player/player-inner-thought/Mind Monitor are never synthesized as character dialogue;
+- current normal Story surface is latest/current scene only; full chronology lives in History overlay/export;
+- refresh/re-entry reconstructs committed truth, not stale client cache;
+- same-game reset runtime is already separately GREEN. Native-confirm automation remains an environment-only deferred limitation and must not be reopened unless the browser can naturally handle it without changing product/source.
 
-Before editing source, use the accepted bare-public TEST deployment and inspect fixture `04408c93-13e7-4fb6-a840-06e11fabe870` READ ONLY where possible.
+## 2. Preflight — exact deployed lineage only
 
-Record:
-1. current committed turn and `context.turns` count;
-2. normal gameplay `#story-history` child/`.turn-card` count;
-3. normal gameplay `#current-story` visible latest Story identity/text sample;
-4. whether the latest committed Story appears both in `#story-history` and `#current-story`;
-5. whether Opening and earlier ordinary turn text remain visibly present in the normal story panel after later commits;
-6. History overlay `#history-list` count/order and whether it correctly contains the full chronology;
-7. behavior after refresh/re-entry.
+Before gameplay:
+1. verify `main` is the docs-only descendant of source `79a9921b...`;
+2. verify the active TEST API/frontend versions match the accepted versions above;
+3. run no deployment if versions already match;
+4. verify full `npm.cmd test` on the exact accepted source lineage; record result but do not alter source;
+5. use bare public URL only — no `?api=` override, no localStorage/storage preseed, no direct gameplay API substitute.
 
-Do not mutate that fixture. If browser inspection of the old fixture is unavailable, create one fresh disposable game solely for reproduction before editing.
+If deployed artifacts do not match the accepted lineage, STOP `BLOCKED_DEPLOYMENT_DRIFT` before product play. Do not silently redeploy from an uncertain head.
 
-If live evidence disproves the source hypothesis, stop and classify the actual first presentation boundary before patching. Do not blindly hide content.
+## 3. Campaign A — owner-style executive long play
 
-## 3. Correction contract — normal surface latest-only
+Create one fresh disposable game with an executive/senior profile. Prefer the same general product perspective as the preserved owner game without copying or mutating the owner save.
 
-Goal: normal gameplay presents exactly the current/latest Story scene. Full chronology remains available only through the dedicated History UX/export.
+Run Opening plus at least 15 committed chronological turns. Do not retry/regenerate a failed turn.
 
-Preferred minimal correction:
-- stop rendering committed `view.history` into `#story-history` during normal `renderContext()`;
-- clear or keep `#story-history` empty/non-authoritative on normal gameplay renders;
-- keep `#current-story` as the sole normal-surface Story container for the latest committed Story and current streaming deltas;
-- keep `view.history`, `context.turns`, `renderHistory()`, History overlay, MD/TXT export, server readback, and persistence unchanged.
+The campaign must naturally include all of the following, in a coherent sequence rather than isolated probes:
 
-Required behavior:
-- Opening: current Story shows Opening once;
-- after Turn 1 commit: current Story shows Turn 1 once; Opening is no longer visible in normal story surface;
-- after Turn 2+: current Story shows latest turn once; prior turns are not normal-surface cards;
-- during streaming: deltas appear only in `#current-story` and do not resurrect committed history cards;
-- after commit/reconciliation: latest committed Story replaces the streamed preview cleanly;
-- refresh/re-entry: same latest-only normal surface reconstructs from committed context;
-- feedback revision: revised latest Story replaces current Story without creating duplicate old/new revision cards on normal surface;
-- failed/pending turn recovery: previously committed history does not reappear as normal-surface residue;
-- History overlay: Opening + every committed ordinary turn remain available in canonical order;
-- History export remains complete;
-- no gameplay data is deleted or truncated.
+### A. Opening / identity
+- first day / first arrival framing is explicit;
+- selected department/rank preserved;
+- unfamiliar private CSA app is present/optional but the Story does not author a voluntary player action;
+- four current choices available if Story emits a supported terminal block;
+- player inner thought visible;
+- relevant NPC Mind Monitor natural and character-specific.
 
-Do not remove `view.history` from the view model merely to hide it.
-Do not delete server turns.
-Do not change history API/readback.
-Do not change Story text, parser, choices, TTS/media, or state authority.
-Do not redesign the narrative card style or choice presentation beyond what is necessary to remove timeline duplication.
+### B. Exact player agency
+Use free input for multiple materially different intents:
+- direct NPC conversation and a follow-up to the same NPC/topic;
+- work/context action;
+- non-work/social action;
+- explicit refusal/change-of-mind;
+- explicit self-state such as wanting quiet, fatigue, or pausing interaction;
+- movement to a canonical destination;
+- at least one action addressed to a named NPC.
 
-If `#story-history` is retained in HTML for shell compatibility, it may remain empty/hidden in normal play. Prefer the smallest source correction over broad DOM/CSS deletion.
+For every sampled action compare literal input -> Story enactment -> committed/readback state. Fail immediately on actor/target/action/topic/refusal/self-state substitution or movement to the wrong canonical destination.
 
-## 4. Deterministic regressions
+### C. Choices
+Across the campaign:
+- use at least 4 visible choice-button clicks;
+- use at least 6 free-form inputs;
+- every click must submit the exact full hidden/title literal once;
+- whenever Story visibly has a supported terminal 1–4 choice block, current UI must expose exactly four actionable choices;
+- choice intents should remain meaningfully diverse when the scene supports it; do not accept four near-paraphrases of the same CSA/sexual escalation.
 
-Add/adjust focused frontend tests proving at minimum:
-1. context with Opening only => normal surface shows Opening exactly once;
-2. context with Opening + Turn1 => normal surface contains only Turn1 Story, not Opening history card;
-3. context with Opening + Turn1 + Turn2 => normal surface contains only Turn2 Story, not earlier cards;
-4. latest Story is not duplicated between `#story-history` and `#current-story`;
-5. `#story-history` stays empty/non-authoritative across repeated `renderContext()`/refresh reconciliation;
-6. History overlay still renders the full committed chronology in order;
-7. History export source still contains full `context.turns`;
-8. streaming deltas target current Story only;
-9. feedback committed revision replaces current Story without normal-surface duplicate revision residue;
-10. failed/pending recovery reconciliation remains latest-only;
-11. media/image/TTS controls and current committed projection remain unaffected;
-12. choices/direct input remain reachable and exact-literal dispatch unchanged;
-13. frozen CSA/draft/reset contracts remain GREEN;
-14. mobile layout does not acquire overflow from the correction.
+A supported four-choice Story tail that yields zero current buttons is a product failure.
 
-Run:
-- focused R3 frontend/render/history tests;
-- full `npm.cmd test`;
-- changed JS/MJS `node --check`;
-- `git diff --check`.
+### D. Time / scene continuity
+Sample after meaningful conversation, movement, work, meal/social or meeting beats:
+- elapsed time should usually advance positively;
+- location/presence should match the narrated current scene;
+- remote/off-scene NPC mentions must not make them present;
+- current scene note should describe the current scene rather than stale old-location activity.
 
-Do not weaken existing tests merely to make this presentation change pass. Rewrite only assertions that explicitly encoded the now-rejected normal-surface full-history duplication.
+Do not require a fixed minutes-per-action constant; evaluate obvious frozen-time or chronology contradictions.
 
-## 5. TEST deployment
+## 4. CSA cross-feature sequence inside Campaign A
 
-This should be a frontend-only cut unless the mandatory trace proves otherwise.
+After several ordinary company-life turns, use the visible high-parity CSA app.
 
-Expected changed artifact:
-- `gamebuilder-company-r3` only.
+### Draft behavior
+- open Home / Player / NPC / CSA / Manual tabs;
+- make a local draft change;
+- before explicit apply, committed turn/revision/gameplay state must not change because of the draft itself;
+- Revert restores draft state;
+- one pending operation only.
 
-Do NOT redeploy API merely for symmetry if API source/config is unchanged.
-Keep API version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b` active if unaffected.
+Do not force native dirty-close dialog automation if the environment cannot operate it. Existing deterministic protection evidence remains valid; record environment limitation separately rather than misclassifying product runtime.
 
-No Production.
-No migration/schema/RPC.
-No provider/model/config change.
-No TTS binding change.
-No owner/preserved-game mutation.
+### Chronological operations
+Perform one representative sequence:
+1. APPLY one existing rule through visible UI;
+2. make one unrelated ordinary company/social action afterward;
+3. CHANGE the active rule through visible UI where supported;
+4. make another unrelated ordinary action;
+5. REMOVE the rule through visible UI.
 
-Record exact source SHA and exact deployed frontend Worker version.
-
-## 6. Mandatory bare-public acceptance
-
-Use only:
-`https://gamebuilder-company-r3.zeroslove.workers.dev`
-
-No `?api=` override.
-No storage preseed.
-No direct-API gameplay substitute.
-Fresh disposable TEST game for mutable acceptance.
-Never mutate owner game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`.
-
-### Gate A — normal latest-only chronology
-
-Create visible Setup -> Opening -> at least 4 ordinary committed turns.
-
-After each commit inspect normal gameplay surface.
 Require:
-- Opening visible once at Turn0;
-- Turn1: Opening absent from normal Story surface, Turn1 current Story visible once;
-- Turn2–Turn4: only latest Story visible in normal Story surface;
-- `#story-history` contains no committed turn cards / stale old Story text;
-- latest Story is not duplicated;
-- four choices/direct input remain usable;
-- no blocking console/network error.
+- each APPLY/CHANGE/REMOVE consumes exactly one chronological Story turn;
+- no zero-turn hidden writer;
+- immediate institutional/world consequence may be narrated naturally;
+- later unrelated action remains literal-action-first;
+- active rule state matches operation after commit/refresh;
+- rule compliance does not automatically create affection, comfort, sexual desire, romance, trust, or personality obedience in Mind Monitor;
+- after REMOVE, later ordinary turns do not carry stale `csa_operation` or enact removed rule behavior without independent Story cause.
 
-### Gate B — History overlay integrity
+Do not activate all catalog rules just to increase coverage; this is a holistic product flow, not a catalog exhaustiveness task.
 
-At Turn4 open visible `플레이 기록`.
+## 5. Media / TTS / presentation within the same campaign
+
+Reach a committed scene with a grounded present registered heroine and dialogue.
+
+### Image
+- current image character equals grounded committed focal/relevant heroine;
+- returned image is approved media for that character;
+- ambiguous/no-grounding scene must fail open rather than show an arbitrary heroine;
+- later turn/refresh cannot be overwritten by stale prior image.
+
+### TTS
+Before enabling:
+- prove zero `/media/tts` synthesis calls while TTS is OFF.
+
+Then enable visible TTS on a committed eligible NPC-dialogue turn:
+- only canonical present NPC dialogue is sent;
+- request goes browser -> R3 API -> server Service Binding, never direct browser-to-TTS worker;
+- returned URL reaches audio element;
+- narrator/player/player-inner-thought/Mind Monitor text is not synthesized;
+- replay of cached latest audio causes zero additional synthesis call where current cache contract applies;
+- next turn fences stale prior audio.
+
+### Current scene / History
+At several points, especially after CSA and media turns:
+- normal gameplay has only latest/current Story;
+- `#story-history` remains empty/non-authoritative;
+- History overlay contains Opening + all committed turns exactly once in canonical order;
+- closing History returns to unchanged current scene.
+
+## 6. Mid-campaign refresh / feedback
+
+At or after approximately Turn 8–10:
+- refresh/re-enter same game;
+- committed turn, location, presence, current Story, choices, player thought, Mind Monitor, CSA state, image eligibility, and History reconstruct coherently;
+- no old Opening/turn cards return to normal current scene;
+- continue with at least 3 further ordinary/CSA turns after refresh.
+
+If visible feedback/revision control is enabled in the accepted product state, perform one bounded feedback revision on the latest ordinary turn:
+- revision must replace that latest turn presentation without duplicating old/new versions on normal current surface;
+- turn number does not advance merely because of revision;
+- subsequent ordinary turn continues from revised committed truth.
+
+If feedback is intentionally unavailable/disabled by the current accepted contract, record that exact product state; do not invent a bypass or direct API substitute.
+
+## 7. Campaign B — independent low/junior smoke
+
+Create a second fresh disposable game with a low/junior profile.
+
+Run Opening + at least 4 ordinary turns containing:
+- one choice click;
+- one free-form NPC conversation;
+- one movement or scene/context change;
+- one refusal/self-directed action.
+
+Require first-arrival framing, selected low rank preservation, four choices where supported, thought/MM quality, time movement, latest-only normal Story, full History overlay, and no regression from executive assumptions.
+
+This campaign exists to ensure the final result is not accidentally executive-profile-specific.
+
+## 8. Mobile / interaction quality
+
+On Campaign A after substantive progress, inspect approximately 390x844 and one wider desktop viewport.
+
 Require:
-- History overlay contains Opening + Turns1–4 exactly once each in canonical order;
-- literal actions/story summaries remain available as previously supported;
-- closing History returns to unchanged latest current scene;
-- opening History does not resubmit or mutate gameplay.
+- no horizontal overflow/blocking overlay;
+- current Story readable while streaming/committed;
+- image, player thought, Mind Monitor, choices, direct input, CSA app, TTS and History controls reachable when eligible;
+- choice buttons do not hide full literal authority (title/aria/full dispatch preserved);
+- no full-screen loading layer obscures Story streaming;
+- no automatic scroll behavior that makes the currently-read Story unusable.
 
-### Gate C — refresh/re-entry
+Return viewport to normal after evidence capture.
 
-Refresh/re-enter the same fresh game.
-Require:
-- committed Turn4 remains authority;
-- normal Story surface still shows only Turn4/current latest Story;
-- Opening/Turns1–3 do not reappear as normal residue;
-- History overlay still reconstructs all five committed entries;
-- choices, player thought, Mind Monitor, image/TTS projection remain coherent with latest committed turn where eligible.
+## 9. Objective exit matrix
 
-### Gate D — one more turn after refresh
+GREEN requires all of the following in the same source-frozen deployment:
+- Campaign A >=15 committed chronological turns without retry/regeneration;
+- Campaign B Opening + >=4 ordinary turns;
+- no P0 agency/action substitution;
+- no wrong canonical navigation;
+- no supported Story four-choice tail losing buttons;
+- meaningful choice diversity sampled;
+- first-arrival/rank identity correct in both profiles;
+- player inner thought visible/natural;
+- Mind Monitor first-person/character-specific and CSA-emotion boundary respected;
+- time not effectively frozen;
+- CSA APPLY/CHANGE/REMOVE chronological and later ordinary turns not hijacked;
+- high-parity draft/app UX materially usable;
+- approved image projection works and ambiguity fails open;
+- TTS OFF=0 calls and character-aware server TTS ON works;
+- latest-only current scene + complete History overlay survives refresh;
+- desktop + 390x844 usable;
+- no blocking console/network/runtime error;
+- no Production/migration/provider/model/source changes during acceptance.
 
-Commit Turn5 after refresh via visible direct input or choice.
-Require:
-- Turn5 becomes the sole current Story;
-- Turn4 moves only to History overlay, not normal story residue;
-- exactly one gameplay commit/request;
-- no duplicate media/TTS synthesis caused by the timeline change.
+If all are GREEN, terminal may report:
+`OWNER_READY_CANDIDATE_FOR_USER_FINAL_PLAYTEST`
 
-### Gate E — mobile 390x844
+This means the automated holistic gate passed and the product can be handed back for the owner's final manual playtest. It does NOT authorize Production deployment or mutation of the preserved owner game.
 
-On the same accepted frontend at approximately 390x844:
-- latest current Story, image/Mind Monitor/player thought, four choices, direct input, TTS controls, and History button reachable;
-- History overlay usable and closable;
-- no old turn cards consuming the normal scene vertically;
-- no horizontal overflow/blocking overlay.
+If any gate fails, terminal must report `FAILED_PRODUCT` with the first decisive defect and stop. Do not repair or continue to accumulate unrelated failures after a P0/P1 decisive blocker.
 
-Do not reopen native reset-confirm acceptance in this cut.
+## 10. Terminal / stop protocol
 
-## 7. GREEN definition
+At completion:
+- record exact source/main SHA and deployed Worker versions;
+- record fresh fixture IDs only;
+- record turn-by-turn literal/action category summary sufficient for operator audit;
+- record CSA operation turn numbers and state transitions;
+- record choice click/free-input counts;
+- record refresh/media/TTS/history/mobile evidence;
+- record any environment-only automation limitation separately from product defects;
+- overwrite this SAME `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW` in place;
+- post terminal report to Issue #68;
+- stop.
 
-GREEN only if:
-- root cause is reproduced or otherwise directly proven;
-- normal gameplay is latest-current-scene only;
-- full committed chronology remains intact in History overlay/export/readback;
-- refresh/re-entry and post-refresh next turn remain latest-only;
-- no gameplay/state/Story/Observer/media/TTS authority change;
-- desktop and mobile pass;
-- full tests pass;
-- no Production/migration/provider/model/owner-game mutation.
-
-Do NOT claim owner-ready on completion.
-
-If GREEN, the only planned next stage is a separate operator-registered final holistic owner-style long-play acceptance across all frozen features. Do not create or start that next task yourself.
-
-## 8. Terminal result — frontend latest-only correction
-
-Execution identity: `company-r3-current-scene-timeline-residue-v1` / task blob `530c1d8dc39988a4eba938e2bf98585dae096ab6` / branch `main`.
-
-Source and control commits:
-- Source commit: `79a9921` (`fix(r3): keep normal story surface latest-only`), pushed to `origin/main`.
-- Changed files: `frontend-r3/app.js`, `test/r3-frontend-contract.test.mjs`.
-- Root cause correction: `renderContext()` now clears the non-authoritative `#story-history`; `#current-story` remains the only normal current Story surface. `view.history`, `context.turns`, `renderHistory()`, History overlay, exports, readback, persistence, choices, input, media, TTS, CSA, and gameplay authority are unchanged.
-
-Validation:
-- Focused frontend/render/history set: 102 passed.
-- Full `npm.cmd test`: 529 passed.
-- `node --check frontend-r3/app.js`, `node --check test/r3-frontend-contract.test.mjs`, and `git diff --check`: passed.
-- Frontend TEST-only deploy: `gamebuilder-company-r3`, version `cac2033d-aa56-4a99-aa02-92c8087222d3`.
-- API unchanged: `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`.
-
-Live evidence:
-- Pre-edit disposable reproduction: `92596ab1-712c-4edd-aee6-a7ab414cc60a`; Turn 2 normal surface had two stale cards (Opening and Turn 1) in `#story-history` while Turn 2 was also in `#current-story`; History overlay retained Turns 0–2.
-- Post-deploy fresh disposable acceptance game: `ea8f3b9d-68e2-4057-97d7-1debbad36bad`.
-- Gate A: Turn 0 Opening had 0 normal history cards; Turn 1 had 0 cards/current Turn 1; Turns 2–4 each had 0 cards and only the latest current Story, with four choices and direct input enabled.
-- Gate B: Turn 4 History overlay had exactly `Turn 0` through `Turn 4` (5 cards/actions) in canonical order and closed without mutation.
-- Gate C: refresh/re-entry preserved Turn 4 as authority, normal history remained empty, current Story/choices/Mind/media state reloaded coherently.
-- Gate D: refresh follow-up committed Turn 5; an additional bounded request-count probe committed Turn 6 with exactly one POST `/api/r3/games/<id>/turn`, normal history 0, current Story 1, four choices, and no image/TTS duplicate request observed.
-- Gate E at 390x844: current Story, Mind Monitor, four choices, direct input, enabled TTS control, and History button were reachable; History overlay showed `Turn 0`–`Turn 6`, was closable, and document/body width stayed 375px (no horizontal overflow). This disposable had no committed image projection, so the media panel correctly remained absent.
-
-No Production access, migration/schema/RPC change, provider/model/config change, preserved-game mutation/reset, owner-game mutation, PR/merge, or next-task creation occurred.
-
-## 9. Terminal handling
-
-On completion:
-1. post exact source SHA and changed files;
-2. report focused/full test counts;
-3. report exact frontend TEST version and unchanged API version;
-4. report fresh acceptance game ID;
-5. report Gate A–E evidence with turn-by-turn normal-surface counts and History overlay counts;
-6. report refresh/re-entry and post-refresh turn evidence;
-7. list any remaining defect/blocker honestly;
-8. overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` in place;
-9. stop.
-
-Do not create another CURRENT_TASK file/path, branch, PR, next task, or owner-ready handoff.
+Do not create or start a next task.
