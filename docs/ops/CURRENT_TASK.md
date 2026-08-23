@@ -1,255 +1,257 @@
 # Company — CURRENT TASK
 
-Status: FAILED
-Task ID: company-r3-csa-chronological-enactment-boundary-v1
-Mode: REMOVE ZERO-TURN CSA MUTATION -> STREAMED CHRONOLOGICAL ENACTMENT -> ANTI-HIJACK / PRIVATE-EMOTION BOUNDARY -> BARE-PUBLIC ACCEPTANCE
-Updated: 2026-08-23 19:05 KST
+Status: READY
+Task ID: company-r3-csa-post-apply-next-interaction-v1
+Mode: CLASSIFY POST-APPLY STALL -> FIX NEXT-INTERACTION LIFECYCLE -> REDEPLOY TEST -> RESUME CSA LIVE ACCEPTANCE
+Updated: 2026-08-23 18:56 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5385142173`
-Terminal truth correction: Issue #68 comment `5385143109`
-Operator review: Issue #68 comment `5385289539`
+Previous terminal: Issue #68 comment `5385389844`
+Operator review: Issue #68 comment `5385402397`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path or an ops/recovery branch.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path and do not create a new ops/recovery branch.
 
-## Terminal result — live acceptance failed
+## 0. Accepted baseline — preserve unless this task proves a direct regression
 
-- Executable source HEAD: `fc0aace9df2a2e99d233d757b7964bc4aa9d9033` (pushed to `origin/main`; no unpushed commit).
-- Focused R3 CSA contract tests: `24/24` pass. Full `npm.cmd test`: `506/506` pass. Syntax checks for all changed JS files and `git diff --check`: pass.
-- TEST API deployed as `game-proxy-company-r3`, version `c8c0b390-db3e-45cf-900d-70a91cbab231`.
-- TEST frontend deployed as `gamebuilder-company-r3`, final version `e59b4c67-a183-4b3a-adc3-e0bd507d16d2`.
-- Fresh bare-public disposable fixture: `d738c97f-8e66-4e83-9c66-849bc13f63c6`.
-- Opening committed as Turn 0. Ordinary Korean free input committed as Turn 1; visible four-choice list remained diverse and company-life oriented.
-- Visible CSA APPLY of the first current catalog item then produced one streamed Story/Observer/commit transition to Turn 2; active-rule count changed from 0 to 1. The Story visibly represented the app action and immediate workplace consequence. No direct zero-turn writer was observed in this path.
-- The required unrelated post-CSA free-input action (`윤민아 대리를 따라 복도로 나가 괜찮은지 조용히 확인한다.`) did not advance beyond Turn 2 during the bounded 110-second wait. The input remained present, the submit button returned enabled, no bounded UI error was shown, and browser console error/warn logs were empty. Per the no-retry-until-pass rule, no further gameplay request or Fixture B/C attempt was made.
-- Therefore mandatory GREEN acceptance was not achieved: CHANGE/REMOVE, refresh/re-entry, duplicate-operation, 8–12-turn cross-fixture, and private-emotion acceptance evidence remain unverified.
+Accepted CSA chronology implementation source:
+- `fc0aace9df2a2e99d233d757b7964bc4aa9d9033`
 
-### Remaining objective defect
+Current deployed TEST artifacts from the failed acceptance:
+- API Worker `game-proxy-company-r3` version `c8c0b390-db3e-45cf-900d-70a91cbab231`
+- Frontend Worker `gamebuilder-company-r3` version `e59b4c67-a183-4b3a-adc3-e0bd507d16d2`
+- public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-The deployed bare-public runtime currently fails to complete an unrelated ordinary turn immediately after a successful chronological CSA APPLY turn, without surfacing a useful UI error. This blocks the required post-CSA Story-first continuity acceptance and requires a separately authorized follow-up investigation; no retry, migration, schema change, provider/model change, Production access, or preserved-game mutation was performed here.
+Already-accepted deterministic validation:
+- focused R3 CSA contract/frontend/turn tests: 24/24 PASS
+- full `npm.cmd test`: 506/506 PASS
+- changed-JS syntax checks: PASS
+- `git diff --check`: PASS
 
-## 0. Accepted baseline — do not reopen without contradictory real evidence
+Already-proven live behavior on disposable fixture `d738c97f-8e66-4e83-9c66-849bc13f63c6`:
+- Opening = Turn 0;
+- ordinary Korean free input = Turn 1;
+- visible CSA APPLY = one visible streamed Story/Observer/commit to Turn 2;
+- active CSA count changed 0 -> 1 only with that committed turn;
+- immediate Story represented the app action/world consequence naturally;
+- no separate zero-turn write was observed;
+- choices immediately after APPLY were four distinct company-life continuations rather than CSA-only escalation.
 
-Accepted source/runtime baseline:
-- executable/source HEAD: `19a5da37cc2cdf827b3edd20d342ba8d3a657388`;
-- control/main checkpoint after task close: `b7a079b0eefa7ea8b5943a2b293db57017fc1781`;
-- TEST API remains `game-proxy-company-r3` version `5d9ca276-b688-4b9a-8a5f-1bae13416c48` unless this task changes/deploys API;
-- TEST frontend is `gamebuilder-company-r3` version `1187deeb-8a5a-4231-9f5d-b7437ceebf9c`;
-- no Production access/deployment is authorized.
+Do not rewrite the chronological CSA architecture or reopen these facts without contradictory evidence.
 
-Frozen GREEN evidence:
-- exact owner agency literal `이메이 사원. 일단 공자룰 좀 확인해보게나` preserves target/request/topic and does not invent voluntary CSA-app operation;
-- exact owner navigation literal `직원 라운지로 이동한다` resolves and persists canonical `employee_lounge` through Story/Observer/Commit/refresh with no source-NPC teleport;
-- choice-button dispatch is GREEN on desktop and 390x844 mobile: at least three visible clicks each produced exactly one request and one committed turn with exact literal readback, refresh reconstruction, free-input continuity, no duplicate chronology, and no blocking overlay/console/page failure.
+Frozen earlier GREEN surfaces also remain binding:
+- exact player-agency literal preservation;
+- canonical player navigation;
+- visible choice-button dispatch on desktop/mobile;
+- bare-public cold start.
 
-Do not spend this task re-proving those frozen surfaces unless the CSA change directly regresses one during required acceptance.
+## 1. Decisive live failure to investigate first
 
-## 1. Binding owner product decision
+On the accepted deployed build, immediately after the successful APPLY Turn 2, the unrelated free input:
 
-Owner comment `5384780073` superseded the old CSA zero-turn behavior.
+`윤민아 대리를 따라 복도로 나가 괜찮은지 조용히 확인한다.`
 
-Required product semantics now:
-1. CSA APPLY / CHANGE / REMOVE is a real chronological gameplay turn.
-2. The user action in the app must visibly cause a normal Story stream and one durable committed turn; it is not an invisible state edit.
-3. The rule transition becomes durable atomically with that successful turn. A failed Story/turn must not leave a half-applied rule mutation.
-4. The enactment turn should naturally show the player using the private CSA app and the immediate world/character consequence appropriate to the selected rule, without turning the game into a tutorial or rule demonstration.
-5. After the enactment, active CSA is a world premise/constraint, not the subject of every later turn. Ordinary company-life actions, social beats, movement, refusal/self-state, and unrelated choices remain ordinary Story-first play.
-6. Institutional/rule compliance is NOT evidence of affection, comfort, desire, arousal, liking the player, or positive private emotion. Mind Monitor/private state may only contain such emotion when independently supported by character/context/Story evidence.
-7. Preserve A-prime: Story + one small Observer, existing R3 turn/persistence spine, no architecture restart.
+failed to advance beyond Turn 2 during a bounded 110-second observation.
 
-## 2. Proven current contradiction — reproduce/audit before changing
+Observed:
+- input remained present;
+- submit control eventually appeared enabled;
+- no bounded useful UI error was visible;
+- browser console error/warn logs were empty;
+- network-level request/SSE evidence was not captured;
+- run correctly stopped without retry;
+- CHANGE/REMOVE/refresh/private-emotion remainder was therefore not executed.
 
-Current source already proves the old behavior still exists:
-- `frontend-r3/csa.js` renders `활성 규칙 … · 일반 턴을 소비하지 않습니다.`;
-- its `transact()` calls `client.csa(...)` and waits for a JSON context mutation;
-- `runtime-r3/server/worker.js` routes POST `/api/r3/games/:id/csa` to `csaResponse()`;
-- `csaResponse()` checks state revision, calls `applyR3Csa(...)`, then `store.applyCsa(...)` directly;
-- no Story streaming, Observer pass, normal turn reservation/job, committed gameplay turn, or player-visible chronology is involved;
-- `runtime-r3/domain/csa.js` may immediately project structured clothing state while applying the rule.
+This is a real user-visible continuity blocker. Do not assume the cause.
 
-Before source change, inventory the exact current call/write path across:
-- `frontend-r3/csa.js`, `frontend-r3/r3-client.js`, `frontend-r3/app.js`;
-- `runtime-r3/server/worker.js`;
-- `runtime-r3/domain/csa.js`, `memory.js`, `observer-normalizer.js`, `reducer.js`;
-- `runtime-r3/server/store.js` / `supabase-store.js`;
-- focused R3 CSA/turn tests.
+## 2. Required first step — classify the exact broken boundary before source edits
 
-Classify which existing method/RPC can be retired from active product flow and which historical/internal contract must remain. Do not edit applied migrations merely to rename/remove old RPCs in this task.
+Use a fresh disposable bare-public TEST game. Do not mutate owner/preserved games.
 
-## 3. Required implementation shape — smallest A-prime-compatible correction
+Reproduce exactly enough to reach:
+1. Setup -> Opening;
+2. one ordinary turn;
+3. one visible CSA APPLY that commits successfully;
+4. one unrelated ordinary free-input turn immediately afterward.
 
-### A. One canonical chronological transaction
+For that fourth action capture, as available from the browser/runtime diagnostics:
+- click/submit event actually fired or not;
+- POST `/api/r3/games/:id/turn` actually issued or not;
+- request URL/origin/method;
+- request body `expected_turn`, `literal_action`, presence/absence of `csa_operation`;
+- HTTP status, response content-type and whether body is SSE;
+- timing to response headers, first SSE frame, first `story_delta`, Observer stage and terminal;
+- server context immediately before submit;
+- server context immediately after failure/timeout;
+- `committed_turn`, state revision and next job identity/status/stage/error_code;
+- whether a Turn 3 job row exists;
+- whether the job is `reserved`, `story_streaming`, `story_complete`, `failed`, `committed`, expired, or absent;
+- whether Story provider was actually called;
+- whether the frontend entered transport reconciliation and what classification it chose.
 
-For each valid APPLY / CHANGE / REMOVE initiated through the visible CSA app:
-- use one canonical turn number/job identity on the existing R3 gameplay turn spine;
-- keep the selected structured CSA operation explicitly available to the server/Story context; do not infer it back from prose;
-- generate a deterministic literal player action from the exact visible app operation/catalog label, or otherwise preserve an equally exact UI-origin action identity; the committed turn must truthfully represent what the user clicked;
-- stream Story through the same visible narrative surface used by ordinary turns;
-- run the existing single Observer after Story;
-- commit Story/choices/summary/Mind Monitor/state together through the existing canonical turn persistence path;
-- make the CSA rule transition durable only in the successful committed state_after for that turn;
-- if Story/commit fails, the previous active-rule state remains authoritative;
-- exactly one operation gesture must not create both a zero-turn CSA write and a normal turn write.
+Classify the first broken boundary as exactly one primary root category:
+A. UI dispatch/control/overlay/focus prevented POST;
+B. POST/HTTP/CORS/origin/body failure before reservation;
+C. turn reservation/job identity/state-revision conflict;
+D. Story request/first-content/stream timeout or provider transport failure;
+E. Observer/reducer/commit failure;
+F. terminal SSE parsing/reconciliation/render lifecycle failure;
+G. another concrete boundary with direct evidence.
 
-The `/csa` route may be retained, reshaped, or internally delegated if that is the smallest coherent path, but do not create a second gameplay writer. Reuse the existing turn job/stream/commit authority rather than building parallel persistence.
+Do not patch until this classification has evidence. No stochastic repeated submissions to make a flaky turn pass.
 
-### B. Operation chronology
+## 3. Source-proven lifecycle defect to close in this same narrow cut
 
-APPLY:
-- before the turn, rule is inactive;
-- the turn represents the player's app action and the rule taking effect;
-- after successful commit, rule is active and relevant deterministic state projection may be present.
+Independent of the failed Turn 3 root cause, current frontend source has a deterministic post-operation control lifecycle defect:
+- `submit()` sets `state.busy = true`;
+- committed terminal calls `renderContext(context)` while busy is still true;
+- `renderContext()` calls `csaUi.sync()`;
+- CSA APPLY/CHANGE/REMOVE buttons therefore render disabled because `getBusy()` is true;
+- `submit()` finally changes `state.busy = false` and calls `refreshChoices()` only;
+- CSA UI is not re-synced after busy clears.
 
-CHANGE:
-- before the turn, old rule definition is active;
-- the turn represents changing it;
-- after successful commit, new definition/scope is active, with no impossible retroactive rewrite of prior turns.
+Result: CHANGE/REMOVE can remain stale-disabled after a successful operation turn until another render happens.
 
-REMOVE:
-- before the turn, rule is active;
-- the turn represents removing/disabling it;
-- after successful commit, it is inactive;
-- removal must not fabricate memory loss or erase historical Story/turn evidence.
+Fix this with the smallest lifecycle correction. Do not redesign the CSA app.
 
-Do not implement a new generic CSA execution DSL. Existing bounded structured execution such as clothing_state may remain bounded; other catalog rules can remain Story/world-premise semantics unless an already-approved deterministic mechanic exists.
+## 4. Implementation boundaries
 
-### C. Anti-hijack Story boundary
+After root classification, make the smallest source correction that closes the proven broken boundary plus the stale-disabled CSA control lifecycle.
 
-Update the existing R3 Story context/prompt only as needed so that:
-- a newly applied/changed/removed rule gets a natural enactment beat on that operation turn;
-- on later unrelated turns, the player's literal action/target/location/social intent remains the narrative center;
-- active CSA is mentioned/enacted only when relevant to the current scene/action or when its premise necessarily changes what is observable;
-- do not produce rule tutorials, repeated explanation of the app, or choices that mostly restate/escalate the CSA premise;
-- choice diversity after CSA must still include natural continuations of the player's current social/location/non-work/work context rather than collapsing into near-paraphrases of sexual/rule escalation;
-- preserve frozen player-agency/navigation invariants.
+Required invariants:
+- ordinary post-CSA free input must use the same normal turn path as any ordinary turn;
+- an active CSA rule must not inject a stale `csa_operation` into an unrelated turn;
+- no duplicate turn writer;
+- no hidden retry/regeneration;
+- no provider/model/temperature/token/timeout tuning to mask a transport/state bug;
+- no architecture redesign;
+- no generic new retry framework;
+- no migration/schema/RLS/grant change;
+- no reset work;
+- no Production;
+- no owner/preserved-game mutation.
 
-### D. Compliance vs private emotion boundary
+If the primary root is provider first-content/stream behavior caused by the new prompt/context shape, correct only the concrete request/context defect. Do not solve it by increasing timeout or changing model.
 
-Strengthen the existing Observer/Mind Monitor contract generically:
-- complying with a CSA rule, treating it as normal, or being institutionally required to do something does not by itself establish affection, comfort, desire, sexual arousal, attraction, excitement, trust, or liking toward the player;
-- do not transform `rule is followed` into positive private emotion;
-- private emotion remains character-specific and evidence-based and may be neutral, conflicted, embarrassed, annoyed, uneasy, practical, curious, etc. when supported;
-- do not hard-code one NPC or one exact phrase;
-- do not install a sentiment classifier or deterministic emotion table.
-
-## 4. Frontend behavior
-
-The CSA app must no longer claim that rule transactions consume no turn.
-
-Required visible behavior when APPLY/CHANGE/REMOVE is pressed:
-- the app transaction enters the same non-blocking gameplay busy/streaming lifecycle as a normal turn;
-- the Story area stays visible and streams; do not cover the narrative with a blocking full-screen loading overlay;
-- duplicate clicks while the operation turn is in flight are disabled/fenced;
-- on terminal commit, context, turn number, active rules, choices, map/state/MM all refresh from committed server context;
-- on terminal failure, show a bounded useful error and restore the prior committed CSA state; do not pretend the rule succeeded;
-- mobile controls remain reachable.
-
-Do not redesign the high-parity CSA UI in this task. That is a later phase. Change only what is required for chronological transaction behavior and correct status copy.
+If the primary root is frontend transport/reconciliation, ensure a user-visible bounded error remains when a turn truly fails; silent return-to-enabled with no useful state is not acceptable.
 
 ## 5. Focused deterministic regressions
 
-Add/update only the tests necessary to prove the generic contract. At minimum cover:
-1. APPLY consumes exactly one gameplay turn and does not call/commit a separate zero-turn state mutation;
-2. CHANGE consumes exactly one turn and commits the new rule atomically with that turn;
-3. REMOVE consumes exactly one turn and commits deactivation while preserving historical turns;
-4. failed Story/commit leaves prior CSA state authoritative;
-5. in-flight duplicate operation cannot create duplicate jobs/turns;
-6. selected catalog item/scope/action identity reaches Story context without prose re-inference;
-7. ordinary free-input and choice turns remain unchanged after an active CSA exists;
-8. active CSA does not authorize Story to replace an unrelated player action with app/rule interaction;
-9. Observer/Mind Monitor prompt/normalization does not infer positive private emotion from compliance alone;
-10. bounded existing clothing execution still projects only where its already-approved scope/evidence permits.
+Add/update only tests needed for the proven lifecycle. At minimum cover:
+1. successful CSA APPLY followed immediately by ordinary free input creates the next expected turn with no `csa_operation`;
+2. post-APPLY ordinary turn preserves exact literal action;
+3. post-APPLY next-turn reservation is not blocked by the committed CSA job;
+4. if transport fails, reconciliation reports processing/failed/committed/not-sent truthfully rather than silently appearing successful;
+5. after successful CSA operation terminal and `state.busy` clearing, CHANGE/REMOVE controls are enabled again;
+6. operation controls remain disabled while genuinely busy to prevent duplicates;
+7. APPLY itself remains exactly one streamed committed turn;
+8. failed CSA Story remains atomic and cannot half-apply state;
+9. earlier choice dispatch and player-agency/navigation contracts remain green where touched.
 
-Run relevant focused R3 suites, full `npm test` if touched dependencies warrant it, syntax checks, and `git diff --check`.
+Prefer a regression that exercises the same store shape used by deployed Supabase behavior if the root lives at store/job parity. Do not add a migration merely to make a test convenient.
+
+Run:
+- focused R3 CSA/turn/frontend/transport tests;
+- full `npm test`;
+- changed JS/MJS syntax checks;
+- `git diff --check`.
 
 ## 6. TEST-only deployment
 
-If source changes, deploy only the affected R3 TEST artifacts from the reviewed source.
+If source changes, deploy only affected R3 TEST artifact(s) from the exact reviewed source.
 
-Hard boundaries:
-- preserve `R3_GAME_ACCESS_SECRET` and all current bindings;
-- no Production;
-- no provider/model/temperature/token/timeout tuning;
-- no hidden retry/regeneration;
-- no migration/schema/RLS/grant/history repair;
-- no reset fix in this task;
-- do not access or mutate owner/preserved games.
+Preserve all existing bindings/secrets including `R3_GAME_ACCESS_SECRET`.
+Do not print, rotate, recreate, request, or transfer secrets.
+No Production.
+No provider/model/config tuning.
+No migration/schema/reset changes.
 
-## 7. Mandatory bare-public live acceptance
+Record exact source SHA and Worker version IDs.
+
+## 7. Mandatory bare-public acceptance after the fix
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-No `?api=`, no preseeded game/storage, no direct-API gameplay substitute.
+No `?api=` override, no preseeded storage, no direct-API gameplay substitute for acceptance.
 
-Use fresh disposable games and visible UI.
+### Gate 1 — reproduce the failed sequence
+Fresh desktop disposable game:
+1. Setup -> Opening;
+2. ordinary Turn 1;
+3. visible CSA APPLY -> exactly one streamed Turn 2;
+4. immediately submit unrelated free input `윤민아 대리를 따라 복도로 나가 괜찮은지 조용히 확인한다.`;
+5. require actual POST/SSE, visible Story stream and exactly one committed Turn 3;
+6. require exact action/target/movement/social intent preservation;
+7. require no stale `csa_operation` on Turn 3;
+8. require no silent stall/errorless return-to-ready.
 
-### Fixture A — APPLY + unrelated continuation
-1. Setup -> Opening -> at least one ordinary committed turn.
-2. Open CSA app and APPLY one current catalog rule through visible UI.
-3. Require visible Story streaming and exactly one new committed gameplay turn.
-4. Verify before/after state proves rule becomes active only with the successful operation-turn commit.
-5. Inspect the enactment Story qualitatively: it represents the app action/consequence naturally and does not become a tutorial.
-6. Next submit an unrelated ordinary social/movement/work/non-work action.
-7. Require that Story follows that literal action and does not snap back into explaining/demonstrating the rule.
-8. Verify choices remain meaningfully diverse and not mostly near-paraphrased CSA escalation.
+### Gate 2 — CSA control lifecycle
+After APPLY commit:
+- CHANGE/REMOVE controls must become usable once the turn is terminal and busy clears;
+- no duplicate operation submission;
+- mobile controls must also remain reachable.
 
-### Fixture B — CHANGE then REMOVE
-1. Fresh game with an active rule established through visible UI.
-2. CHANGE it through the app; require one streamed turn/one commit and only the new rule definition active afterward.
-3. Continue one ordinary turn.
-4. REMOVE the rule through the app; require one streamed turn/one commit and inactive state afterward.
-5. Refresh/re-entry and verify chronology, active-rule state, and historical Story turns persist correctly.
+### Gate 3 — resume the original CSA acceptance
+Only after Gates 1–2 pass, continue the original unfinished coverage:
+- visible CHANGE = one streamed committed turn;
+- one unrelated ordinary continuation;
+- visible REMOVE = one streamed committed turn;
+- refresh/re-entry preserves chronology and active rule state;
+- at least two visible choice clicks across the campaign;
+- one movement/social action;
+- one refusal or explicit self-state action;
+- inspect choices for diversity and no CSA tutorial/escalation collapse;
+- inspect Mind Monitor/private state: compliance alone must not create affection/comfort/desire/arousal/attraction/excitement/trust/liking;
+- desktop + approximately 390x844 mobile coverage;
+- total 8–12 committed turns across fresh disposable fixtures.
 
-### Fixture C — private-emotion boundary
-Use a fresh or continuing scene with a registered NPC affected by a rule.
-- The Story may portray compliance/world-premise behavior as appropriate.
-- Inspect the committed Mind Monitor/private state.
-- FAIL if the only basis for affection/comfort/desire/arousal/positive excitement is rule compliance itself.
-- Do not require a specific negative emotion; require only independent evidence for any positive private-emotion claim.
+Inspect complete Story text and committed context, not only DOM shape.
 
-Across fixtures, include at least 8–12 committed turns total, mixing CSA operation turns, free input, at least two choice clicks, movement/social context, and one refusal/self-state action. Inspect complete Story text, not just state shape.
-
-## 8. Acceptance criteria
+## 8. GREEN criteria
 
 GREEN only if:
-- APPLY/CHANGE/REMOVE each demonstrably consumes exactly one normal committed gameplay turn with visible Story streaming;
-- no zero-turn CSA mutation remains in the active user path;
-- CSA state transition is atomic with the successful turn;
-- failure cannot leave a half-applied rule;
-- refresh/re-entry preserves exact chronology and active state;
-- later unrelated turns remain Story-first company-life play rather than CSA tutorial/demo loops;
-- choices do not collapse into repetitive CSA/sexual escalation;
-- compliance alone does not generate unsupported positive private emotion;
-- free input, choice dispatch, agency, canonical navigation, streaming, presence and duplicate-turn protections remain healthy;
-- no blocking full-screen loading regression appears;
-- no forbidden Production/provider/model/migration/schema work occurred.
+- exact post-APPLY Turn 3 blocker has a proven root cause and is fixed;
+- unrelated post-CSA free input commits normally with visible streaming;
+- no stale operation leaks into ordinary turn payload/context;
+- CSA operation controls recover from busy state correctly;
+- APPLY/CHANGE/REMOVE each remain exactly one chronological committed turn;
+- state transitions remain atomic;
+- unrelated turns remain player-action-first instead of CSA tutorial/demo loops;
+- choices remain meaningfully diverse;
+- compliance alone does not produce unsupported positive private emotion;
+- refresh/re-entry coherent;
+- agency/navigation/choice-dispatch remain healthy;
+- no silent blocking error path;
+- no forbidden Production/provider-model/migration/schema/reset/secret work.
 
 Do NOT claim owner-ready after this task.
 
-## 9. Remaining owner-remediation phases after this cut
+## 9. Completion report
 
-Do not implement these inside this task unless separately authorized after review:
+Post to Issue #68:
+- primary root classification A–G with exact evidence;
+- failed request/job/SSE/context evidence before fix;
+- exact changed files/source SHA;
+- focused/full tests actually run;
+- deployed TEST Worker version IDs;
+- disposable fixture IDs;
+- APPLY -> unrelated Turn 3 proof;
+- CSA control re-enable proof;
+- CHANGE/REMOVE proof;
+- refresh/re-entry proof;
+- anti-hijack choice-diversity findings;
+- private-emotion findings;
+- desktop/mobile console/network findings;
+- remaining objective defects.
+
+Then overwrite this SAME file to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK yourself.
+
+## 10. Remaining owner-remediation phases after this cut
+
+Do not implement these inside this task:
 1. first-arrival Opening motivation + player inner thought + natural character-specific first-person Mind Monitor + broader choice diversity/time progression;
 2. high-parity Company donor CSA UI;
 3. approved-media image projection + character-aware server TTS;
 4. deployed same-game reset integration failure;
 5. timeline/current-scene UI residue;
 6. final holistic owner-style long-play acceptance.
-
-## 10. Completion report
-
-Post to Issue #68:
-- exact root/authority audit of the old zero-turn path;
-- exact changed files and executable source SHA;
-- focused/full tests actually run;
-- deployed TEST API/frontend version IDs;
-- disposable fixture IDs;
-- APPLY/CHANGE/REMOVE: pre-state -> visible operation -> streamed Story -> Observer -> commit -> post-state/turn evidence;
-- proof that failed/in-flight behavior is atomic/fenced;
-- unrelated post-CSA Story + choice diversity qualitative findings;
-- private-emotion boundary findings with exact evidence;
-- refresh/re-entry/duplicate/console/network findings;
-- remaining objective defects.
-
-Then set this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK yourself.
