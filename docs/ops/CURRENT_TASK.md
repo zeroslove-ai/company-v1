@@ -1,371 +1,293 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-final-holistic-owner-style-long-play-v2
-Mode: SOURCE-FROZEN FINAL PRODUCT ACCEPTANCE -> NEW CLEAN OWNER-STYLE LONG PLAY -> CROSS-FEATURE EXIT MATRIX
-Updated: 2026-08-24 02:55 KST
+Status: READY
+Task ID: company-r3-story-canonical-player-identity-v1
+Mode: FREEZE CANONICAL PROFILE/PERSISTENCE -> PROJECT EXACT PLAYER IDENTITY ON EVERY STORY TURN -> API TEST DEPLOY -> EXECUTIVE/JUNIOR LIVE IDENTITY ACCEPTANCE
+Updated: 2026-08-24 03:00 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5387491499`
-Previous holistic failure: Issue #68 comment `5387276200`
-Operator review: Issue #68 comment `5387503664`
+Previous terminal: Issue #68 comment `5387578154`
+Operator review: Issue #68 comment `5387600560`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery branch. Work on `main` only.
 
-## 0. Source-frozen baseline
+## 0. Accepted baseline — freeze
 
-Accepted executable/source for this holistic retest:
+Accepted executable/source before this cut:
 - `ef52695668ab8548ed89b2eeb68c21ea95d836ba`
 
 Current main before this registration:
-- `10181f521b1ec5159f978ee9c0a9effff09f0e2e`
-- direct docs-only descendant of `ef526956...`.
+- `43ef86b2de3f34193487cafcb84514536c856cbd`
+- docs-only terminal descendant of the accepted executable lineage; holistic V2 made no product/source/deploy change.
 
 Accepted TEST artifacts:
 - API `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`
 - Frontend `gamebuilder-company-r3` version `71416b75-9cca-45ee-9b32-7cf209f16395`
-- Bare public frontend: `https://gamebuilder-company-r3.zeroslove.workers.dev`
+- bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Accepted validation at this baseline:
-- focused CSA/UI: 22/22 PASS;
+Accepted validation before this cut:
 - full `npm.cmd test`: 531/531 PASS;
-- changed JS/MJS syntax: PASS;
-- `git diff --check`: PASS.
+- CSA active-rule replacement UI + chronological APPLY/CHANGE/REMOVE GREEN;
+- all previously frozen agency/navigation/reset/media/TTS/timeline behavior remains accepted unless this task directly disproves it.
 
 Preserved games — READ ONLY, never reset/revise/retry/mutate:
 - owner manual game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`;
-- failed holistic V1 fixture `f84aa0f0-6658-41a2-8fed-c307d4d2e219`;
-- CSA repair acceptance fixture `f1285f4c-4719-4dc2-a18d-9fa5ad86d40c`.
+- holistic V1 failure fixture `f84aa0f0-6658-41a2-8fed-c307d4d2e219`;
+- CSA repair fixture `f1285f4c-4719-4dc2-a18d-9fa5ad86d40c`;
+- holistic V2 identity-failure fixture `4b050667-cca3-43a0-b483-d16c86a2873e`.
 
-Create entirely NEW disposable TEST games for this task.
-Do not resume any prior holistic campaign.
+Use fresh disposable TEST games for mutable acceptance.
 
-## 1. Why V2 exists
+## 1. Exact proven product defect
 
-Holistic V1 was source-frozen and stopped correctly at the first decisive product failure: an active CSA rule with fixed scope exposed only `해제` and no meaningful CHANGE path.
+Holistic V2 stopped correctly at the first decisive product failure.
 
-The isolated repair `company-r3-csa-active-rule-preset-change-v1` is now operator-accepted GREEN:
-- active rules expose a bounded replacement-preset CHANGE affordance;
-- CHANGE stages locally as one pending draft;
-- Revert performs zero gameplay requests;
-- Apply emits one canonical `operation:'update'` turn;
-- the same rule id survives while the template changes;
-- duplicate/current/no-op/custom/batch/deactivate+activate workarounds remain absent;
-- bare-public APPLY -> CHANGE -> unrelated -> REMOVE -> unrelated passed;
-- API/runtime CSA chronology was unchanged.
+Fresh Campaign A setup/readback was canonical:
+- department: `신사업TF` (`new_business_tf`)
+- position/rank: `임원` (`executive`)
 
-Therefore V2 must restart the complete holistic matrix from new clean campaigns and determine whether the whole product is now ready for the owner's final manual playtest.
+At committed Turn 5 the visible Story authored the player's business card as:
+- `서윤호 / 신사업TF 팀장`
 
-This task is ACCEPTANCE ONLY.
+This contradicts the committed canonical `임원` rank. No setup/readback mutation occurred, and the failure was not caused by player-action substitution.
 
-## 2. Hard freeze / fail-fast rules
+Canonical repository content is unambiguous:
+- `content/positions.json`: `executive -> 임원`, `tf_lead -> TF팀장`;
+- `content/organization.json`: `new_business_tf -> 신사업TF`.
 
-Do not edit runtime/frontend/test/content/config/provider code during this task.
-Do not commit product/source changes.
-Do not deploy merely to manufacture a pass.
-Do not retry or regenerate a Story/turn to manufacture a pass.
-Do not change provider/model/temperature/token/timeout/config/secrets.
-Do not change DB schema/RPC/migration/RLS/grants.
-Do not access Production.
-Do not mutate any preserved game listed above.
-Do not use direct gameplay API calls as a substitute for visible product actions.
-Do not use `?api=` override, storage preseed, DOM mutation, or hidden writer to bypass UI.
+Source boundary at accepted executable:
+- `runtime-r3/domain/memory.js::buildStoryContext()` resolves canonical `department` and `position` catalog entries on every call;
+- however their human-readable names are emitted only inside `opening_contract.selected_department` / `selected_position`;
+- ordinary Story turns receive raw `profile` IDs but no all-turn canonical player-identity label contract;
+- `runtime-r3/server/provider.js` explicitly hard-binds player agency dimensions, but does not currently hard-bind the player's formal name/department/position identity on every ordinary turn.
 
-If a decisive product failure occurs:
-1. preserve that fresh disposable fixture at the failure turn;
-2. capture exact literal action, visible Story, committed/readback state, relevant DOM/network evidence;
-3. STOP `FAILED_PRODUCT` / `WAITING_REVIEW` immediately;
-4. do not patch it and do not continue collecting unrelated failures.
+Therefore this cut is a Story input/prompt identity-boundary correction. Do not change profile persistence or invent a second identity authority.
 
-If the deployed artifact lineage does not match the accepted versions, STOP `BLOCKED_DEPLOYMENT_DRIFT` before product play. Do not silently redeploy from an uncertain head.
+## 2. Frozen contracts — do not reopen
 
-## 3. Frozen product contracts under final review
+Freeze:
+- setup/profile writer and DB persistence;
+- department/position catalog content and IDs;
+- first-arrival Opening behavior;
+- player agency/target/action/refusal/self-state/topic/intent contract;
+- canonical navigation/location/presence;
+- Story-owned exact choices;
+- Observer gameplay projection semantics;
+- CSA chronology and repaired active-rule CHANGE UI;
+- image/TTS/timeline/reset behavior;
+- provider/model/configuration values.
 
-Evaluate these together as one game:
+Do NOT:
+- change DB/schema/RPC/migration/RLS/grants;
+- change `content/positions.json` or organization semantics merely to mask the problem;
+- create a second rank/title inference system;
+- rewrite Story output after generation with regex/string replacement;
+- reject and regenerate Story because a rank looks wrong;
+- add retry/regeneration/second LLM/semantic classifier;
+- change provider/model/temperature/token/timeout/config/secrets;
+- modify Production or preserved games.
 
-### Opening / identity
-- every new game begins on the player's first day / first arrival / first appointment regardless selected rank;
-- selected department/rank remains authoritative, including executive/senior and low/junior profiles;
-- private CSA app discovery is optional/curious/tempting, never a forced quest or player action authored by Story;
-- player inner thought is visible natural first-person Korean and does not invent player decisions/outcomes;
-- relevant NPC Mind Monitor is character-specific natural first-person Korean.
+Expected source boundary:
+- `runtime-r3/domain/memory.js`;
+- `runtime-r3/server/provider.js`;
+- focused tests only as required.
 
-### Player agency / scene
-- exact player actor/target/action/request/refusal/change-of-mind/self-state/topic/intent remains central;
-- Story may resolve external success/refusal naturally but may not replace the attempted action with a different player action;
-- player intent is not automatic NPC consent/affection/comfort/desire/romance/trust;
-- canonical navigation/location/presence must match literal destination intent and narrated scene;
-- remote/off-scene NPC mentions must not make them present;
-- scene note must describe the current scene rather than stale old-location activity.
+Frontend should not need a source change.
 
-### Choices / presentation
-- current choices are Story-owned; when Story emits a supported terminal 1–4 choice block, UI exposes exactly four actionable choices;
-- no fabricated fallback/resurrected previous choices;
-- each visible choice button dispatches its exact full literal once;
-- current normal Story surface is latest/current scene only;
-- full committed chronology remains in History overlay/export, not as stale normal-surface cards.
+## 3. Mandatory pre-edit trace
 
-### Time / continuity
-- meaningful ordinary conversation/movement/work/social beats advance time plausibly;
-- obvious frozen-time or chronology contradictions are failures;
-- refresh/re-entry reconstructs committed server truth rather than stale client cache.
+Before editing, prove and record:
+1. `content/positions.json` exact canonical position mapping including `executive -> 임원`, `tf_lead -> TF팀장`, `intern -> 인턴`;
+2. `content/organization.json` exact canonical department mapping including `new_business_tf -> 신사업TF`;
+3. failing fixture remains read-only and its canonical readback profile is still `new_business_tf/executive`;
+4. `buildStoryContext()` already resolves `department` and `position` labels but only includes those labels under Opening-specific fields;
+5. an ordinary-turn Story payload contains raw `profile.position_id` / `department_id` but lacks an explicit all-turn canonical label boundary;
+6. Opening currently has stronger rank preservation language than ordinary turns;
+7. no later reducer/Observer step mutates the player's canonical profile to `팀장`.
 
-### CSA
-- local draft/replacement edits perform zero gameplay writes before explicit Apply;
-- exactly one pending operation at a time;
-- APPLY/CHANGE/REMOVE are each exactly one chronological normal Story turn;
-- CHANGE is one `update` on the same rule id, not deactivate+activate;
-- active rule replacement uses only the bounded existing preset catalog;
-- later unrelated ordinary turns are literal-action-first and contain no stale `csa_operation`;
-- CSA institutional compliance must not mechanically create affection/comfort/consent/desire/romance/trust/personality obedience in Mind Monitor.
+If any of these are false and a different first boundary is proven, STOP and report before broadening the patch.
 
-### Media / TTS
-- approved image selection is deterministic, present-character/focal-evidence grounded, and fail-open when ambiguous;
-- TTS OFF means zero synthesis calls;
-- TTS ON sends only eligible committed canonical present-NPC dialogue through browser -> R3 API -> server `TTS_WORKER` binding;
-- narrator/player/player-inner-thought/Mind Monitor text is never synthesized as character dialogue;
-- replay/cache/stale fencing works and browser `speechSynthesis` remains absent.
+## 4. Correction contract — canonical player identity on every Story turn
 
-### Existing accepted infrastructure
-- same-game reset runtime is already separately GREEN; native-confirm browser automation remains a deferred environment limitation and is not a required destructive step in this holistic run;
-- all accepted agency/navigation/reset/media/timeline/CSA behavior is frozen and may not be redesigned here.
+Project one bounded canonical identity object into `buildStoryContext()` for BOTH Opening and ordinary turns.
 
-## 4. Preflight — exact deployed lineage only
+Preferred shape may be named `canonical_player_identity` or equivalent and must include only server-resolved canonical facts, e.g.:
 
-Before gameplay:
-1. verify main is a docs-only descendant of executable `ef526956...`;
-2. verify TEST API exactly `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`;
-3. verify TEST frontend exactly `71416b75-9cca-45ee-9b32-7cf209f16395`;
-4. if versions match, perform zero deployment;
-5. run full `npm.cmd test` on the exact accepted source lineage and record result without modifying source;
-6. use only bare public `https://gamebuilder-company-r3.zeroslove.workers.dev` for gameplay.
+```js
+{
+  name: state.profile?.name ?? null,
+  department: {
+    id: state.profile?.department_id ?? null,
+    name: department?.name ?? null
+  },
+  position: {
+    id: state.profile?.position_id ?? null,
+    name: position?.name ?? null
+  }
+}
+```
 
-If any preflight identity is uncertain, stop before play.
+Do not derive formal rank/title from department names, NPC roles, scene context, seniority stereotypes, or model inference.
 
-## 5. Campaign A — executive/senior owner-style long play
+Add an explicit all-turn `player_identity_contract` or equivalent hard-boundary statement. It must establish:
+- canonical player name, department, and formal position/rank are authoritative Story facts on every turn;
+- Story must not replace, normalize, downgrade, upgrade, or invent a different formal department/rank/title;
+- if Story chooses to render or mention an identity artifact/reference — business card, employee badge, introduction, signature, formal title/address, organizational listing — it must use the exact canonical labels supplied in `canonical_player_identity`;
+- `임원` must never become `팀장`, `TF팀장`, `대리`, `인턴`, or another invented formal rank unless a future explicit product mechanic changes the canonical profile; no such mechanic exists in this cut;
+- similarly, a canonical `인턴` must not be promoted merely because the narrative context seems senior;
+- ordinary descriptive words that are not formal player rank/title must not be over-policed, but any formal player identity assertion must match canonical facts.
 
-Create one fresh disposable game with an executive/senior profile. Use a natural company-life sequence rather than disconnected probes.
+Update the Story system/product prompt narrowly so it treats the supplied canonical identity contract as a hard boundary alongside player agency.
 
-Run Opening plus at least **15 committed chronological turns** without retry/regeneration.
+Do not require Story to repeat the player's rank every turn. The rule applies whenever Story mentions it.
 
-Across the campaign require:
-- at least 6 free-form ordinary inputs;
-- at least 4 visible choice-button clicks;
-- at least one direct named-NPC conversation and a follow-up with the same NPC/topic;
-- at least one work/context action;
-- at least one non-work/social action;
-- at least one explicit refusal/change-of-mind;
-- at least one self-state action such as wanting quiet, pausing, fatigue, or ending an interaction;
-- at least one canonical movement/scene change;
-- at least one action explicitly addressed to a named NPC.
+## 5. Keep one identity authority
 
-For sampled actions compare:
-`literal input -> Story enactment -> committed/readback scene/state`.
+The canonical source remains:
+`committed profile IDs -> repository content catalog -> bounded Story context labels`.
 
-Fail immediately on actor/target/action/topic/refusal/self-state substitution or wrong canonical destination.
+Requirements:
+- do not add a durable duplicate `position_name`/`department_name` writer to DB state;
+- do not let client/frontend become identity authority;
+- do not parse rank back out of Story;
+- do not let Observer overwrite player identity;
+- preserve raw `profile` in context for existing consumers;
+- Opening `selected_department` / `selected_position` must remain coherent with the same canonical identity values, preferably derived from the same local objects to avoid future drift.
 
-### Choice quality
+If a legacy/invalid profile ID cannot resolve a catalog label, do not invent one in prompt construction. Preserve existing structural validation/fail-open behavior; do not broaden this task into legacy migration.
 
-Whenever current Story visibly has a supported terminal 1–4 block:
-- exactly four buttons must be available;
-- click dispatch must equal the full exact choice literal once;
-- buttons may show shortened labels but title/aria/full transport authority must remain intact;
-- sampled choices should be meaningfully distinct when the scene supports diversity rather than four near-paraphrases of the same escalation.
+## 6. Deterministic regressions
 
-If Story genuinely has no supported terminal choice tail, free input must remain usable and no old/fabricated choices may appear.
+Add focused tests proving at minimum:
+1. ordinary-turn `buildStoryContext()` for `new_business_tf/executive` includes exact canonical department `신사업TF` and position `임원` labels;
+2. Opening and ordinary turns expose the same canonical identity labels;
+3. `brand_strategy/intern` exposes `브랜드전략팀/인턴`, proving the contract is not executive-specific;
+4. player name is preserved exactly in canonical identity;
+5. the all-turn identity contract explicitly forbids alternate formal rank/title assertions;
+6. Story provider ordinary-turn request payload includes the canonical identity object/contract, not only Opening requests;
+7. Opening's existing first-arrival/rank contract remains present and consistent;
+8. recent turns, location, actors, active rules, player-agency contract, choices, and CSA pending operation context remain unchanged by identity projection;
+9. no output post-processor/regex replacement/retry path is introduced;
+10. Observer does not gain player-rank mutation authority;
+11. existing executive and junior setup/profile tests remain GREEN;
+12. agency/navigation/CSA/media/TTS/timeline frontend/backend contracts remain GREEN.
 
-### Time / scene sampling
+Run:
+- focused R3 memory/provider/opening/profile tests;
+- full `npm.cmd test`;
+- changed JS/MJS `node --check`;
+- `git diff --check`.
 
-Read visible/server projection at multiple points after conversation, work, movement and social beats:
-- time should usually advance positively;
-- location/presence must match current narrative;
-- off-scene mentions do not create presence;
-- scene note should update coherently.
+Do not weaken existing tests to accept rank drift.
 
-Do not require a fixed minutes-per-turn constant.
+## 7. TEST deployment
 
-## 6. CSA sequence inside Campaign A — repaired CHANGE must be exercised
+Expected affected artifact: API only.
 
-After several ordinary turns, use the visible high-parity CSA app.
+If only runtime/backend/test source changes:
+- deploy exact corrected source to TEST `game-proxy-company-r3`;
+- record new API Worker version;
+- keep frontend exactly `gamebuilder-company-r3` version `71416b75-9cca-45ee-9b32-7cf209f16395`;
+- do not redeploy frontend merely for symmetry.
 
-### A. Five-tab/draft behavior
-Open and inspect Home / Player / NPC / CSA / Manual.
-Then:
-- stage a local CSA draft;
-- prove no gameplay request/turn/revision change caused by staging itself;
-- Revert once and prove zero gameplay request and committed state unchanged;
-- one pending operation only.
+No Production.
+No migration/schema/RPC.
+No provider/model/config/secret change.
 
-Native dirty-close confirmation is not a required live gate if the browser automation cannot accept the native dialog. Record that limitation separately; do not treat it as a runtime failure and do not bypass it by changing product source.
+## 8. Mandatory bare-public acceptance — executive identity
 
-### B. Chronological visible sequence
-Perform in this exact broad order, using normal visible product controls:
-1. APPLY one representative preset;
-2. one unrelated ordinary company/social action;
-3. CHANGE the same active rule to a **different preset** using the repaired active-rule replacement UI;
-4. one unrelated ordinary action;
-5. REMOVE the changed rule;
-6. one final unrelated ordinary action.
+Use only bare public frontend:
+`https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Require:
-- APPLY = exactly one `/turn` and one `activate` operation;
-- CHANGE staging before Apply = zero gameplay request;
-- CHANGE = exactly one `/turn`, one `operation:'update'`, same rule id, different template id;
-- reopen/readback after CHANGE shows the replacement committed under that same rule id;
-- REMOVE = exactly one `/turn`, one `deactivate`;
-- reopen/readback after REMOVE shows no active instance of that rule;
-- ordinary turns surrounding CSA have no stale `csa_operation` and remain literal-action-first;
-- no deactivate+activate CHANGE workaround;
-- no duplicate/current/no-op/custom preset path;
-- Mind Monitor does not turn rule compliance into automatic affection/comfort/consent/desire/romance/trust.
+No `?api=` override.
+No storage preseed.
+No direct gameplay API substitute.
+No retry/regeneration.
 
-## 7. Media / TTS / History in the same Campaign A
+Create a NEW disposable game with:
+- department `신사업TF` / `new_business_tf`;
+- position `임원` / `executive`;
+- a normal fresh player name.
 
-Reach at least one committed scene with a grounded present registered heroine and eligible dialogue.
+Run visible Setup -> Opening -> at least **6 ordinary committed turns**.
 
-### Image
-Require:
-- chosen image character matches committed grounded focal/relevant present heroine;
-- returned image is approved for that exact character;
-- ambiguous/no-grounded scene fails open rather than choosing arbitrarily;
-- stale image response cannot overwrite later committed projection.
-
-### TTS
-Before enabling:
-- capture zero `/media/tts` synthesis calls while TTS is OFF.
-
-Then enable visible TTS on an eligible committed NPC-dialogue turn:
-- only validated canonical present-NPC dialogue is sent;
-- request goes through R3 `/media/tts`, not direct browser-to-worker and not browser speech synthesis;
-- audio element receives returned URL;
-- narrator/player/private thought/Mind Monitor text is absent from synthesis payloads;
-- Replay of current cached audio creates zero additional synthesis calls where the accepted cache contract applies;
-- next committed turn fences stale prior audio.
-
-### Current scene / History
-At multiple points, including after CSA and after refresh:
-- normal `#story-history` is empty/non-authoritative;
-- `#current-story` shows only current/latest Story;
-- History overlay contains Opening + every committed turn exactly once in canonical order;
-- closing History returns to unchanged current scene;
-- History opening/closing performs no gameplay mutation.
-
-## 8. Mid-campaign refresh / feedback
-
-At approximately Turn 8–11, refresh/re-enter the same Campaign A game.
-Require coherent reconstruction of:
-- committed turn;
-- current Story;
-- location/presence/time;
-- current choices;
-- player inner thought;
-- Mind Monitor;
-- CSA state;
-- current media eligibility/state;
-- complete History.
-
-No Opening/early turn cards may reappear in normal current scene.
-Continue for at least 3 further committed turns after refresh.
-
-If visible feedback/revision control is enabled and usable in the accepted product state, perform one bounded feedback revision of the latest ordinary turn and require:
-- revision replaces the latest current Story without advancing turn number;
-- old/new revisions are not duplicated on normal current surface;
-- subsequent ordinary turn continues from revised committed truth.
-
-If feedback is intentionally unavailable/disabled, record that exact product state and continue. Do not bypass via direct API.
-
-## 9. Campaign B — independent low/junior smoke
-
-Create a second fresh disposable game with a low/junior profile.
-
-Run Opening + at least **4 ordinary committed turns** without retry/regeneration, including:
+The sequence must naturally include identity exposure without supplying the expected rank text in the literal itself. Include at minimum:
+- one action that causes the player to inspect the newly issued business card or employee badge, e.g. `새로 지급받은 명함에 적힌 이름과 부서, 직급을 확인한다.`;
+- one first-meeting introduction or business-card exchange with an NPC;
+- one work/context action;
 - one visible choice click;
-- one free-form NPC conversation;
-- one movement or scene/context change;
-- one refusal/change-of-mind/self-directed action.
+- one free-form action after refresh/re-entry.
+
+Require on every turn/readback:
+- committed profile stays `new_business_tf/executive`;
+- if Story prints player name, it equals canonical player name;
+- if Story prints player department, it is `신사업TF`;
+- if Story prints formal rank/title, it is `임원` and never `팀장`, `TF팀장`, `대리`, `인턴`, or another invented rank;
+- business card/badge/introduction/signature identity, when shown, uses the same canonical labels;
+- no identity correction is performed client-side after Story arrival;
+- normal choices/input/agency remain usable;
+- no blocking console/network error.
+
+Refresh/re-enter after at least Turn 3, then continue. Canonical profile and Story identity must remain coherent after refresh.
+
+If Story avoids mentioning a requested identity field, that is not itself rank drift; however the explicit card/badge inspection action should give a reasonable opportunity to verify all three identity fields. Do not regenerate solely to force a different wording.
+
+## 9. Mandatory bare-public acceptance — junior counterexample
+
+Create a separate NEW disposable game with:
+- a low/junior canonical position, preferably `인턴`;
+- a valid canonical department such as `브랜드전략팀`.
+
+Run Opening + at least **3 ordinary committed turns** including:
+- an identity artifact/intro action that does not include the expected rank text in the literal;
+- one NPC interaction;
+- one ordinary follow-up.
 
 Require:
-- first-arrival framing;
-- selected low/junior rank and department preserved;
-- exact literal agency/navigation;
-- four choices where supported;
-- natural player thought and character-specific Mind Monitor where available;
-- time progression;
-- latest-only normal Story;
-- complete History overlay;
-- no executive-profile-specific assumptions leaking into the junior game.
+- committed profile remains the selected junior profile;
+- Story does not promote the player to 팀장/임원 or any different formal position;
+- when formal identity is mentioned it uses exact canonical labels;
+- first-arrival framing remains valid;
+- no executive assumptions leak into this game.
 
-## 10. Mobile and interaction quality
+## 10. Scope acceptance / failure handling
 
-On substantive Campaign A progress, inspect approximately 390x844 and a normal/wider desktop viewport.
+GREEN only if:
+- the pre-edit trace confirms the ordinary-turn identity-context gap;
+- all-turn canonical identity labels are present in Story input;
+- hard-boundary prompt language covers formal player identity references;
+- no post-hoc output rewrite or regeneration path is added;
+- focused/full/syntax/diff tests pass;
+- API-only TEST deployment succeeds if backend changed;
+- fresh executive live probe preserves `신사업TF / 임원` through card/badge/intro references and refresh;
+- fresh junior probe preserves its own exact canonical rank/department;
+- no regression in ordinary Story/choices/agency/navigation/CSA/media/timeline surface is observed.
 
-Require:
-- no horizontal overflow or blocking overlay;
-- Story remains readable while streaming and after commit;
-- no full-screen loading layer obscures Story streaming;
-- current image/player thought/Mind Monitor/choices/direct input/CSA/TTS/History controls remain reachable when eligible;
-- repaired CSA replacement selector + pending preview + Revert + Apply + Remove remain usable at 390x844;
-- choice buttons preserve full literal authority;
-- no automatic scroll behavior makes the currently-read Story unusable.
+On any deterministic product failure:
+- preserve the fresh fixture;
+- capture literal action -> request/context evidence -> Story -> committed/readback identity;
+- STOP `FAILED_PRODUCT`;
+- do not broaden into another subsystem or retry to manufacture a pass.
 
-Restore viewport after evidence capture.
+Do NOT claim owner-ready.
 
-## 11. Objective exit matrix
+If GREEN, stop at WAITING_REVIEW. The next operator task will restart the full holistic owner-style long-play from NEW clean campaigns. Do not resume holistic V2 fixture `4b050667-cca3-43a0-b483-d16c86a2873e`.
 
-GREEN requires ALL of the following in this exact source-frozen deployment:
-- Campaign A Opening + >=15 committed chronological turns, no retry/regeneration;
-- Campaign B Opening + >=4 ordinary committed turns, no retry/regeneration;
-- >=6 Campaign A free inputs and >=4 visible choice clicks;
-- no P0 player agency/action/target/topic/refusal/self-state substitution;
-- no wrong canonical navigation/location/presence;
-- no supported Story choice tail losing buttons and no fabricated/stale choices;
-- sampled choice diversity acceptable;
-- first-arrival and selected rank/department identity correct for both profiles;
-- player inner thought visible/natural where projected;
-- Mind Monitor first-person/character-specific and CSA-emotion boundary respected;
-- time not effectively frozen;
-- repaired CSA draft/APPLY/CHANGE/REMOVE sequence works chronologically with same rule id across CHANGE and clean unrelated turns;
-- approved image projection works and ambiguity fails open;
-- TTS OFF=0 and character-aware server TTS ON/replay works;
-- latest-only current scene + complete History survives refresh;
-- desktop + 390x844 usable;
-- no blocking console/network/runtime error;
-- no source/Production/migration/provider/model/config change during acceptance.
+## 11. Terminal protocol
 
-Only if every item is GREEN may the terminal report:
-`OWNER_READY_CANDIDATE_FOR_USER_FINAL_PLAYTEST`
+At completion report:
+- status `WAITING_REVIEW` / `FAILED_PRODUCT` / `BLOCKED_CONTRACT`;
+- source SHA, final main SHA, final CURRENT_TASK blob SHA;
+- exact changed files;
+- pre-edit identity-boundary trace;
+- focused/full/syntax/diff results;
+- TEST API/frontend versions;
+- fresh executive/junior fixture IDs;
+- canonical profile readbacks before/after relevant turns and refresh;
+- exact Story snippets sufficient to prove rank/department/name coherence without excessive quoting;
+- whether any alternate formal rank appeared;
+- deployments/source/config/DB operations performed;
+- remaining defect if any.
 
-That phrase means the automated holistic gate passed and the product can be handed back for the owner's final manual playtest. It does NOT authorize Production deployment or mutation of the preserved owner game.
-
-Any decisive failure => `FAILED_PRODUCT`, preserve fixture, report first boundary, stop.
-
-## 12. Terminal / stop protocol
-
-At completion record:
-- exact executable source/main SHA and deployed Worker versions;
-- fresh Campaign A/B fixture IDs only;
-- turn-by-turn action category/literal summary sufficient for audit;
-- choice-click/free-input counts;
-- refresh point and post-refresh continuation;
-- CSA operation turn numbers, request counts, operation types, same rule id/template transition, Revert/no-network evidence, and surrounding ordinary no-stale evidence;
-- media/TTS network evidence;
-- History/latest-only evidence;
-- mobile/desktop evidence;
-- feedback state/evidence if applicable;
-- any environment-only automation limitation separately from product failures.
-
-Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW` in place, post the terminal report to Issue #68, and stop.
-
-Do not create or start a next task.
-
-## Terminal result — FAILED_PRODUCT
-
-- Terminal status: `FAILED_PRODUCT`
-- Fresh Campaign A: `4b050667-cca3-43a0-b483-d16c86a2873e`
-- Campaign A stopped at committed Turn 5 on the first decisive rank-preservation failure.
-- Setup/readback: `department=신사업TF`, `position=임원`.
-- Turn 5 Story: authored the visible business card as `서윤호 / 신사업TF 팀장`.
-- This contradicts the committed/read-back `임원` rank and violates the task's exact agency/rank invariant.
-- Evidence: `.tmp/company-r3-final-holistic-owner-style-long-play-v2-failure.md`
-- Campaign B was not created. No source, deploy, retry/regeneration, provider/model, DB, migration, or Production operation was performed.
-- Stop condition: preserve the fresh fixture and await operator review; do not continue the campaign or start another task.
+Overwrite this SAME `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW` in place and post the terminal report to Issue #68.
+Stop. Do not create or start the next task.
