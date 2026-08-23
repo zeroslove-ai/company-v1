@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-worker-deployment-hygiene-rollback-v1
 Mode: SOURCE-FROZEN DEPLOYMENT HYGIENE -> PROVE LEGACY WORKER PREIMAGE -> CONDITIONAL EXACT ROLLBACK -> VERIFY R3 ARTIFACT
-Updated: 2026-08-24 07:15 KST
+Updated: 2026-08-24 07:23 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5388744342`
 Operator review: Issue #68 comment `5388768658`
@@ -178,3 +178,35 @@ Post a NEW Issue #68 terminal comment recording:
 - exact disposition.
 
 Then overwrite this SAME file in place to `Status: WAITING_REVIEW`, push main, post terminal, and stop.
+
+## 10. Terminal evidence (deployment hygiene complete; review required)
+
+Execution identity:
+- TASK_ID: `company-r3-worker-deployment-hygiene-rollback-v1`
+- CURRENT_TASK blob at lease: `a294a65bdce432fa03837d3a7fef33fac68cb977`
+- expected branch: `main`
+- start main: `9f6ed8590e47131bed8e64e3774e45a8c59e0c46`
+- accepted executable/source: `71f87b63c9405bdc2e41ff272c0448c0b41384b7`
+- final main before this control-file update: `9f6ed8590e47131bed8e64e3774e45a8c59e0c46`
+
+Read-only preflight and proof:
+- `game-proxy-company-v1` history ended at accidental version `991cf884-fb35-4c67-8152-b19e7a155b23` (version created `2026-08-23T22:03:12.282Z`, deployment `d0ed99f7-799e-4fda-b4d4-aebe02fed91f`, 100%).
+- The immediately preceding v1 deployment was version `7ea46aaf-493f-4323-bc1f-f5ab8d47477d` (version created `2026-08-19T05:29:34.673Z`, deployment `3ca187c9-c72b-4e40-9294-d9dfb5878064`, 100%).
+- Cloudflare `versions view` proved both v1 versions have the identical script etag `1f665e2b302ffda4a8ae6985a7a06bace14fc1203251966cdf8058e426e8c72e`, handlers, compatibility date, and legacy bindings. The repository `wrangler.api.jsonc` identifies this worker family as `src/api/index.js`; the R3 artifact has a distinct etag and R3 binding set. The preimage was therefore exact and independently ordered, not reconstructed from source.
+- `game-proxy-company-r3` history ended at intended version `2a6419bb-9147-443d-8552-cf2fd309ae2c` (version created `2026-08-23T22:05:59.647Z`, deployment `feb075b6-cb37-4d58-a927-bd9248ccf1bb`, 100%), with R3 etag `cb48e4ceb4acb2f80eb3fd4a97f358bae0fd2dcc15379540d136a40d0565e901` and `R3_GAME_ACCESS_SECRET`; no R3 redeploy was performed in this task.
+
+Authorized mutation and final verification:
+- exactly one Cloudflare rollback was performed: `game-proxy-company-v1` -> exact version `7ea46aaf-493f-4323-bc1f-f5ab8d47477d`;
+- rollback deployment `63adc570-a107-476e-bb51-d139016eb9b1`, created `2026-08-23T22:22:52.449Z`, is 100% on the proven preimage;
+- post-rollback history confirms v1 active version `7ea46aaf...` and R3 active version remains exactly `2a6419bb...`;
+- health checks were read-only: R3 `/api/r3/catalogs` = 200 and legacy `/health` = 200;
+- R3 deployment count in this task: 0; frontend deployment count: 0; v1 rollback count: 1.
+
+Repository and scope validation:
+- full `npm.cmd test`: `546 passed, 0 failed`;
+- `git diff --check`: PASS;
+- product source diff from accepted `71f87b63c9405bdc2e41ff272c0448c0b41384b7`: zero; only this existing control file is being updated;
+- no source/config/test/content/frontend/DB/gameplay/provider/model/prompt/token/timeout/Production changes; no migration or DB write;
+- preserved fixtures were not read or mutated in this task; no gameplay turn, reset, retry, or regeneration was run.
+- terminal disposition: `WORKER_DEPLOYMENT_HYGIENE_GREEN`.
+- final task blob SHA: record after this in-place update and push.
