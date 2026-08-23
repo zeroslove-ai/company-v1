@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-choice-button-dispatch-blocker-v1
 Mode: FREEZE EXACT OWNER P0 CLOSURE -> REPRODUCE CHOICE DEAD-CONTROL -> ROOT FIX -> BARE-PUBLIC ACCEPTANCE
-Updated: 2026-08-23 17:13 KST
+Updated: 2026-08-23 17:17 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5384999035`
 Owner manual-play override: Issue #68 comment `5384780073`
