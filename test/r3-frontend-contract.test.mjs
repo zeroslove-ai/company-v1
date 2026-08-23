@@ -118,6 +118,15 @@ test('R3 CSA draft applies one operation after the modal yields and re-syncs aft
   assert.match(app, /finally \{ state\.busy = false; csaUi\.sync\(\); refreshChoices\(\); \}/);
 });
 
+test('R3 active CSA replacement uses one bounded update on the existing rule', () => {
+  assert.match(csa, /replacementPresetItems/);
+  assert.match(csa, /replacementOperation/);
+  assert.match(csa, /operation: 'update'/);
+  assert.match(csa, /pending-update/);
+  assert.match(csa, /template_id: pendingItem\.id/);
+  assert.match(csa, /if \(pending\?\.operation === 'update'\) return null/);
+});
+
 test('R3 action panel reserves its controls above the audio bar after bootstrap', () => {
   assert.match(shell, /\.action-panel\s*\{[\s\S]*?min-height:\s*min-content;/);
 });

@@ -106,6 +106,10 @@
   opacity: .78;
 }
 
+.csa-app-effect-card.pending-update {
+  border-color: #f1bb70;
+}
+
 @media (max-width: 720px) {
   .csa-entry-panel {
     position: static;

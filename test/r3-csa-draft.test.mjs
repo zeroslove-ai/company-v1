@@ -7,6 +7,7 @@ import {
   isCsaDraftDirty,
   stageCsaOperation
 } from '../frontend-r3/csa-draft.js';
+import { replacementOperation, replacementPresetItems } from '../frontend-r3/csa.js';
 
 function context({ revision = 4, active = true } = {}) {
   return {
@@ -41,6 +42,25 @@ test('one active-rule update can change scope locally before Apply', () => {
   const adjusted = stageCsaOperation(staged.draft, { operation: 'update', id: 'r3_csa_1', template_id: 'work_nude', subject_scope: 'player', counterparty_scope: null });
   assert.equal(adjusted.blocked, false);
   assert.equal(csaDraftOperation(adjusted.draft).subject_scope, 'player');
+});
+
+test('active rule replacement is bounded to unused catalog presets and preserves the rule id', () => {
+  const rule = { id: 'r3_csa_1', template_id: 'work_nude', subject_scope: 'female_employee' };
+  const otherRule = { id: 'r3_csa_2', template_id: 'no_bra_under_work_clothes' };
+  const catalog = [
+    { id: 'work_nude', label: 'Current', subject_scopes: ['female_employee'], default_subject_scope: 'female_employee', counterparty_scopes: [], default_counterparty_scope: null },
+    { id: 'no_panties_under_work_clothes', label: 'Replacement', subject_scopes: ['female_employee'], default_subject_scope: 'female_employee', counterparty_scopes: [], default_counterparty_scope: null },
+    { id: otherRule.template_id, label: 'Already active', subject_scopes: ['female_employee'], default_subject_scope: 'female_employee', counterparty_scopes: [], default_counterparty_scope: null }
+  ];
+  const candidates = replacementPresetItems({ activeRules: [rule, otherRule], catalogItems: catalog, rule });
+  assert.deepEqual(candidates.map(item => item.id), ['no_panties_under_work_clothes']);
+  assert.deepEqual(replacementOperation(rule, candidates[0]), {
+    operation: 'update',
+    id: 'r3_csa_1',
+    template_id: 'no_panties_under_work_clothes',
+    subject_scope: 'female_employee',
+    counterparty_scope: null
+  });
 });
 
 test('remove draft is local and retains the exact deactivate operation', () => {

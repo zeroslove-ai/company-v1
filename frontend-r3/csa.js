@@ -27,6 +27,31 @@ function catalogLabel(entries, key, value) {
   return entries?.find(entry => entry?.[key] === value)?.name ?? value;
 }
 
+function validScope(options, preferred) {
+  const values = Array.isArray(options) ? options : [];
+  return values.includes(preferred) ? preferred : (values[0] ?? null);
+}
+
+export function replacementPresetItems({ activeRules = [], catalogItems = [], rule } = {}) {
+  const activeTemplates = new Set(activeRules
+    .filter(activeRule => activeRule?.id !== rule?.id)
+    .map(activeRule => activeRule?.template_id)
+    .filter(Boolean));
+  return (Array.isArray(catalogItems) ? catalogItems : [])
+    .filter(item => item?.id && item.id !== rule?.template_id && !activeTemplates.has(item.id));
+}
+
+export function replacementOperation(rule, item) {
+  if (!rule?.id || !item?.id) return null;
+  return {
+    operation: 'update',
+    id: rule.id,
+    template_id: item.id,
+    subject_scope: validScope(item.subject_scopes, item.default_subject_scope),
+    counterparty_scope: validScope(item.counterparty_scopes, item.default_counterparty_scope)
+  };
+}
+
 export function createR3CsaUi({ documentRef = document, getContext, getCatalog, getBusy, onOperation } = {}) {
   const overlay = documentRef.querySelector('#csa-app-overlay');
   const body = documentRef.querySelector('#csa-app-body');
@@ -105,6 +130,24 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
       const node = el(documentRef, 'option', scopeLabel(option));
       node.value = option;
       node.selected = option === value;
+      select.append(node);
+    }
+    select.disabled = Boolean(disabled || applying || getBusy?.());
+    select.addEventListener('change', () => onChange(select.value));
+    wrap.append(select);
+    return wrap;
+  }
+
+  function catalogField(label, options, value, onChange, disabled = false) {
+    const wrap = el(documentRef, 'label', 'csa-app-field');
+    wrap.append(el(documentRef, 'span', label));
+    const select = el(documentRef, 'select');
+    select.className = 'csa-app-select';
+    for (const option of options) {
+      const node = el(documentRef, 'option', option.label);
+      node.value = option.id;
+      node.selected = option.id === value;
+      node.disabled = Boolean(option.disabled);
       select.append(node);
     }
     select.disabled = Boolean(disabled || applying || getBusy?.());
@@ -206,6 +249,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
   function activeCard(rule) {
     const item = itemFor(rule.template_id); const pending = csaDraftOperation(draft); const isRemove = pending?.operation === 'deactivate' && pending.id === rule.id;
     const operation = pending?.id === rule.id && pending.operation === 'update' ? pending : null;
+    const pendingItem = operation && operation.template_id !== rule.template_id ? itemFor(operation.template_id) : null;
     const card = el(documentRef, 'article'); card.className = `csa-app-effect-card${isRemove ? ' pending-delete' : ''}`;
     card.append(el(documentRef, 'strong', item?.label ?? rule.template_id), el(documentRef, 'p', isRemove ? '해제 예정 · 아직 서버에 반영되지 않음' : (rule.content ?? item?.content_template ?? '')));
     if (!isRemove && item) {
@@ -214,13 +258,31 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
       card.append(selectField('대상 범위', item.subject_scopes, subject, value => stage({ operation: 'update', id: rule.id, template_id: item.id, subject_scope: value, counterparty_scope: counterparty })));
       if (item.counterparty_scopes.length) card.append(selectField('상대 범위', item.counterparty_scopes, counterparty, value => stage({ operation: 'update', id: rule.id, template_id: item.id, subject_scope: subject, counterparty_scope: value })));
     }
+    if (pendingItem) {
+      card.classList.add('pending-update');
+      card.children[0].textContent = `${item?.label ?? rule.template_id} → ${pendingItem.label}`;
+      card.children[1].textContent = pendingItem.content_template ?? '';
+      while (card.children.length > 2) card.removeChild(card.lastElementChild);
+      const pendingSubject = operation.subject_scope ?? pendingItem.default_subject_scope;
+      const pendingCounterparty = operation.counterparty_scope ?? pendingItem.default_counterparty_scope;
+      card.append(selectField('\uB300\uC0C1 \uBC94\uC704', pendingItem.subject_scopes, pendingSubject, value => stage({ operation: 'update', id: rule.id, template_id: pendingItem.id, subject_scope: value, counterparty_scope: pendingCounterparty })));
+      if (pendingItem.counterparty_scopes.length) card.append(selectField('\uC0C1\uB300\uBC29 \uBC94\uC704', pendingItem.counterparty_scopes, pendingCounterparty, value => stage({ operation: 'update', id: rule.id, template_id: pendingItem.id, subject_scope: pendingSubject, counterparty_scope: value })));
+      card.append(el(documentRef, 'p', `\uBCC0\uACBD \uC608\uC815: ${pendingItem.label}`));
+      card.append(el(documentRef, 'p', `${pendingItem.strength ?? '\uADDC\uCE59'} · ${pendingItem.category ?? 'world_behavior'}`));
+    }
+    const replacementItems = replacementPresetItems({ activeRules: activeRules(), catalogItems: catalog().items, rule });
+    const replacementOptions = [{ id: '', label: '\uADDC\uCE59 \uBCC0\uACBD \uD504\uB9AC\uC14B \uC120\uD0DD', disabled: Boolean(pendingItem) }, ...replacementItems.map(candidate => ({ id: candidate.id, label: candidate.label }))];
+    card.append(catalogField('\uADDC\uCE59 \uBCC0\uACBD', replacementOptions, pendingItem?.id ?? '', value => {
+      const replacement = replacementItems.find(candidate => candidate.id === value);
+      if (replacement) stage(replacementOperation(rule, replacement));
+    }, Boolean(pendingItem || isRemove)));
     const actions = el(documentRef, 'div'); actions.className = 'csa-entry-actions';
     const remove = el(documentRef, 'button', isRemove ? '해제 예정' : '해제'); remove.type = 'button'; remove.disabled = applying || Boolean(getBusy?.()) || isRemove; remove.addEventListener('click', () => stage({ operation: 'deactivate', id: rule.id, template_id: item?.id, subject_scope: rule.subject_scope })); actions.append(remove);
     card.append(actions); return card;
   }
 
   function presetCard(item) {
-    const pending = operationFor(item.id); const active = activeFor(item.id); if (active && !pending) return null;
+    const pending = operationFor(item.id); const active = activeFor(item.id); if (pending?.operation === 'update') return null; if (active && !pending) return null;
     const card = el(documentRef, 'article'); card.className = 'csa-app-card';
     card.append(el(documentRef, 'strong', `${item.strength ?? '규칙'} · ${item.label}`), el(documentRef, 'p', item.content_template ?? ''));
     const subject = pending?.subject_scope ?? item.default_subject_scope;
