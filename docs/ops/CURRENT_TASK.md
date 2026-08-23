@@ -1,134 +1,189 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-owner-exact-utf8-p0-acceptance-v1
-Mode: EXACT OWNER LITERAL UTF-8 ACCEPTANCE -> ROOT-FIX ONLY IF STILL FAILING -> NEXT PHASE GATE
-Updated: 2026-08-23 17:34 KST
+Status: READY
+Task ID: company-r3-choice-button-dispatch-blocker-v1
+Mode: FREEZE EXACT OWNER P0 CLOSURE -> REPRODUCE CHOICE DEAD-CONTROL -> ROOT FIX -> BARE-PUBLIC ACCEPTANCE
+Updated: 2026-08-23 17:13 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5384919557`
+Previous terminal: Issue #68 comment `5384999035`
 Owner manual-play override: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path or an ops/recovery branch.
 
-## 0. Review decision and accepted baseline
+## 0. Operator review decision
 
-The previous source/canon correction is accepted as a candidate baseline, but P0 closure is NOT accepted because the terminal explicitly reported that the exact owner P0-A literal was recovered as mojibake (`??? ...`) and was not submitted in live replay.
+Accept and freeze the exact owner agency/navigation closure from terminal `5384999035` unless new contradictory real-user evidence appears.
 
-Accepted candidate executable/source:
-- `ed7919b142ef116d76c4e08fec73e3818ff6106a`
-- TEST API `game-proxy-company-r3` version `5d9ca276-b688-4b9a-8a5f-1bae13416c48`
-- TEST frontend remains `gamebuilder-company-r3` version `731cc702-2451-442a-895c-2d10c38dccc9`
-- source->final checkpoint was exactly one docs-only lifecycle commit after the executable source.
+Accepted executable/source baseline:
+- source `ed7919b142ef116d76c4e08fec73e3818ff6106a`;
+- TEST API `game-proxy-company-r3` version `5d9ca276-b688-4b9a-8a5f-1bae13416c48`;
+- TEST frontend `gamebuilder-company-r3` version `731cc702-2451-442a-895c-2d10c38dccc9`.
 
-Accepted source changes to keep unless contradicted by exact live evidence:
-- Story context now distinguishes rule/app/topic mention from voluntary CSA-app interaction;
-- exact unique catalog navigation has deterministic destination authority through Story/Observer/Commit;
-- source-location presence is not allowed to override a resolved destination;
-- owner supersession was synchronized into existing canon docs without a new competing architecture file.
+Accepted exact owner P0 evidence:
+- P0-A authority literal is `이메이 사원. 일단 공자룰 좀 확인해보게나`;
+- reported code points `c774 ba54 c774 20 c0ac c6d0 2e 20 c77c b2e8 20 acf5 c790 b8f0 20 c880 20 d655 c778 d574 bcf4 ac8c b098` reconstruct exactly that literal;
+- browser input -> POST literal_action -> persisted/readback literal -> reload readback were equal;
+- Story preserved addressed target/topic/request and did not invent CSA-app operation;
+- P0-B authority literal is `직원 라운지로 이동한다`;
+- reported code points `c9c1 c6d0 20 b77c c6b4 c9c0 b85c 20 c774 b3d9 d55c b2e4` reconstruct exactly that literal;
+- browser input -> POST literal_action -> persisted/readback literal -> reload readback were equal;
+- Story/Observer/committed state/readback/refresh agreed on canonical `employee_lounge`, with no source-scene NPC teleport;
+- generic different NPC/topic and different canonical movement control also passed;
+- four ordinary free-input/social/refusal/follow-up replay turns committed without a new agency/navigation defect.
 
-Do not reopen these by speculation. This task exists only because exact UTF-8 owner-literal live acceptance was not completed.
+Do NOT rerun these exact owner P0 fixtures merely to seek more green evidence. They are frozen for this task.
 
-## 1. Exact owner literals — binding acceptance text
+## 1. New objective user-visible blocker
 
-P0-A exact text, character-for-character:
-`이메이 사원. 일단 공자룰 좀 확인해보게나`
+Terminal `5384999035` found a different objective defect during the required replay:
+- current Story choice controls were visibly rendered;
+- the runner attempted the visible role control and then the freshly observed DOM choice control;
+- neither interaction emitted a POST `/turn` request;
+- no gameplay turn committed and the turn number remained unchanged;
+- free-input turns in the same deployed build remained usable.
 
-P0-B exact text, character-for-character:
-`직원 라운지로 이동한다`
+This is not UTF-8 corruption and not evidence to reopen agency/navigation. It is a choice-button UI/dispatch blocker.
 
-The issue report itself is the text authority. Do not recover these strings through a broken shell/codepage path. Do not replace them with question marks, transliteration, paraphrase, or a similar motif.
+## 2. Required reproduction before source change
 
-## 2. UTF-8 integrity gate before gameplay
-
-Before submitting either acceptance action:
-1. construct/read the literal in a UTF-8-safe path;
-2. prove the exact intended string survives into the browser input value;
-3. capture the outgoing visible-UI request payload and compare its literal action to the authority text;
-4. after commit, compare persisted/readback literal action to the same authority text;
-5. report either exact string equality or code-point equality. If any stage contains `?`, U+FFFD, mojibake, truncation, or normalization that changes the literal, STOP that fixture as harness/input corruption and fix the QA path before drawing a gameplay conclusion.
-
-Do not use corrupted strings as evidence for or against gameplay behavior.
-
-## 3. Mandatory bare-public fixtures
-
-Use only the bare public frontend URL:
+Use the bare canonical public frontend only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-No `?api=`, no preseeded game_id/storage, no direct-API substitute for gameplay, no owner-game mutation, no Production.
+Hard rules:
+- fresh clean browser/storage context;
+- fresh disposable TEST game through visible Setup;
+- no `?api=` override;
+- no pre-supplied `game_id` or storage preseed;
+- no direct-API gameplay substitute;
+- no devtools/request injection to make a click work;
+- no Production;
+- do not access/mutate owner or preserved games.
 
-### Fixture A — exact owner agency reproduction
-- create one fresh disposable game through visible Setup;
-- reach a valid scene where addressing `이메이 사원` is coherent; use ordinary visible gameplay to do so if needed;
-- submit exactly:
-  `이메이 사원. 일단 공자룰 좀 확인해보게나`
-- PASS only if:
-  - request and persisted literal are exact UTF-8 matches;
-  - Story preserves the addressed target/request/topic or handles ambiguity through natural clarification;
-  - Story does NOT invent player opening/scrolling/reading/applying/changing/closing the CSA app unless the literal actually authorizes such an action;
-  - observer/state do not fabricate a CSA-app operation from topic mention alone.
+First establish Opening and a ready turn with visible current Story choices. Capture before click:
+- exact rendered choice labels and their full literal actions;
+- enabled/disabled state;
+- relevant overlay/loading/pointer state;
+- current turn/revision;
+- event target and current choice identity available to the frontend;
+- console/page errors;
+- network event baseline.
 
-### Fixture B — exact owner navigation reproduction
-- create a separate fresh disposable game;
-- establish a confirmed non-lounge source scene through visible gameplay;
-- submit exactly:
-  `직원 라운지로 이동한다`
-- PASS only if:
-  - request and persisted literal are exact UTF-8 matches;
-  - resolved canonical destination is `employee_lounge`;
-  - Story, observer, committed state/readback all agree on `employee_lounge`;
-  - source-scene NPCs do not teleport into the destination without destination evidence;
-  - refresh/re-entry preserves `employee_lounge`.
+Then click exactly one currently visible choice once through the actual user-facing control.
 
-### Fixture C — generic control
-- one different addressed-NPC/topic action and one different exact canonical location movement;
-- verify the source correction is generic and not special-cased to the two owner phrases.
+Classify one of:
+A. click event never reaches frontend handler;
+B. handler runs but current choice/action identity is missing/stale;
+C. submit path is invoked but request is blocked/aborted before network;
+D. POST occurs but server rejects/fails;
+E. click succeeds and prior terminal was an automation/transient artifact.
 
-## 4. Replay requirement
+Do not patch source until the branch is evidenced.
 
-After the exact owner fixtures pass, continue 4-6 ordinary human-like committed turns across the disposable fixtures, including:
-- at least one choice-button action;
-- at least one Korean free input;
-- one refusal/change-of-mind/self-state action;
-- one direct NPC follow-up;
-- one non-work/social beat.
+## 3. Source investigation boundary
 
-Inspect complete Story text, not just commit status. Watch for action/target substitution, wrong-location continuation, fake/duplicate identities, stale source presence, blocking UI/network failures, or duplicate turns.
+If deterministic product failure reproduces, inspect only the existing R3 frontend choice/submit lifecycle and directly adjacent contract:
+- choice rendering and current-choice binding;
+- click/keyboard listeners;
+- disabled/readiness/loading state transitions;
+- full literal-action mapping;
+- submitAction/request dispatch path;
+- refresh/re-entry reconstruction of choices;
+- overlay/z-index/pointer interception only if visible evidence supports it.
 
-## 5. Source-change rule
+Compare the working free-input submit path to choice submit and reuse the same canonical dispatch path rather than adding a second gameplay writer.
 
-First run against the already-deployed candidate baseline. Do NOT make a source change merely because the previous report contained mojibake.
+Forbidden:
+- new generic UI framework;
+- hidden automatic fallback from dead choice to free input;
+- direct API bypass from frontend;
+- second action executor/writer;
+- keyword/fuzzy/semantic parser;
+- provider/model/config/timeout changes;
+- hidden retry/regeneration;
+- agency/navigation rewrite;
+- CSA enactment implementation;
+- reset/schema/migration/RLS/grant work;
+- Production.
 
-If and only if an exact, UTF-8-verified owner literal still reproduces P0-A or P0-B:
-- capture literal -> Story request context -> Story -> observer -> state/readback evidence;
-- identify the actual remaining loss point;
-- make only the smallest generic correction in the existing R3 path;
-- no keyword intent parser, fuzzy matcher, semantic classifier/gate, second Story/repair LLM, hidden retry/regeneration, provider/model/temperature/token change, generic action executor, old v1/v2 action DSL, Production, or unrelated migration/schema work;
-- run focused tests and deploy only the affected TEST artifact;
-- replay the exact owner literal again from a fresh bare-public disposable game.
+## 4. Smallest correction and tests
 
-## 6. Acceptance and next-phase boundary
+If source correction is required:
+- make the smallest coherent root fix in the existing frontend path;
+- add focused deterministic regression proving a rendered enabled current choice causes exactly one canonical turn submission with its full literal action;
+- prove stale/disabled choices do not submit;
+- prove ordinary free-input submission remains unchanged;
+- prove one click cannot create duplicate jobs/turns;
+- run directly relevant focused tests plus the full suite if touched dependencies warrant it;
+- deploy only affected R3 TEST artifact(s), preserving current bindings and API/frontend split-origin behavior.
 
-This task may be accepted only when both exact owner literals have UTF-8 integrity proof and live behavior proof on deployed TEST, plus the generic control and narrow replay are green.
+If the defect does not reproduce and evidence shows the old click attempt was automation-only/transient, do not make a speculative source change. Continue acceptance below on the unchanged deployed build.
 
-Do NOT claim owner-ready. After this exact P0 closure, the next remediation phase remains:
-1. CSA APPLY/CHANGE/REMOVE chronological streamed enactment turns + anti-hijack/private-emotion boundary;
-2. Opening first-arrival motivation + player inner thought + first-person character-specific Mind Monitor + choice diversity/time progression;
-3. high-parity donor CSA UI;
-4. approved-media image projection + character-aware server TTS;
-5. deployed same-game reset integration failure;
-6. timeline/current-scene UI residuals and final holistic owner-style acceptance.
+## 5. Mandatory bare-public post-fix/closure acceptance
 
-## 7. Completion report
+Use at least two fresh independent disposable games.
+
+### Fixture A — desktop
+- bare public Setup -> Opening;
+- inspect four current Story choices;
+- click one visible choice exactly once;
+- require exactly one `/turn` request and exactly one committed turn;
+- request/persisted literal must equal the selected current choice full literal;
+- controls return ready with new current choices;
+- then submit one Korean free-input turn;
+- refresh/re-entry and click another newly current choice once;
+- require one request/one commit again.
+
+### Fixture B — mobile approximately 390x844
+- bare public Setup -> Opening;
+- action controls must be visibly reachable and not covered by loader/audio/overlay;
+- click one current choice once;
+- require one request/one commit and correct literal mapping;
+- continue one free-input or choice turn after refresh.
+
+Across both fixtures inspect complete Story text and state sufficiently to ensure the choice path did not resurrect action substitution, wrong location, stale actors, duplicate chronology, or blocking UI/network errors.
+
+## 6. Acceptance criteria
+
+This task is GREEN only if:
+- root classification is evidenced, not guessed;
+- at least three independent visible choice clicks across desktop/mobile produce exactly one intended request and one commit each;
+- selected displayed/current choice maps to the correct full literal action in request and persisted readback;
+- current choice readiness survives terminal commit and refresh/re-entry;
+- free input remains usable;
+- no duplicate turn/job is created;
+- no blocking overlay/pointer interception remains;
+- no uncaught console/page error or required-request failure remains;
+- exact owner P0 agency/navigation frozen behavior is not contradicted by the narrow replay;
+- no forbidden Production/provider/model/migration/schema work occurred.
+
+Do NOT claim owner-ready after this task.
+
+## 7. Next phase after successful choice closure
+
+Only after this choice blocker is reviewed GREEN, proceed to the next owner-remediation phase:
+1. CSA APPLY/CHANGE/REMOVE as chronological streamed enactment turns;
+2. CSA anti-hijack boundary: active rules must not turn normal company-life Story/choices into a rule-demo loop;
+3. CSA compliance must not imply affection/comfort/desire or positive private emotion without independent evidence.
+
+Later phases remain:
+- first-arrival Opening + player inner thought + natural first-person character-specific Mind Monitor + choice diversity/time progression;
+- high-parity donor CSA UI;
+- approved-media image projection + character-aware server TTS;
+- deployed same-game reset integration failure;
+- timeline/current-scene UI residue and final holistic owner-style acceptance.
+
+## 8. Completion report
 
 Post to Issue #68:
-- exact fixture IDs;
-- exact UTF-8 owner literal shown in the report, not `???`;
-- browser input equality, request payload equality, persisted literal equality/code-point proof;
-- Story/observer/state/readback result for P0-A and P0-B;
-- refresh/presence result for P0-B;
-- generic-control result;
-- 4-6 turn replay result;
-- any source/test/deploy changes, final source SHA, TEST version IDs;
-- explicit final classification: exact P0 closure GREEN or remaining defect with evidence.
+- exact reproduction fixture and root classification A/B/C/D/E;
+- choice labels/full literals and selected current choice;
+- click -> handler -> submit -> network -> persisted readback evidence;
+- changed paths/source SHA if any;
+- focused/full test results actually run;
+- deployed TEST version IDs if changed;
+- desktop/mobile fixture IDs;
+- at least three successful independent choice clicks with exact one-request/one-commit proof;
+- refresh/free-input/no-duplicate findings;
+- final classification.
 
-Then set this SAME file to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK yourself.
+Then set this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK yourself.
