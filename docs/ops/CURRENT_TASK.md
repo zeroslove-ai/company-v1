@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-owner-exact-utf8-p0-acceptance-v1
 Mode: EXACT OWNER LITERAL UTF-8 ACCEPTANCE -> ROOT-FIX ONLY IF STILL FAILING -> NEXT PHASE GATE
-Updated: 2026-08-23 16:52 KST
+Updated: 2026-08-23 17:34 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5384919557`
 Owner manual-play override: Issue #68 comment `5384780073`
