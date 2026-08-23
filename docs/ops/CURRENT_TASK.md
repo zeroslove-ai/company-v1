@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-final-holistic-owner-style-long-play-v1
 Mode: SOURCE-FROZEN FINAL PRODUCT ACCEPTANCE -> OWNER-STYLE LONG PLAY -> CROSS-FEATURE EXIT MATRIX
 Updated: 2026-08-24 KST
@@ -32,6 +32,18 @@ Owner game — READ ONLY, never reset/revise/retry/mutate:
 Previously accepted disposable evidence fixtures are also read-only unless explicitly needed for readback comparison. Use fresh disposable TEST games for mutable acceptance.
 
 This task is ACCEPTANCE ONLY.
+
+## Terminal result — 2026-08-24 KST
+
+`FAILED_PRODUCT` — first decisive boundary: after UI APPLY at committed Turn 9 and an unrelated ordinary Turn 10, the visible active CSA rule card exposed only `해제`; its target-scope select exposed only the already-selected `여성 직원` option. No visible CHANGE/EDIT/preset-replacement path existed for the active rule. A no-op selection was not treated as CHANGE, and no hidden writer/direct API/DOM mutation/retry was attempted.
+
+Preserved fresh fixture: `f84aa0f0-6658-41a2-8fed-c307d4d2e219` (committed Turn 10; no reset or further mutation).
+
+Evidence: `.tmp/evidence-company-r3-final-holistic-owner-style-long-play-v1.md`
+
+Verified preflight: accepted source `79a9921b0248912bd8453a26c83443f8da481cb4`, workflow HEAD `fb5debf39271086535ce1b79971489f8e7b6777f`, API `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`, frontend `cac2033d-aa56-4a99-aa02-92c8087222d3`, `npm.cmd test` 529 pass / 0 fail, no deployment performed.
+
+Campaign A stopped after Opening + committed Turns 1–10 without retry/regeneration: executive first-arrival/rank/department, 2 choice clicks, 8 free inputs, exact 박정우 follow-up, named 윤민아 topic, work/context, self-pause, refusal/change-of-mind, refresh at Turn 8, CSA draft/revert, APPLY Turn 9, and unrelated Turn 10 were captured. Campaign B, CSA CHANGE/REMOVE tail, media/TTS, full History, mobile, and 15-turn minimum were not accumulated after the first decisive failure. No source/config/provider/model/database/migration/deployment/Production change.
 
 ### Hard rule: no source repair inside this task
 
