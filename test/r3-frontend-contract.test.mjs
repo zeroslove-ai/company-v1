@@ -145,6 +145,23 @@ test('R3 presentation adapter preserves raw Story and canonical choice literals'
   } finally { globalThis.document = previousDocument; }
 });
 
+test('R3 presentation adapter strips the supported symmetric emphasis choice tail', async () => {
+  const { parsePlainStoryForPresentation } = await import('../frontend-r3/render.js');
+  const choices = ['first complete action', 'second complete action', 'third complete action', 'fourth complete action'];
+  const story = `Scene body.\n\n**1. ${choices[0]}**\n**2. ${choices[1]}**\n**3. ${choices[2]}**\n**4. ${choices[3]}**`;
+  const parsed = parsePlainStoryForPresentation(story, { choices });
+  assert.deepEqual(parsed.choices, choices);
+  assert.equal(parsed.blocks.some(block => block.text.includes('**1.')), false);
+  assert.equal(parsed.blocks.some(block => block.text.includes('first complete action')), false);
+  const underscored = parsePlainStoryForPresentation(story.replace(/\*\*/g, '__'), { choices });
+  assert.deepEqual(underscored.choices, choices);
+  assert.equal(underscored.blocks.some(block => block.text.includes('__1.')), false);
+
+  const malformed = parsePlainStoryForPresentation(story.replace('**4.', '*4.'), { choices });
+  assert.deepEqual(malformed.choices, choices);
+  assert.match(malformed.raw, /\*4\./);
+});
+
 test('R3 choice labels are presentation-only and clicks preserve the complete Story literal', async () => {
   const { renderChoices } = await import('../frontend-r3/render.js');
   const canonical = [String.raw`full \\"quoted\\" literal`, 'second complete action', 'third complete action', 'fourth complete action'];

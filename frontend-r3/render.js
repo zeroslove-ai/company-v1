@@ -28,9 +28,12 @@ function choiceTail(lines) {
   while (index >= 0 && !lines[index].trim()) index -= 1;
   const found = [];
   for (let number = 4; number >= 1; number -= 1) {
-    const match = index >= 0 ? /^\s*([1-4])[.)]\s+(.+?)\s*$/.exec(lines[index]) : null;
-    if (!match || Number(match[1]) !== number) return null;
-    found.unshift(match[2]); index -= 1;
+    const line = index >= 0 ? lines[index] : '';
+    const wrapped = new RegExp(`^\\s*(\\*\\*|__)(?:${number})[.)]\\s+(.+?)\\1\\s*$`).exec(line);
+    const plain = new RegExp(`^\\s*${number}[.)]\\s+(.+?)\\s*$`).exec(line);
+    const choice = wrapped?.[2] ?? plain?.[1] ?? null;
+    if (!choice) return null;
+    found.unshift(choice); index -= 1;
     while (index >= 0 && !lines[index].trim()) index -= 1;
   }
   return { choices: found, end: index };

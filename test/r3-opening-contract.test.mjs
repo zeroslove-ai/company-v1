@@ -269,3 +269,23 @@ test('R3 valid Story remains committed when Observer choice projection is unavai
   assert.deepEqual(terminal.context.turns[0].choices, choices);
   assert.ok(terminal.context.turns[0].warnings.includes('choices_observer_mismatch'));
 });
+
+test('R3 choice normalization tolerates only symmetric terminal emphasis wrappers', () => {
+  const emphasizedStory = storyText.replace(/^([1-4]\. .+)$/gm, '**$1**');
+  const emphasized = normalizeObserver({ choices }, { storyText: emphasizedStory, content, currentState: {} });
+  assert.deepEqual(emphasized.choices, choices);
+  assert.deepEqual(emphasized.warnings, []);
+  const underscoredStory = storyText.replace(/^([1-4]\. .+)$/gm, '__$1__');
+  assert.deepEqual(normalizeObserver({ choices }, { storyText: underscoredStory, content, currentState: {} }).choices, choices);
+
+  for (const malformed of [
+    emphasizedStory.replace('**4.', '*4.'),
+    emphasizedStory.replace('**3.', '**2.'),
+    emphasizedStory.replace('**2. Ask the team lead about the morning meeting.**', '**2. **'),
+    `${emphasizedStory}\n5. Extra action.`
+  ]) {
+    const normalized = normalizeObserver({ choices }, { storyText: malformed, content, currentState: {} });
+    assert.equal(normalized.choices, null);
+    assert.ok(normalized.warnings.includes('choices_projection_dropped'));
+  }
+});

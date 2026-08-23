@@ -13,14 +13,18 @@ function groundedActorEvidence(item, storyText, directory) {
   return actorId && actorName && quote && quote.includes(actorName) ? { actor_id: actorId, quote } : null;
 }
 
+function choiceLine(line, expectedNumber) {
+  const wrapped = new RegExp(`^\\s*(\\*\\*|__)(?:${expectedNumber})[.)]\\s+(.+?)\\1\\s*$`).exec(line);
+  if (wrapped?.[2]) return wrapped[2];
+  const plain = new RegExp(`^\\s*${expectedNumber}[.)]\\s+(.+?)\\s*$`).exec(line);
+  return plain?.[1] ?? null;
+}
+
 function storyChoiceTail(storyText) {
   const lines = String(storyText ?? '').replace(/\r\n?/g, '\n').split('\n');
   while (lines.length && !lines.at(-1).trim()) lines.pop();
   if (lines.length < 4) return null;
-  const choices = lines.slice(-4).map((line, index) => {
-    const match = new RegExp(`^\\s*${index + 1}[.)]\\s+(.+?)\\s*$`).exec(line);
-    return match?.[1] ?? null;
-  });
+  const choices = lines.slice(-4).map((line, index) => choiceLine(line, index + 1));
   return choices.every(choice => choice) && new Set(choices).size === 4 ? choices : null;
 }
 
