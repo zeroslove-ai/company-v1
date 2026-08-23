@@ -1,348 +1,422 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-turn-stream-timeout-terminalization-v1
-Mode: FREEZE ACCEPTED PRODUCT -> REPRODUCE PARTIAL-STREAM ORPHAN -> FIX ONE TURN-LIFECYCLE TERMINALIZATION BOUNDARY -> TEST API LIVE SMOKE
-Updated: 2026-08-24 04:08 KST
+Status: READY
+Task ID: company-r3-final-holistic-owner-style-long-play-v4
+Mode: SOURCE-FROZEN FINAL PRODUCT ACCEPTANCE -> NEW CLEAN OWNER-STYLE LONG PLAY -> CROSS-FEATURE EXIT MATRIX -> OWNER-READY CANDIDATE ONLY IF ALL GREEN
+Updated: 2026-08-24 04:22 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5387850977`
-Operator review: Issue #68 comment `5387879263`
+Previous terminal: Issue #68 comment `5387987026`
+Operator review: Issue #68 comment `5388000283`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery/source branch. Work on `main` only.
 
-## 0. Accepted baseline — freeze
+## 0. Source-frozen baseline
 
-Accepted executable/source before this repair:
-- `5d033404a411683ca7afbd2f97a5e274c034498c`
+Accepted executable/source for this holistic retest:
+- `7961a3ceab638f43e7959123025b6cedd96f5898`
 
-Current main before this registration:
-- `933b9cc26730f7a8fe7f729d62dd8adb23eb6db7`
-- docs-only holistic V3 terminal descendant of the accepted executable; V3 made no product/source/deploy change.
+Current reviewed main before this registration:
+- `1f8fc0a359a41ad45128963fbe31158f96f05cbd`
+- direct docs-only terminal child of accepted executable `7961a3c...`.
 
 Accepted TEST artifacts:
-- API `game-proxy-company-r3` version `53a91cb4-9317-4198-8d7c-52a9e8e34571`
+- API `game-proxy-company-r3` version `09dac4f4-1131-41c4-94a8-dfd59e5d02d8`
 - Frontend `gamebuilder-company-r3` version `71416b75-9cca-45ee-9b32-7cf209f16395`
 - bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Accepted repository validation before the failure:
-- full `npm.cmd test`: 536/536 PASS
-- identity/opening focused: 44/44 PASS
-- accepted agency/navigation/choice/CSA/reset/media/TTS/current-scene behavior remains frozen unless this exact timeout task independently disproves it.
+Accepted validation:
+- timeout/lifecycle focused set: 21/21 PASS
+- full `npm.cmd test`: 537/537 PASS
+- changed JS/MJS syntax: PASS
+- `git diff --check`: PASS
+
+Newly frozen timeout/terminalization contract:
+- `runtime-r3/worker-entry.js` passes the Cloudflare execution context into the R3 worker;
+- `runtime-r3/server/worker.js` retains normal turn `processTurn()` with `executionCtx.waitUntil()`;
+- downstream response cancellation suppresses further SSE controller enqueue/close but does not kill the retained turn executor;
+- a partial Story that later exceeds the existing provider budget can durably finish as `failed/r3_story_timeout` without partial commit or automatic retry;
+- Story provider total timeout remains 120s;
+- durable Story lease remains 130s and stale expiry remains crash/orphan last resort;
+- no timeout/model/prompt/max_tokens/provider configuration changed.
+
+Accepted post-fix bare-public smoke — READ ONLY:
+- `8dec6dcf-df4a-426b-b4c0-7a9d66e1d351`: Opening + Turns 1-5, 2 visible choice clicks, 2 free inputs, same-NPC follow-up, work/social action, refresh/re-entry, no pending or failed job at final Turn 5.
 
 Preserved games — READ ONLY, never reset/revise/retry/mutate:
 - owner manual game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`
 - holistic V1 failure `f84aa0f0-6658-41a2-8fed-c307d4d2e219`
-- CSA repair `f1285f4c-4719-4dc2-a18d-9fa5ad86d40c`
+- CSA repair fixture `f1285f4c-4719-4dc2-a18d-9fa5ad86d40c`
 - holistic V2 identity failure `4b050667-cca3-43a0-b483-d16c86a2873e`
 - identity executive acceptance `a78b91bd-4216-4e31-91ab-fd2705f0a99c`
 - identity junior acceptance `6b8ba038-50f0-408b-8210-20fed28bd0bc`
 - holistic V3 timeout failure `1ebc90a9-2957-4e00-bcbd-32287cd918bc`
+- timeout-repair smoke `8dec6dcf-df4a-426b-b4c0-7a9d66e1d351`
 
-Use new disposable TEST games for mutable live smoke only.
+Create entirely NEW disposable TEST games for this task. Do not resume any prior holistic/identity/repair fixture.
 
-## 1. Exact proven defect
+## 1. Why V4 exists
 
-Holistic V3 Campaign A reached Opening + committed Turns 1–10 normally. It had already proven:
-- executive canonical identity remained correct;
-- visible CSA draft/Revert caused zero gameplay writes;
-- APPLY produced one chronological `activate` turn;
-- CHANGE produced one chronological `update` turn using the same rule id and a different preset;
-- visible choice dispatch was being used normally.
+Holistic V3 passed through Opening + committed Turns 1-10 and had already shown canonical executive identity plus visible CSA draft/Revert/APPLY/CHANGE chronology. It stopped on Turn 11 when a clicked ordinary choice produced partial Story but did not reach a committed/failed terminal before the browser transport disappeared. Read-only DB later proved that job survived until stale expiry and became `company_r3_stale_turn_timeout` after about 133.6s.
 
-At Turn 11 the exact visible choice was clicked once:
-`네, 좋습니다. 초안을 이리 주시면 같이 확인하겠습니다. 그리고 방금 정리한 위험 항목 질문들도 함께 맞춰보지요.`
+The isolated repair `company-r3-turn-stream-timeout-terminalization-v1` proved the first lifecycle boundary and fixed only that boundary:
+- before correction: downstream cancellation could leave no retained Cloudflare execution promise, then late SSE terminal emission hit a closed controller (`ERR_INVALID_STATE`), allowing the durable job to survive until stale expiry;
+- after correction: `waitUntil()` retains the same turn attempt after response cancellation, the same provider attempt can durably end `failed/r3_story_timeout`, progress remains evidence-only, canonical committed state does not advance, no partial turn is committed, and no automatic second provider call/attempt occurs;
+- normal fresh Opening + 5-turn smoke remained GREEN.
 
-The public UI stayed at Turn 10 and exposed pending recovery instead of reaching a new ready state.
+V4 must therefore rerun the full holistic owner-style matrix from clean games against the corrected executable and determine whether the product is ready to hand to the owner for final manual playtest.
 
-Independent READ ONLY DB inspection after the stop proves this was not merely an early 80-second harness observation:
-- game: `1ebc90a9-2957-4e00-bcbd-32287cd918bc`
-- Turn 11 action id: `31346716-87f9-4e1d-9e6b-dd2db2ebb049`
-- attempt: 1
-- final job status: `failed`
-- final job stage: `failed`
-- error: `company_r3_stale_turn_timeout`
-- `progress_writes=3`
-- partial Story text exists and ends mid-generation
-- created: `2026-08-23 18:47:47.794704+00`
-- stale-failed: `2026-08-23 18:50:01.432393+00`
-- elapsed to stale failure: about 133.6 seconds
-- no durable Turn 11 commit; committed state stayed Turn 10.
+This task is ACCEPTANCE ONLY. Do not patch source inside this task.
 
-Current source contracts:
-- `runtime-r3/server/provider.js`
-  - `storyFirstContentMs = 30_000`
-  - `storyTotalMs = 120_000`
-  - streaming reader has its own total-deadline race and should raise `r3_story_timeout`.
-- `runtime-r3/server/job-policy.js`
-  - Story durable lease = `130_000`
-  - comment explicitly says 120s provider budget + scheduling grace.
-- live DB `company_r3_expire_stale_turn`
-  - `reserved/story_streaming` processing jobs expire after 130 seconds as `company_r3_stale_turn_timeout`.
-- `frontend-r3/app.js`
-  - pending recovery polls context for up to 120 seconds.
-- `runtime-r3/server/supabase-store.js::context()/getJob()`
-  - read path calls stale-job expiry before returning context/job.
+## 2. Hard freeze / fail-fast rules
 
-The intended normal timeout path is:
-`provider total timeout -> processTurn catch -> store.failJob -> terminal failed context`.
+Do not edit runtime/frontend/test/content/config/provider code.
+Do not commit product/source changes.
+Do not deploy unless preflight proves the accepted TEST artifact is missing/drifted; if drift is uncertain, STOP rather than silently replacing it.
+Do not retry or regenerate a Story/turn to manufacture a pass.
+Do not submit the same literal/choice a second time after a slow/disconnected response.
+Do not change provider/model/temperature/thinking/token/timeout/max_tokens/config/secrets.
+Do not change DB schema/RPC/migration/RLS/grants.
+Do not access Production.
+Do not mutate any preserved game listed above.
+Do not use direct gameplay API calls as a substitute for visible product actions.
+Do not use `?api=` override, storage preseed, DOM mutation, or hidden writer to bypass UI.
 
-The observed path was instead:
-`partial Story/progress writes -> processing job survives -> normal failJob terminalization does not durably occur -> later context/getJob read triggers 130s stale expiry`.
+If a decisive product failure occurs:
+1. preserve that fresh disposable fixture at the failure turn;
+2. capture exact literal action or exact clicked choice, visible Story, committed/readback state, relevant DOM/network/job evidence;
+3. STOP `FAILED_PRODUCT` / `WAITING_REVIEW` immediately;
+4. do not patch it and do not continue collecting unrelated failures.
 
-Therefore the defect boundary is turn-stream lifecycle/terminalization. Do not reinterpret this as a Story-content, CSA, choice, identity, or DB-authority defect.
+If an environment/browser-automation limitation blocks evidence but the product state itself is not disproven, classify the exact harness/environment boundary and stop without source changes.
 
-## 2. Hard scope freeze
+## 3. Slow-turn / timeout acceptance rule — corrected after V3
 
-Freeze and do not redesign:
-- Story content semantics and product prompt;
-- provider/model identity (`deepseek-v4-flash`), model selection, temperature/thinking settings, max_tokens;
-- player agency contract;
-- canonical identity contract;
-- navigation/location/presence;
-- Observer semantics/fail-open behavior;
-- choice extraction/dispatch;
-- CSA APPLY/CHANGE/REMOVE semantics;
-- image/TTS;
-- current-scene/History presentation;
-- setup/reset/profile persistence;
-- DB schema/table shape/RLS/grants unless a proven blocker requires a separate operator task.
+Do not use an arbitrary shorter wall-clock threshold such as 60s or 80s as a product-failure boundary.
 
-Do NOT:
-- retry/regenerate automatically;
-- sample until a fast provider response occurs;
-- increase the 120s Story provider timeout;
-- increase the 130s Story lease;
-- simply shorten timeouts as a guess to hide the lifecycle bug;
-- change prompt/model/max_tokens/temperature/provider URL to make responses faster;
-- add a second LLM, queue, Durable Object, cron, new worker, second turn executor, or hidden background system without first proving the current request lifecycle cannot satisfy the invariant;
-- commit partial Story as a successful turn;
-- mutate the preserved V3 fixture;
-- access Production.
+Current product timing contract is:
+- provider Story total budget: 120s;
+- durable Story lease: 130s;
+- frontend pending recovery polling: 120s per recovery attempt;
+- stale expiry: last-resort 130s Story-stage safety net.
 
-Expected source investigation boundary:
-- `runtime-r3/server/provider.js`
-- `runtime-r3/server/worker.js`
-- `runtime-r3/worker-entry.js`
-- `runtime-r3/server/job-policy.js`
-- `runtime-r3/server/supabase-store.js`
-- `frontend-r3/app.js`
-- `frontend-r3/turn-transport.js`
-- focused tests around provider streaming, worker turn lifecycle, stale lease, transport recovery.
+If a normal visible turn is slow or the response transport drops:
+- never click/submit again;
+- keep the exact action single-shot;
+- allow the normal UI/transport reconciliation to run;
+- if the UI exposes `진행 중인 Story 복구`, using that visible recovery control is allowed because it performs read-only polling/reconciliation, not a gameplay retry;
+- observe until the same attempt reaches either a committed ready state or an explicit failed/recoverable state under the bounded product contract;
+- allow a small browser/poll scheduling grace beyond the 130s durable lease when merely observing the final state, but do not treat a still-processing job beyond the lease as acceptable;
+- if it commits once, continue;
+- if it explicitly fails (`r3_story_timeout`, transport failure, stale timeout, or another real terminal error), preserve the fixture and STOP `FAILED_PRODUCT` because final owner-ready acceptance requires uninterrupted clean play;
+- if it remains processing beyond the durable lease plus reasonable polling grace, preserve and STOP `FAILED_PRODUCT`;
+- never invoke explicit failed-action retry in this holistic task.
 
-Only change files actually proven necessary.
+The purpose of the timeout repair is lifecycle correctness, not permission for automatic retry or partial success.
 
-## 3. Mandatory pre-edit trace — prove the first lost terminalization boundary
+## 4. Frozen product contracts under final review
 
-Before editing, record all of the following.
+### Opening / canonical player identity
+- every new game begins on the player's first day / first arrival / first appointment regardless selected rank;
+- selected player name, department, and formal position/rank remain authoritative on every Story turn;
+- executive/senior profiles must not be downgraded, normalized, or re-titled by Story;
+- low/junior profiles must not be promoted or given executive assumptions;
+- business card, badge, introduction, signature, organizational listing, formal title/address, or equivalent identity reference must use exact canonical labels when mentioned;
+- private CSA app discovery is optional/curious/tempting, never a forced quest or unrequested voluntary player action;
+- player inner thought is visible natural first-person Korean and does not invent player decisions/outcomes;
+- relevant NPC Mind Monitor is character-specific natural first-person Korean.
 
-### A. Preserved live evidence — READ ONLY
-Re-read the V3 failure job/state without modifying it and confirm:
-- Turn 11 is `failed/company_r3_stale_turn_timeout`;
-- partial Story/progress writes exist;
-- no Turn 11 durable row exists;
-- canonical state remains committed Turn 10;
-- no retry attempt 2 exists.
+### Player agency / scene
+- exact player actor/target/action/request/refusal/change-of-mind/self-state/topic/intent remains central;
+- Story may resolve external success/refusal naturally but may not replace the attempted player action with another action;
+- player intent is not automatic NPC consent/affection/comfort/desire/romance/trust;
+- canonical navigation/location/presence must match literal destination intent and narrated scene;
+- remote/off-scene NPC mentions must not make them present;
+- scene note must describe the current scene rather than stale old-location activity.
 
-Do not open the game in a way that submits/retries/resets anything.
+### Choices / presentation
+- current choices are Story-owned; a supported terminal 1-4 choice block means exactly four actionable choices;
+- no fabricated fallback/resurrected previous choices;
+- each visible choice button dispatches its exact full literal exactly once;
+- shortened button label is presentation only; title/aria/transport authority preserves the full literal;
+- normal Story surface is current/latest scene only;
+- full committed chronology remains in History overlay/export, not stale normal-surface cards.
 
-### B. Source timing trace
-Trace exactly:
-1. `createR3Provider().request()` total AbortController timer;
-2. `readOpenAiStream()` first-content and total `Promise.race` timers;
-3. `provider.story()` propagation of `r3_story_timeout`;
-4. `processTurn()` catch and `store.failJob()`;
-5. `streamTurn()` ReadableStream lifecycle when the downstream response/reader is cancelled or disconnected;
-6. `worker-entry.js` response/body wrapping and whether execution lifetime is coupled to the response stream;
-7. `company_r3_update_turn_progress`, `mark_story_complete`, `fail_turn`, and stale-expiry fencing assumptions;
-8. frontend `consumeR3Sse`/transport reconciliation and `recoverPendingTurn()` behavior.
+### Time / continuity
+- meaningful ordinary conversation/movement/work/social beats advance time plausibly;
+- obvious frozen-time or chronology contradictions are failures;
+- refresh/re-entry reconstructs committed server truth rather than stale client cache.
 
-### C. Deterministic compressed reproduction
-Create focused deterministic tests with fake/in-memory provider/stream timing. Do not wait real 120 seconds.
+### CSA
+- local draft/replacement edits perform zero gameplay writes before explicit Apply;
+- one pending operation at a time;
+- APPLY/CHANGE/REMOVE are each exactly one chronological normal Story turn;
+- CHANGE is one `update` on the same rule id, not deactivate+activate;
+- active rule replacement uses only the bounded existing preset catalog;
+- unrelated ordinary turns after CSA operations contain no stale `csa_operation` and remain literal-action-first;
+- institutional rule compliance must not mechanically create affection/comfort/consent/desire/romance/trust/personality obedience in Mind Monitor.
 
-You must independently reproduce at least:
-1. first Story delta arrives, then provider stream stalls past a compressed `storyTotalMs`;
-2. Story has already produced enough text to write progress before the stall;
-3. downstream/client stream cancellation or transport loss after partial content;
-4. normal fast Story completion control case.
+### Media / TTS
+- approved image selection is deterministic and grounded in committed present/focal evidence, with fail-open when ambiguous;
+- TTS fresh-session default OFF means zero synthesis calls;
+- TTS ON sends only eligible committed canonical present-NPC dialogue through browser -> R3 API -> server `TTS_WORKER` binding;
+- narrator/player/player-inner-thought/Mind Monitor text is not synthesized as character dialogue;
+- replay/cache/stale fencing works and browser `speechSynthesis` remains absent.
 
-The reproduction must reveal whether:
-- provider timeout fires but `processTurn/failJob` is not reached;
-- response cancellation stops the request-side executor before failure persistence;
-- a promise/timer cancellation race suppresses timeout propagation;
-- DB attempt fencing rejects the late fail write;
-- another exact boundary is responsible.
+### Turn lifecycle
+- one visible submit/click creates at most one turn attempt/POST;
+- a successful turn commits once;
+- a failed/timeout turn terminates durably without partial commit and without automatic retry;
+- response cancellation does not orphan the durable executor;
+- no previous choice remains deceptively actionable while a hidden second submission occurs;
+- stale expiry remains only last-resort safety.
 
-If no deterministic test can reproduce or prove the first boundary, STOP:
-`BLOCKED_TIMEOUT_BOUNDARY_NOT_PROVEN`
+### Existing accepted infrastructure
+- same-game reset runtime is separately GREEN; native-confirm browser automation remains environment-deferred and is not reopened here;
+- agency/navigation/reset/media/timeline/CSA/identity/timeout repairs are frozen and may not be redesigned inside acceptance.
 
-Do not tune timeout values speculatively.
+## 5. Preflight — exact lineage only
 
-## 4. Required correction invariant
+Before gameplay:
+1. verify current main is a docs-only descendant of executable `7961a3ceab638f43e7959123025b6cedd96f5898`;
+2. verify the timeout fix files on main remain identical to source `7961a3c...`;
+3. verify TEST API exactly `09dac4f4-1131-41c4-94a8-dfd59e5d02d8`;
+4. verify TEST frontend exactly `71416b75-9cca-45ee-9b32-7cf209f16395`;
+5. if versions match, deploy ZERO artifacts;
+6. run full `npm.cmd test` on the exact accepted source lineage and require all tests PASS;
+7. use only bare public `https://gamebuilder-company-r3.zeroslove.workers.dev` for gameplay.
 
-Fix only the first proven lifecycle boundary.
+If artifact identity is uncertain, STOP before play. Do not silently redeploy an uncertain head.
 
-After the correction, every normal turn attempt must have exactly one durable terminal outcome:
-- `committed`, or
-- `failed` with an explicit bounded error.
+## 6. Campaign A — executive owner-style long play
 
-For an over-budget Story stream or a transport-disconnected partial Story:
-- no partial Story may be committed;
-- committed turn/state/revision must not advance;
-- the job must not remain `processing` until the 130s stale lease in the ordinary reproducible timeout/disconnect path;
-- the normal durable failure path should win before stale expiry whenever the Company R3 worker is still capable of observing the timeout/cancellation;
-- the frontend must eventually render a terminal failed/recoverable state, not leave prior choices looking ready while a hidden orphan job survives;
-- user retry remains explicit only;
-- there is never an automatic second provider call or second turn attempt.
+Create one NEW disposable game with a canonical executive/senior profile. Prefer the already-tested shape `신사업TF / 임원`, but create a fresh game id and normal fresh player name.
 
-Prefer a specific existing failure such as `r3_story_timeout` when the provider budget is what expired. If transport loss is independently distinguishable, use one stable explicit transport error rather than disguising it as a successful turn.
+Run Opening plus at least **15 committed chronological turns** without retry/regeneration.
 
-`company_r3_stale_turn_timeout` remains a last-resort crash/orphan safety net for executions that truly cannot terminalize themselves. Do not delete it.
+Across Campaign A require at minimum:
+- 6 free-form ordinary inputs;
+- 4 visible choice-button clicks;
+- one direct named-NPC conversation and a follow-up with the same NPC/topic;
+- one work/context action;
+- one non-work/social action;
+- one explicit refusal/change-of-mind;
+- one self-state action such as wanting quiet, pausing, fatigue, or ending an interaction;
+- one canonical movement/scene change;
+- one action explicitly addressed to a named NPC;
+- one identity-artifact/introduction probe that does not type the expected rank label into the literal.
 
-## 5. Timeout values are not the primary fix
+For sampled actions compare:
+`literal input -> visible Story enactment -> committed/readback scene/state`.
 
-Current timing intent is coherent on paper:
-- provider Story budget: 120s
-- durable Story lease: 130s
+Fail immediately on actor/target/action/topic/refusal/self-state substitution or wrong canonical destination.
 
-Do not alter these numbers unless the deterministic trace proves an unavoidable platform/request ceiling that makes the current relationship impossible.
+### Identity acceptance in Campaign A
+Require throughout:
+- committed profile remains the selected executive profile;
+- canonical player name remains exact;
+- department remains exact;
+- formal position/rank remains exact;
+- for a `신사업TF / 임원` player, Story never asserts `팀장`, `TF팀장`, `대리`, `인턴`, or another alternate formal rank;
+- card/badge/introduction/signature references, if shown, use the same canonical identity;
+- refresh/re-entry does not weaken identity.
 
-If such a platform ceiling is proven:
-- record exact evidence;
-- choose the smallest bounded relationship change that guarantees normal terminalization before the platform ceiling;
-- do not increase latency budgets;
-- do not change model/prompt/max_tokens as part of this task;
-- add tests that encode the new ordering invariant.
+### Choice quality
+Whenever Story has a supported terminal 1-4 tail:
+- exactly four visible buttons;
+- clicked button dispatches the full exact literal once;
+- choices are meaningfully distinct when scene supports alternatives, not four near-paraphrases of one escalation.
 
-A mere assumption that “Cloudflare probably cuts it off” is not proof.
+If Story genuinely has no supported terminal choice tail, free input remains usable and no prior/fabricated choices appear.
 
-## 6. Deterministic acceptance tests
+### Time / scene
+Sample after conversation, work, movement and social beats:
+- time usually advances positively;
+- location/presence matches current narrative;
+- off-scene mention does not create presence;
+- scene note updates coherently.
 
-Add/adjust focused tests proving at minimum:
-1. partial-delta then compressed total timeout -> durable job `failed`, not processing;
-2. error is explicit and stable; stale lease is not the primary terminalizer in that controlled path;
-3. progress may exist but no partial turn commit exists;
-4. canonical committed_turn/state/revision remain unchanged after failed attempt;
-5. client/downstream cancellation after partial delta reaches the proven bounded terminal behavior;
-6. no automatic retry/regeneration/provider call #2;
-7. explicit retry capability remains separate and existing failed-action contract is not weakened;
-8. a normal fast Story still streams and commits once;
-9. choices are committed only on successful terminal commit;
-10. active CSA operation is not applied if its Story turn fails before commit;
-11. Observer timeout/fail-open remains independent and unchanged;
-12. stale 130s expiry still handles a truly orphaned/crashed processing job as last resort;
-13. frontend recovery renders committed/failed outcomes correctly and never submits another turn;
-14. prior literal/full choice is not dispatched twice during reconciliation;
-15. accepted identity/agency/navigation/CSA/media/timeline tests remain GREEN.
+Do not require a fixed minutes-per-turn constant.
 
-Use compressed milliseconds in tests. Do not add sleeps near production durations.
+## 7. CSA sequence inside Campaign A
 
-Run:
-- focused provider/worker/turn-transport/job-policy tests;
-- full `npm.cmd test`;
-- changed JS/MJS `node --check`;
-- `git diff --check`.
+After several ordinary turns, use the visible high-parity CSA app.
 
-Do not weaken tests to accept orphan processing.
+### Draft behavior
+Open Home / Player / NPC / CSA / Manual and verify the shell remains usable.
+Then:
+- stage one local CSA draft;
+- prove staging alone causes zero gameplay request/turn/revision change;
+- Revert once and prove zero gameplay request and committed state unchanged;
+- one pending operation only.
 
-## 7. Source/deployment boundary
+Native dirty-close confirmation is not a required browser-automation gate if the native dialog cannot be accepted by the automation bridge. Record that separately; do not change source.
 
-If backend/runtime code changes:
-- deploy exact corrected source to TEST API `game-proxy-company-r3`;
-- preserve all existing vars/secrets/bindings including TTS binding;
-- record new API Worker version.
-
-Frontend:
-- redeploy only if a frontend source file was independently required by the proven correction;
-- otherwise keep exact existing frontend `71416b75-9cca-45ee-9b32-7cf209f16395`.
-
-No Production.
-No migration/schema/RPC apply in this task.
-No provider/model/config/secret changes.
-
-If the proven fix actually requires DB function/schema migration or a second execution system, STOP before applying it and report `BLOCKED_REQUIRES_BROADER_LIFECYCLE_CHANGE` with exact evidence. The operator will decide the next cut.
-
-## 8. Bare-public TEST smoke after deterministic GREEN
-
-Use only:
-`https://gamebuilder-company-r3.zeroslove.workers.dev`
-
-Create one NEW disposable normal game. Do not reuse the V3 failure fixture.
-
-Run visible Setup -> Opening -> at least 5 ordinary committed turns without retry/regeneration, including:
-- at least 2 visible choice clicks;
-- at least 2 free-form inputs;
-- one same-NPC conversation follow-up;
-- one ordinary work or social action;
-- one refresh/re-entry during the sequence.
+### Required chronology
+Through normal visible controls:
+1. APPLY one representative preset;
+2. one unrelated ordinary company/social action;
+3. CHANGE the same active rule to a **different preset** using active-rule replacement UI;
+4. one unrelated ordinary action;
+5. REMOVE the changed rule;
+6. one final unrelated ordinary action.
 
 Require:
-- each normal turn ends in exactly one ready committed state;
-- no duplicate POST/turn;
-- no stale processing job after successful turns;
-- current Story/choices/history reconstruct after refresh;
-- accepted canonical identity remains correct;
-- no CSA/media/navigation regression observed in this narrow smoke.
+- APPLY = exactly one POST `/turn`, one `operation=activate`;
+- CHANGE staging before Apply = zero gameplay request;
+- CHANGE = exactly one POST `/turn`, `operation=update`, same rule id, different template id;
+- reopen/readback after CHANGE shows replacement committed under the same rule id;
+- REMOVE = exactly one POST `/turn`, `operation=deactivate`;
+- readback after REMOVE shows no active instance;
+- surrounding ordinary turns have no stale `csa_operation` and preserve their literal action;
+- no deactivate+activate CHANGE workaround;
+- no duplicate/no-op/custom preset path;
+- Mind Monitor does not turn rule compliance into automatic affection/comfort/consent/desire/romance/trust.
 
-Do NOT try to manufacture a live 120s provider stall by changing prompts, model, config, network, or test hooks.
-The timeout/disconnect invariant is proven deterministically in focused tests.
+## 8. Media / TTS / History inside Campaign A
 
-If a natural live timeout occurs during the smoke:
-- do not retry;
-- verify it terminalizes according to the corrected contract and preserve that fresh fixture;
-- report the exact result.
+Reach at least one committed scene with a grounded present registered heroine and eligible dialogue.
 
-## 9. Failure handling
+### Image
+Require:
+- selected character matches committed grounded focal/relevant present heroine;
+- approved image belongs to that exact character;
+- ambiguous/no-grounded scene fails open instead of guessing;
+- stale previous image cannot overwrite a later projection.
 
-GREEN only if:
-- exact first lifecycle boundary is proven deterministically;
-- bounded correction fixes that boundary;
-- timeout/disconnect path no longer relies on stale expiry as its normal terminalizer;
-- no partial commit/automatic retry occurs;
-- normal fast turns remain single-commit;
-- focused/full/syntax/diff tests pass;
-- affected TEST deploy succeeds;
-- bare-public normal-turn smoke passes;
-- no DB/schema/migration/provider/model/product-semantics drift occurs.
+### TTS
+Before enabling:
+- capture zero `/media/tts` calls while TTS is OFF.
 
-Stop conditions:
-- no proven first boundary -> `BLOCKED_TIMEOUT_BOUNDARY_NOT_PROVEN`
-- requires DB migration/second execution system/broader architecture -> `BLOCKED_REQUIRES_BROADER_LIFECYCLE_CHANGE`
-- corrected source still orphans deterministic stalled/cancelled turn -> `FAILED_PRODUCT`
-- TEST infrastructure/provider unavailable independently -> report exact environment boundary; do not patch around it.
+Then enable visible TTS on eligible committed NPC dialogue:
+- only validated committed present-NPC dialogue is sent;
+- browser calls R3 `/media/tts`, not the TTS worker directly and not `speechSynthesis`;
+- audio element receives returned URL;
+- narrator/player/private thought/Mind Monitor text is absent from synthesis payloads;
+- Replay of cached current audio creates zero additional synthesis call where cache contract applies;
+- next committed turn fences stale prior audio.
 
-Do not claim owner-ready.
-Do not restart holistic V3/V4 in this task.
+### Current Story / History
+At multiple points, including after CSA and after refresh:
+- normal `#story-history` remains empty/non-authoritative;
+- `#current-story` contains only current/latest Story;
+- History overlay contains Opening + each committed turn exactly once in canonical order;
+- closing History returns to unchanged current scene;
+- History open/close performs no gameplay mutation.
 
-## 10. Completion protocol
+## 9. Mid-campaign refresh / feedback
+
+At approximately Turn 8-11, refresh/re-enter Campaign A.
+Require coherent reconstruction of:
+- committed turn;
+- current Story;
+- canonical player identity;
+- location/presence/time;
+- current choices;
+- player inner thought;
+- Mind Monitor;
+- CSA state;
+- media eligibility/state;
+- complete History.
+
+No Opening/early turn cards may reappear on the normal current scene.
+Continue at least 3 more committed turns after refresh.
+
+If visible feedback/revision control is enabled and usable, perform one bounded latest-turn feedback revision and require:
+- revision replaces latest current Story without advancing turn number;
+- old/new revisions are not duplicated on normal surface;
+- subsequent ordinary turn continues from revised committed truth.
+
+If feedback is intentionally unavailable/disabled, record that exact state and continue. Do not bypass with direct API.
+
+## 10. Campaign B — independent junior smoke
+
+Create a second NEW disposable game with a low/junior profile, preferably canonical `브랜드전략팀 / 인턴` or another valid low-rank combination.
+
+Run Opening + at least **4 ordinary committed turns** without retry/regeneration, including:
+- one visible choice click;
+- one free-form NPC conversation;
+- one movement/scene or meaningful context change;
+- one refusal/change-of-mind/self-directed action;
+- one identity artifact/introduction opportunity without typing expected rank into the literal.
+
+Require:
+- first-arrival framing;
+- selected junior name/department/rank preserved;
+- no promotion to 팀장/임원 or executive assumptions;
+- exact literal agency/navigation;
+- four choices where supported;
+- natural player thought and character-specific Mind Monitor where available;
+- positive/plausible time progression;
+- latest-only normal Story;
+- complete History overlay.
+
+## 11. Mobile / interaction quality
+
+On substantive Campaign A progress inspect approximately 390x844 and a normal/wider desktop viewport.
+
+Require:
+- no horizontal overflow or blocking overlay;
+- Story remains readable while streaming and after commit;
+- no full-screen loading layer obscures Story streaming;
+- image/player thought/Mind Monitor/choices/direct input/CSA/TTS/History controls remain reachable when eligible;
+- active CSA replacement selector, pending preview, Revert and Apply are usable;
+- History overlay is usable and closable;
+- old committed turn cards do not consume the normal gameplay surface.
+
+## 12. Cross-feature integrity checks
+
+Before declaring GREEN, explicitly verify:
+- no product/source file changed during acceptance;
+- no TEST deployment occurred after preflight if versions were already exact;
+- no Production access;
+- no migration/schema/RPC/provider/model/config change;
+- no preserved fixture mutation;
+- no automatic retry/regeneration;
+- every visible gameplay submit was single-shot;
+- no duplicate committed turn for a clicked choice;
+- accepted timeout fix remains present and no orphan processing job is observed;
+- Campaign A reached >=15 committed turns and completed the full CSA APPLY->unrelated->CHANGE->unrelated->REMOVE->unrelated sequence;
+- Campaign B reached >=4 ordinary committed turns;
+- identity/agency/navigation/choices/time/thought/MM/media/TTS/timeline/history/refresh/mobile gates all have positive evidence.
+
+## 13. GREEN / failure definition
+
+GREEN only if ALL required gates above pass on new clean games.
+
+If any actual product failure occurs:
+- preserve that game immediately;
+- capture exact first failing action/choice and state;
+- do not retry or continue;
+- terminal disposition `FAILED_PRODUCT`.
+
+If only an environment/browser-harness limitation blocks one gate without disproving product behavior:
+- report the exact limitation;
+- do not patch source;
+- do not invent a GREEN result.
+
+Only if the entire matrix is GREEN may the terminal report include exactly:
+`OWNER_READY_CANDIDATE_FOR_USER_FINAL_PLAYTEST`
+
+That phrase means the automated final acceptance candidate is ready to be handed to the owner. It does NOT authorize Production deployment or mutation of the preserved owner game.
+
+## 14. Terminal protocol
 
 At completion post to Issue #68:
-- source SHA and final main SHA;
-- exact proven first failure boundary;
-- changed files and why each was required;
-- deterministic stall/cancel reproduction before/after;
-- job status/error/state/partial-story behavior after correction;
-- focused/full/syntax/diff results;
-- TEST API/frontend versions;
-- fresh smoke fixture id and turns;
-- confirmation V3 fixture remained read-only;
-- confirmation no auto retry/provider-model/config/DB migration/Production change;
+- source SHA `7961a3c...` and final main SHA;
+- preflight full-test count and deployed API/frontend versions;
+- fresh Campaign A game id/profile, committed turn count, free-input count, visible-choice count;
+- sampled exact agency/navigation/identity evidence;
+- complete CSA request/operation/readback chronology;
+- slow-turn/recovery evidence if any occurred, including final same-attempt state and confirmation no second submit/retry;
+- media/image/TTS OFF/ON/replay evidence;
+- latest-only Story + complete History evidence;
+- refresh/re-entry and post-refresh turns;
+- mobile 390x844 evidence;
+- Campaign B game id/profile/turn count and junior-identity evidence;
+- preservation/no-source/no-deploy/no-Production confirmations;
 - exact disposition.
 
-Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal report, and stop.
+Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post the terminal report, and stop.
 
-Do not create the next holistic task yourself.
-
-## 11. Terminal evidence — GREEN / WAITING_REVIEW
-
-- Source commit: `7961a3ceab638f43e7959123025b6cedd96f5898` on `main`; `origin/main` matched after push. Final lifecycle-doc update is the only remaining commit.
-- First proven boundary: `streamTurn()` started `processTurn()` from `ReadableStream.start()` without Cloudflare execution-context retention; downstream reader cancellation closed the controller while the turn continued, producing `ERR_INVALID_STATE` during terminal emission and leaving stale expiry as the eventual durable terminalizer.
-- Bounded correction: pass the Worker execution context from `worker-entry.js` through the R3 worker turn path, register `processTurn()` with `waitUntil()`, and fence SSE enqueue/close after downstream cancellation. No timeout/provider/model/config/prompt/schema/RPC semantics changed.
-- Before reproduction: focused test observed zero retained execution promises and the cancelled-stream `ERR_INVALID_STATE` failure. Deterministic compressed reproduction used a partial Story delta, a short provider timeout, and downstream cancellation.
-- After reproduction: one `waitUntil` promise retained the turn; the job durably ended `failed` with `r3_story_timeout`, progress remained observable, state/revision stayed unchanged, no partial committed turn was written, and provider attempt remained 1 with no retry.
-- Changed source/test files: `runtime-r3/server/worker.js`, `runtime-r3/worker-entry.js`, and `test/r3-turn-stream-timeout-terminalization.test.mjs`.
-- Validation: focused R3 set `21/21`; full `npm.cmd test` `537/537`; syntax checks for worker/entry/test; `git diff --check` passed.
-- TEST API deployment: Worker version `09dac4f4-1131-41c4-94a8-dfd59e5d02d8` at `https://game-proxy-company-r3.zeroslove.workers.dev`; existing frontend version `71416b75-9cca-45ee-9b32-7cf209f16395` unchanged; catalog read-only check returned HTTP 200. Existing bindings/secrets were preserved.
-- Fresh bare-public smoke fixture: `8dec6dcf-df4a-426b-b4c0-7a9d66e1d351`; Opening plus Turns 1–5 completed, with two visible choice clicks, two free-form inputs, same-NPC follow-up, ordinary work/social action, and refresh/re-entry. Final refresh reconstructed Turn 5 with canonical identity `서윤호`, no setup dialog, no pending processing, and no failure/retry state.
-- Preserved V3 fixture `1ebc90a9-2957-4e00-bcbd-32287cd918bc` remained read-only. No preserved-game reset, Production change, migration/schema/RPC apply, provider/model/config change, or automatic retry was performed.
-- Disposition: `WAITING_REVIEW`; no next task generated.
+Do not create/start another task yourself.
