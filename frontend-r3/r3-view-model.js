@@ -17,6 +17,7 @@ export function buildR3ViewModel(context = {}, catalogs = {}) {
   const mindMonitor = Object.fromEntries(Object.entries(monitorSource).filter(([id]) => presentIds.includes(id)).map(([id, monitor]) => [id, { ...object(monitor), name: actorNames[id] ?? monitor?.name ?? id }]));
   const committedTurn = stateEnvelope.committed_turn ?? context.state?.committed_turn ?? 0;
   const latestIsCurrent = latest.turn_number === committedTurn;
+  const observerApplied = object(latest.observer_applied);
   return {
     gameId: context.game?.game_id ?? '',
     committedTurn,
@@ -27,6 +28,7 @@ export function buildR3ViewModel(context = {}, catalogs = {}) {
     story: latest.story_text ?? '',
     history: turns,
     choices: latestIsCurrent ? strings(latest.choices).slice(0, 4) : [],
+    playerInnerThought: latestIsCurrent ? (typeof observerApplied.player_inner_thought === 'string' ? observerApplied.player_inner_thought : '') : '',
     mindMonitor,
     actorNames,
     job: context.job ?? null

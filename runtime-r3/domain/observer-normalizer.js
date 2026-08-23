@@ -47,7 +47,7 @@ export function normalizeObserver(input, { storyText = '', content, currentState
   const actors = registeredActorIds(content);
   const locations = locationIds(content);
   const warnings = [];
-  const normalized = { elapsed_minutes: 0, entered: [], exited: [], scene_note: null, clothing_changes: [], choices: null, turn_summary: '', mind_monitor: {}, warnings };
+  const normalized = { elapsed_minutes: 0, entered: [], exited: [], scene_note: null, clothing_changes: [], choices: null, turn_summary: '', player_inner_thought: '', mind_monitor: {}, warnings };
   const location = observer.location && typeof observer.location === 'object' ? observer.location : null;
   const locationQuote = location ? evidenceQuote(location.quote, storyText) : '';
   const canonicalLocationId = locationQuote ? locationIdFromCanonicalName(locationQuote, content) : null;
@@ -81,6 +81,7 @@ export function normalizeObserver(input, { storyText = '', content, currentState
   if (projectedChoices.choices) normalized.choices = projectedChoices.choices;
   if (projectedChoices.warning) warnings.push(projectedChoices.warning);
   normalized.turn_summary = text(observer.turn_summary).slice(0, 600);
+  normalized.player_inner_thought = text(observer.player_inner_thought).slice(0, 600);
   const elapsed = Number(observer.elapsed_minutes);
   if (Number.isInteger(elapsed) && elapsed >= 0) normalized.elapsed_minutes = Math.min(elapsed, 1440);
   const monitor = observer.mind_monitor && typeof observer.mind_monitor === 'object' ? observer.mind_monitor : {};

@@ -27,6 +27,9 @@ test('R3 frontend sends exact literal input through one server turn endpoint', (
   assert.doesNotMatch(app, /createTurnCoordinator|\/extract|\/commit/);
   assert.doesNotMatch(client, /\/extract|\/commit/);
   assert.match(html, /id="player-action"/);
+  assert.match(html, /id="player-inner-thought"/);
+  assert.match(app, /renderPlayerInnerThought/);
+  assert.match(render, /renderPlayerInnerThought/);
   assert.match(html, /data-phase="milestone0-r3"/);
   assert.match(html, /id="tts-toggle"[^>]*disabled/);
   assert.match(app, /openHistory/);
@@ -45,6 +48,16 @@ test('R3 boot fallback is dismissed after boot and API origin survives game URL 
   assert.match(app, /context\.job\?\.status === 'processing'/);
   assert.match(app, /r3_stream_reconnect_required/);
   assert.doesNotMatch(app, /replaceState\(null, '', `\?game_id=/);
+});
+
+test('R3 refresh view model reconstructs the latest committed player thought', async () => {
+  const { buildR3ViewModel } = await import('../frontend-r3/r3-view-model.js');
+  const view = buildR3ViewModel({
+    game: { game_id: 'thought-game', profile: { name: 'Player', department_id: 'brand_strategy', position_id: 'intern' } },
+    state: { committed_turn: 1, state: { time: { day: 1, minute: 552 }, scene: { location_id: 'brand_strategy_office', present_actor_ids: [], scene_note: '' } } },
+    turns: [{ turn_number: 1, story_text: 'Story', choices: ['a', 'b', 'c', 'd'], observer_applied: { player_inner_thought: '지금은 먼저 상황을 살펴보자.' } }]
+  }, { locations: [], actors: [], departments: [], positions: [] });
+  assert.equal(view.playerInnerThought, '지금은 먼저 상황을 살펴보자.');
 });
 
 test('R3 public frontend resolves its split TEST API origin without overriding explicit api query binding', () => {

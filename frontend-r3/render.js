@@ -12,6 +12,17 @@ function canonicalChoices(value) {
 }
 export function narrativeChoiceItems(choices) { return canonicalChoices(choices); }
 function normalizeInnerThought(value) { return String(value ?? '').replace(/^["“”']+|["“”']+$/gu, '').split('\n').map(line => line.trim()).filter(line => !/^[.．·\-–—]{1,4}$/u.test(line)).join('\n').replace(/\n{3,}/g, '\n\n').trim(); }
+export function renderPlayerInnerThought(container, thought) {
+  if (!container) return;
+  const value = normalizeInnerThought(thought);
+  container.replaceChildren();
+  container.hidden = !value;
+  if (!value) return;
+  const heading = document.createElement('h3'); heading.className = 'future-slot-heading'; heading.textContent = '플레이어 속마음';
+  const body = document.createElement('p'); body.className = 'future-slot-value'; body.textContent = value;
+  container.append(heading, body);
+}
+
 function choiceTail(lines) {
   const last = lines.length - 1; let index = last;
   while (index >= 0 && !lines[index].trim()) index -= 1;

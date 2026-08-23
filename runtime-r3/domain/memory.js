@@ -31,6 +31,8 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const recent = turns.slice(-8).map(turn => ({ turn_number: turn.turn_number, literal_action: bounded(turn.literal_action, 2000), story_text: bounded(turn.story_text, 4000) }));
   const older = turns.slice(0, -8).map(turn => ({ turn_number: turn.turn_number, turn_summary: bounded(turn.turn_summary || turn.story_text, 600) })).slice(-24);
   const product = productPremise(content);
+  const department = (content?.departments ?? []).find(item => item?.department_id === state.profile?.department_id);
+  const position = (content?.positions ?? []).find(item => item?.position_id === state.profile?.position_id);
   const rules = state.csa_rules && typeof state.csa_rules === 'object' ? state.csa_rules : {};
   const activeRules = [...new Set(Array.isArray(state.csa_active) ? state.csa_active : [])]
     .map(id => rules[id])
@@ -71,6 +73,13 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     opening_contract: opening ? {
       product_title: product.title,
       private_app_name: product.app_name,
+      first_day_at_company: true,
+      first_arrival_at_company: true,
+      first_appointment_context: true,
+      selected_department: { id: state.profile?.department_id ?? null, name: department?.name ?? null },
+      selected_position: { id: state.profile?.position_id ?? null, name: position?.name ?? null },
+      selected_rank_must_remain_true: true,
+      no_prior_tenure_or_company_relationships: true,
       player_must_discover_private_app: true,
       npc_ignorance_until_player_reveals: true,
       canonical_setting_and_registered_actors_only: true,

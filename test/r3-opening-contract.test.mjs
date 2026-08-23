@@ -71,6 +71,13 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(openingContext.opening, true);
   assert.equal(openingContext.opening_contract.product_title, openingContext.product.title);
   assert.equal(openingContext.opening_contract.private_app_name, openingContext.product.app_name);
+  assert.equal(openingContext.opening_contract.first_day_at_company, true);
+  assert.equal(openingContext.opening_contract.first_arrival_at_company, true);
+  assert.equal(openingContext.opening_contract.first_appointment_context, true);
+  assert.equal(openingContext.opening_contract.selected_department.id, profile.department_id);
+  assert.equal(openingContext.opening_contract.selected_position.id, profile.position_id);
+  assert.equal(openingContext.opening_contract.selected_rank_must_remain_true, true);
+  assert.equal(openingContext.opening_contract.no_prior_tenure_or_company_relationships, true);
   assert.equal(openingContext.opening_contract.player_must_discover_private_app, true);
   assert.equal(openingContext.opening_contract.npc_ignorance_until_player_reveals, true);
   assert.equal(openingContext.next_action_contract.author, 'story');
@@ -153,6 +160,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
     clothing_changes: [],
     choices,
     turn_summary: '',
+    player_inner_thought: '',
     mind_monitor: {},
     warnings: []
   });
@@ -162,7 +170,8 @@ test('R3 Opening context and provider prompts require private premise discovery 
     ...Object.values(content.characters).map(actor => ({ id: actor.character_id, name: actor.name })),
     ...content.generalNpcs.map(actor => ({ id: actor.id, name: actor.name }))
   ];
-  assert.deepEqual(observerContext.canonical_actor_directory, expectedActorDirectory);
+  assert.deepEqual(observerContext.canonical_actor_directory.map(({ id, name }) => ({ id, name })), expectedActorDirectory);
+  assert.ok(observerContext.canonical_actor_directory.every(actor => actor.personality || actor.prompt_card?.personality || actor.role));
   const expectedLocationDirectory = content.locations.map(({ location_id, name }) => ({ location_id, name }));
   assert.deepEqual(observerContext.canonical_location_directory, expectedLocationDirectory);
   assert.equal(observerContext.canonical_location_directory.length, new Set(observerContext.canonical_location_directory.map(location => location.location_id)).size);
@@ -173,8 +182,8 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(observerContext.current_context.scene.scene_note, undefined);
   assert.equal(observerContext.current_context.scene.location_id, state.scene.location_id);
   assert.deepEqual(observerContext.current_context.scene.present_actor_ids, state.scene.present_actor_ids);
-  assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, mind_monitor, choices, and warnings/i);
-  assert.match(observerSystem, /canonical_actor_directory.*exact registered \{id,name\} pairs/i);
+  assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, player_inner_thought, mind_monitor, choices, and warnings/i);
+  assert.match(observerSystem, /bounded registered character canon/i);
   assert.match(observerSystem, /canonical_location_directory.*exact registered \{location_id,name\} pairs/i);
   assert.match(observerSystem, /location\.location_id MUST come from canonical_location_directory/i);
   assert.match(observerSystem, /exact canonical actor IDs.*never actor names/i);
@@ -190,6 +199,8 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /replacement state, not historical memory/i);
   assert.match(observerSystem, /Do not copy a previous scene_note merely because it existed in prior context/i);
   assert.match(observerSystem, /If the current Story does not ground a useful scene_note, return an empty string/i);
+  assert.match(observerSystem, /natural first-person Korean/i);
+  assert.match(observerSystem, /player_inner_thought/i);
 
   const correctedLocation = normalizeObserver({ location: { location_id: 'brand_strategy_office', quote: '브랜드전략팀 회의실에 들어선다.' } }, { storyText: '브랜드전략팀 회의실에 들어선다.', content, currentState: state });
   assert.equal(correctedLocation.location.location_id, 'brand_strategy_meeting_room');

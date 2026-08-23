@@ -1,6 +1,6 @@
 import { consumeR3Sse, createR3Client } from './r3-client.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
-import { parsePlainStoryForPresentation, renderChoices, renderFocalCharacter, renderHistory, renderMindMonitor, renderNarrative, renderState } from './render.js';
+import { parsePlainStoryForPresentation, renderChoices, renderFocalCharacter, renderHistory, renderMindMonitor, renderNarrative, renderPlayerInnerThought, renderState } from './render.js';
 import { readSetupForm, renderSetupCatalogs, validateSetupValues } from './setup.js';
 import { buildR3ViewModel } from './r3-view-model.js';
 import { createR3CsaUi } from './csa.js';
@@ -59,6 +59,7 @@ function renderContext(context) {
   if (failedJob && input && !input.value.trim() && typeof context.job.literal_action === 'string') input.value = context.job.literal_action;
   const actors = state.catalogs?.actors ?? [];
   renderState({ scene: $('scene-state'), player: $('player-situation') }, view);
+  renderPlayerInnerThought($('player-inner-thought'), view.playerInnerThought);
   renderFocalCharacter($('focal-character'), view.scene.focal_actor);
   renderHistory($('story-history'), view.history, { actors: view.actorNames });
   if ($('turn-number')) $('turn-number').textContent = `Turn ${view.committedTurn}`;
