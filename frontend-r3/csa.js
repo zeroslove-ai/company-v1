@@ -23,6 +23,10 @@ function scopeLabel(scope) {
 
 function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
 
+function catalogLabel(entries, key, value) {
+  return entries?.find(entry => entry?.[key] === value)?.name ?? value;
+}
+
 export function createR3CsaUi({ documentRef = document, getContext, getCatalog, getBusy, onOperation } = {}) {
   const overlay = documentRef.querySelector('#csa-app-overlay');
   const body = documentRef.querySelector('#csa-app-body');
@@ -170,7 +174,13 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     const profile = context()?.game?.profile ?? context()?.state?.state?.profile ?? {};
     body.append(el(documentRef, 'h3', '플레이어 정보'));
     const grid = el(documentRef, 'div'); grid.className = 'csa-app-status-grid';
-    const fields = [['이름', profile.name], ['부서', profile.department_id], ['직급', profile.position_id], ['체형', profile.body_type_id], ['말투', profile.speech_style_id]];
+    const fields = [
+      ['이름', profile.name],
+      ['부서', catalogLabel(catalog().departments, 'department_id', profile.department_id)],
+      ['직급', catalogLabel(catalog().positions, 'position_id', profile.position_id)],
+      ['체형', catalogLabel(catalog().body_types, 'body_type_id', profile.body_type_id)],
+      ['말투', catalogLabel(catalog().speech_styles, 'speech_style_id', profile.speech_style_id)]
+    ];
     fields.filter(([, value]) => value !== undefined && value !== null && value !== '').forEach(([label, value]) => { const card = el(documentRef, 'div'); card.className = 'csa-app-card'; card.append(el(documentRef, 'small', label), el(documentRef, 'strong', String(value))); grid.append(card); });
     body.append(grid);
     if (!grid.children.length) body.append(el(documentRef, 'p', '현재 커밋된 플레이어 정보가 없습니다.'));
@@ -183,9 +193,9 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     const monitors = context()?.turns?.at(-1)?.observer_applied?.mind_monitor ?? {};
     body.append(el(documentRef, 'h3', 'NPC 정보'), el(documentRef, 'p', '현재 커밋된 장면과 Mind Monitor만 표시합니다.'));
     const list = el(documentRef, 'div'); list.className = 'csa-app-npc-list';
-    actors.filter(actor => ids.includes(actor.id ?? actor.character_id)).forEach(actor => {
-      const id = actor.id ?? actor.character_id; const card = el(documentRef, 'article'); card.className = 'csa-app-npc-card present';
-      card.append(el(documentRef, 'h3', actor.name ?? id), el(documentRef, 'p', '현재 장면에 있음'));
+    actors.forEach(actor => {
+      const id = actor.id ?? actor.character_id; const present = ids.includes(id); const card = el(documentRef, 'article'); card.className = `csa-app-npc-card${present ? ' present' : ''}`;
+      card.append(el(documentRef, 'h3', actor.name ?? id), el(documentRef, 'p', present ? '현재 장면에 있음' : '현재 장면 밖'));
       const monitor = monitors[id]; if (monitor) card.append(el(documentRef, 'p', `Mind Monitor: ${monitor.surface ?? monitor.text ?? '커밋된 정보'}`));
       list.append(card);
     });
@@ -223,8 +233,10 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
 
   function renderCsa() {
     body.append(el(documentRef, 'h3', '상식개변'), el(documentRef, 'p', '변경은 이 앱 안에서 먼저 초안으로 남습니다. 적용을 눌러야 다음 Story 턴으로 기록됩니다.'));
-    const current = el(documentRef, 'section'); current.append(el(documentRef, 'h4', `현재 활성 규칙 ${activeRules().length}개`));
-    activeRules().forEach(rule => current.append(activeCard(rule))); if (!current.children.length) current.append(el(documentRef, 'p', '현재 활성 규칙이 없습니다.'));
+    const rules = activeRules();
+    const current = el(documentRef, 'section'); current.append(el(documentRef, 'h4', `현재 활성 규칙 ${rules.length}개`));
+    if (rules.length) rules.forEach(rule => current.append(activeCard(rule)));
+    else current.append(el(documentRef, 'p', '현재 활성 규칙이 없습니다.'));
     body.append(current, el(documentRef, 'h4', '9-rule MVP 프리셋'));
     const presets = el(documentRef, 'div'); presets.className = 'csa-app-status-grid'; catalog().items.forEach(item => { const card = presetCard(item); if (card) presets.append(card); }); body.append(presets);
   }
