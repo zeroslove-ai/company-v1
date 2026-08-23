@@ -1,269 +1,170 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-media-focal-dialogue-projection-v1
-Mode: FREEZE ACCEPTED MEDIA PLUMBING -> ADD GROUNDED COMMITTED PRESENTATION PROJECTION -> RETEST IMAGE/TTS LIVE
-Updated: 2026-08-24 00:27 KST
+Status: READY
+Task ID: company-r3-current-scene-timeline-residue-v1
+Mode: FREEZE ACCEPTED R3 PRODUCT -> TRACE NORMAL-SURFACE HISTORY DUPLICATION -> LATEST-CURRENT-SCENE ONLY -> FRONTEND TEST DEPLOY -> BARE-PUBLIC ACCEPTANCE
+Updated: 2026-08-24 00:59 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5386778945`
-Operator review: Issue #68 comment `5386804081`
+Previous terminal: Issue #68 comment `5386905332`
+Operator review: Issue #68 comment `5386933280`
 Owner manual-play authority: Issue #68 comment `5384780073`
-
-## Terminal evidence — 2026-08-24
-
-TERMINAL_OUTCOME: COMPLETE
-
-- Source implementation: `dd3eef3df57707cfc801c93f4b5444d49a822319` (pushed to `origin/main`); final control-file commit is the descendant of this source commit.
-- Changed files: `runtime-r3/domain/observer-normalizer.js`, `runtime-r3/server/provider.js`, `runtime-r3/domain/media.js`, `frontend-r3/r3-view-model.js`, `frontend-r3/media.js`, `test/r3-approved-media.test.mjs`, `test/r3-opening-contract.test.mjs`.
-- Validation: focused `test/r3-approved-media.test.mjs` 7/7; full `npm.cmd test` 528/528; changed JS/MJS `node --check` PASS; `git diff --check` PASS.
-- TEST deploy: API `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`; frontend `gamebuilder-company-r3` version `3f4b6c4f-4201-4ca5-8800-cbf2fe9137a0`; bare public URL used exactly: `https://gamebuilder-company-r3.zeroslove.workers.dev`.
-- Fresh disposable TEST fixture: `04408c93-13e7-4fb6-a840-06e11fabe870`; prior failure fixture `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1` and owner game were not modified.
-- Live sample: Opening plus ordinary turns 1–4 committed. Turn 3 raw Story contained the grounded heroine dialogue beginning `서원희 차장이 서류에서 고개를 들어...`; normalized `observer_applied` persisted `focal_actor: {actor_id: "heroine1", quote: "서원희 차장이 서류에서 고개를 들어 당신을 바라본다."}` and three verbatim `dialogue_lines` for `heroine1`/`heroine2`. Turn 4 Observer failure remained fail-open with `focal_actor: null`, `dialogue_lines: []`, and no gameplay-state replacement.
-- Gate A: PASS — committed `heroine1` focal projection selected the exact present heroine; server image route returned approved `Heroine1/one_main.jpg`, and the visible image rendered without blocking Story, choices, or input. Opening ambiguity was not guessed; its invalid focal/dialogue projections were dropped with warnings.
-- Gate B: PASS — TTS was initially OFF (`aria-pressed=false`); captured ordinary-turn network evidence contained zero `/media/tts` calls before enabling TTS, and no narrator/player/private-thought/Mind Monitor text was sent.
-- Gate C: PASS — visible TTS ON sent the committed `speaker_id=heroine1` and exact validated dialogue through R3 `/media/tts`; the route returned HTTP 200 with an audio URL, and the audio element received the returned URL. No direct TTS-worker call or browser `speechSynthesis` path was used.
-- Gate D: PASS — replay produced zero additional `/media/tts` or image calls and reused the cached audio URL; refresh/re-entry reconstructed turn 3's grounded image, while the later turn 4 fail-open projection cleared media after committed-context reload; committed turn authority remained unchanged.
-- Gate E: PASS — at viewport 390x844, image/media, TTS toggle/replay/audio, choices, and direct input controls remained present; `innerWidth=390`, `innerHeight=844`, `bodyScrollWidth=390`, `clientWidth=390`, no horizontal overflow.
-- No production, migration, provider/model/config, schema/RPC, preserved-game, owner-game, or secret changes. Remaining scope is timeline/current-scene residue and final holistic owner-style acceptance.
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery branch. Work on `main` only.
 
-## 0. Accepted baseline and exact failure
+## 0. Accepted baseline — freeze
 
-Current main before registration:
-- `f01a871c9effab941028b61f06acf380dd6af4c5`
+Accepted executable/source before this cut:
+- `dd3eef3df57707cfc801c93f4b5444d49a822319`
 
-Accepted media source foundation from the previous cut:
-- `25688dd4c478b72ace1ad514e99498fc3469cfc0`
+Current main before this registration:
+- `6fb1614d9a0e0a91028a4baaacce88a577170c73`
+- docs-only descendant of the accepted executable; no later executable drift.
 
-`f01a871...` is a docs-only descendant of `25688dd...`; there is no later executable drift.
+Current accepted TEST artifacts:
+- API `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`
+- Frontend `gamebuilder-company-r3` version `3f4b6c4f-4201-4ca5-8800-cbf2fe9137a0`
+- bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Freeze the bounded implementation already accepted in operator review `5386804081`:
-- deterministic approved `image_library`/canonical media selection;
-- current-character/presence eligibility and fail-open behavior;
-- R3 image/TTS server routes and frontend media controllers;
-- `TTS_WORKER` Service Binding to existing service `fancy-dust-7f8c`;
-- canonical `character_id -> voice_id` server eligibility;
-- TTS OFF => zero synthesis calls;
-- narrator/player/player-inner-thought/Mind Monitor/unknown speaker ineligibility;
-- stale image/audio fencing, dedup/cache/replay lifecycle;
-- browser `speechSynthesis` / `SpeechSynthesisUtterance` removed from the R3 product path;
-- media remains presentation-only and fail-open.
+Fresh media acceptance fixture — READ ONLY:
+- `04408c93-13e7-4fb6-a840-06e11fabe870`
 
-Previous deterministic verification was GREEN:
-- focused R3 media: 5/5;
-- R3 frontend contract: 14/14;
-- full npm: 526/526;
-- changed JS/MJS syntax, `git diff --check`, Wrangler dry-runs: PASS.
+Freeze all previously accepted product behavior, including:
+- first-day/first-arrival Opening and selected department/rank preservation;
+- exact player agency, target/action/refusal/self-state/topic/intent authority;
+- canonical navigation/location/presence behavior;
+- committed player inner thought and character-specific first-person Mind Monitor;
+- Story-owned exact four choices and accepted formatting variants;
+- chronological CSA APPLY/CHANGE/REMOVE, one operation = one normal Story turn;
+- high-parity five-tab CSA draft/apply UI and one-pending-operation behavior;
+- ordinary post-CSA turns without stale `csa_operation`;
+- same-game reset runtime GREEN; native-confirm automation remains separately deferred and must not be reopened here;
+- approved deterministic image projection;
+- grounded turn-scoped focal/dialogue projection in `observer_applied`;
+- character-aware R3 server TTS through `TTS_WORKER -> fancy-dust-7f8c`;
+- TTS OFF => zero calls; no narrator/player/private-thought/Mind Monitor synthesis;
+- replay/cache/stale fencing/fail-open media behavior;
+- browser `speechSynthesis` / `SpeechSynthesisUtterance` remains absent from R3 product path;
+- desktop/mobile core controls and refresh/re-entry behavior.
 
-Current TEST artifacts from that source:
-- API `game-proxy-company-r3` version `e1135324-20ba-4410-91bf-c3c31b59a10f`;
-- frontend `gamebuilder-company-r3` version `1efd7d4a-b9b6-48af-9b07-baab0f2f6000`;
-- bare public `https://gamebuilder-company-r3.zeroslove.workers.dev`.
+Media cut validation already accepted:
+- focused `test/r3-approved-media.test.mjs`: 7/7 PASS;
+- full `npm.cmd test`: 528/528 PASS;
+- syntax/diff checks PASS;
+- bare-public image + TTS OFF/ON + replay/refresh + 390x844 mobile GREEN.
 
-Previous live fixture — READ ONLY, never reset/revise/retry/mutate:
-- `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1`.
+Do not redesign or re-open any frozen subsystem in this task.
 
-Exact prior product failure:
-- Setup/Opening + three ordinary turns committed successfully;
-- five registered heroines were present in committed scene state;
-- there was no committed canonical focal/relevant heroine field usable by media;
-- Story direct dialogue appeared as natural quoted prose, not reliably as deterministic speaker-prefixed lines;
-- media code correctly refused to choose one of five heroines or assign a bare quote to a guessed speaker;
-- therefore live image Gate A and character-aware server TTS Gate C/D could not become eligible;
-- TTS OFF gate remained GREEN with zero `/media/tts` calls.
+## 1. Exact remaining owner defect
 
-This is a committed presentation-projection defect. It is NOT evidence that image data, `TTS_WORKER`, voice IDs, media selectors, or media frontend plumbing are broken.
+Owner authority `5384780073` requires the normal gameplay surface to present the current scene cleanly:
+- Opening/early-turn cards must not remain as stray residual content after later turns;
+- History must remain available through the intended History presentation;
+- the current Story must not be duplicated as both a history card and current-turn Story.
 
-Do not roll back or redesign the accepted media foundation merely because eligibility correctly failed closed.
+Current source evidence at accepted executable `dd3eef3...`:
+- `frontend-r3/r3-view-model.js` correctly preserves `view.history = turns` as committed presentation/history data;
+- `frontend-r3/app.js::renderContext()` currently executes `renderHistory($('#story-history'), view.history, ...)`, rendering the full committed chronology into the normal gameplay story panel;
+- the same function then takes `latest = view.history.at(-1)` and renders that same latest Story again into `#current-story`;
+- `frontend-r3/openHistory()` already renders the full history separately into `#history-list` inside the dedicated History overlay;
+- exports also use committed `context.turns` independently.
 
-## 1. Product/architecture boundary
+Therefore the leading root-cause hypothesis is presentation duplication in the normal frontend shell, not server chronology/persistence corruption.
 
-R3 remains:
-- Story LLM;
-- one small post-Story Observer;
-- committed turn + `observer_raw`/`observer_applied`;
-- minimal reducer/state;
-- presentation sidecars derived from committed evidence.
+This cut is presentation-only. Do not change persisted turns, committed history, Story/Observer/reducer semantics, or History export authority.
 
-This cut may extend the EXISTING Observer response with narrowly scoped presentation-only evidence because the previous live gate proved that the current committed projection structurally lacks the information necessary for truthful character image/TTS routing.
+## 2. Mandatory pre-edit live trace
 
-No new model call.
-No second observer.
-No provider/model/temperature/token/timeout change.
-No DB schema/RPC/migration.
-No new gameplay durable authority.
-No new client gameplay state.
-No arbitrary/fuzzy speaker guessing.
-No semantic rewrite of Story.
+Before editing source, use the accepted bare-public TEST deployment and inspect fixture `04408c93-13e7-4fb6-a840-06e11fabe870` READ ONLY where possible.
 
-The presentation projection must live in the existing turn Observer projection (`observer_raw` -> strict normalizer -> `observer_applied`) and be consumed from the latest committed turn. Do NOT make it a writer for player agency, location, presence, relationships, CSA, clothing, time, or any other gameplay fact.
+Record:
+1. current committed turn and `context.turns` count;
+2. normal gameplay `#story-history` child/`.turn-card` count;
+3. normal gameplay `#current-story` visible latest Story identity/text sample;
+4. whether the latest committed Story appears both in `#story-history` and `#current-story`;
+5. whether Opening and earlier ordinary turn text remain visibly present in the normal story panel after later commits;
+6. History overlay `#history-list` count/order and whether it correctly contains the full chronology;
+7. behavior after refresh/re-entry.
 
-Do not add `scene.focal_actor_id` as a new gameplay-state authority in the reducer merely to satisfy media. If a presentation field needs a focal actor, keep that field turn-scoped in validated `observer_applied` unless an already-existing canonical field is discovered during inventory.
+Do not mutate that fixture. If browser inspection of the old fixture is unavailable, create one fresh disposable game solely for reproduction before editing.
 
-## 2. Mandatory pre-edit boundary trace
+If live evidence disproves the source hypothesis, stop and classify the actual first presentation boundary before patching. Do not blindly hide content.
 
-Before editing source, inspect the previous failed fixture `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1` READ ONLY and record for its Opening/latest ordinary turns:
-1. exact raw Story dialogue shape;
-2. `observer_raw` actor-related evidence;
-3. `observer_applied` actor-related evidence;
-4. post-turn `state.scene.present_actor_ids`;
-5. `mind_monitor` target IDs;
-6. current `projectCurrentMedia()` inputs/outputs;
-7. whether any existing committed field already encodes relevant/focal speaker identity.
+## 3. Correction contract — normal surface latest-only
 
-Do not infer from DOM alone. Do not mutate the fixture.
+Goal: normal gameplay presents exactly the current/latest Story scene. Full chronology remains available only through the dedicated History UX/export.
 
-If an existing committed, strictly grounded focal/speaker projection already exists and the only defect is that media failed to read it, use that existing field instead of creating a duplicate Observer key.
+Preferred minimal correction:
+- stop rendering committed `view.history` into `#story-history` during normal `renderContext()`;
+- clear or keep `#story-history` empty/non-authoritative on normal gameplay renders;
+- keep `#current-story` as the sole normal-surface Story container for the latest committed Story and current streaming deltas;
+- keep `view.history`, `context.turns`, `renderHistory()`, History overlay, MD/TXT export, server readback, and persistence unchanged.
 
-Otherwise proceed with the bounded Observer extension below.
+Required behavior:
+- Opening: current Story shows Opening once;
+- after Turn 1 commit: current Story shows Turn 1 once; Opening is no longer visible in normal story surface;
+- after Turn 2+: current Story shows latest turn once; prior turns are not normal-surface cards;
+- during streaming: deltas appear only in `#current-story` and do not resurrect committed history cards;
+- after commit/reconciliation: latest committed Story replaces the streamed preview cleanly;
+- refresh/re-entry: same latest-only normal surface reconstructs from committed context;
+- feedback revision: revised latest Story replaces current Story without creating duplicate old/new revision cards on normal surface;
+- failed/pending turn recovery: previously committed history does not reappear as normal-surface residue;
+- History overlay: Opening + every committed ordinary turn remain available in canonical order;
+- History export remains complete;
+- no gameplay data is deleted or truncated.
 
-## 3. Bounded Observer presentation projection
+Do not remove `view.history` from the view model merely to hide it.
+Do not delete server turns.
+Do not change history API/readback.
+Do not change Story text, parser, choices, TTS/media, or state authority.
+Do not redesign the narrative card style or choice presentation beyond what is necessary to remove timeline duplication.
 
-Use the existing single Observer call. Add only the minimum presentation keys needed for current image/TTS routing.
+If `#story-history` is retained in HTML for shell compatibility, it may remain empty/hidden in normal play. Prefer the smallest source correction over broad DOM/CSS deletion.
 
-Preferred normalized shape unless existing canon provides an equivalent:
+## 4. Deterministic regressions
 
-```json
-{
-  "focal_actor": {
-    "actor_id": "heroineN",
-    "quote": "exact contiguous Story evidence containing the canonical actor name"
-  },
-  "dialogue_lines": [
-    {
-      "speaker_id": "heroineN",
-      "text": "exact spoken dialogue text from Story",
-      "direction": "optional short delivery direction",
-      "evidence_quote": "exact contiguous Story span grounding speaker attribution and the dialogue"
-    }
-  ]
-}
-```
+Add/adjust focused frontend tests proving at minimum:
+1. context with Opening only => normal surface shows Opening exactly once;
+2. context with Opening + Turn1 => normal surface contains only Turn1 Story, not Opening history card;
+3. context with Opening + Turn1 + Turn2 => normal surface contains only Turn2 Story, not earlier cards;
+4. latest Story is not duplicated between `#story-history` and `#current-story`;
+5. `#story-history` stays empty/non-authoritative across repeated `renderContext()`/refresh reconciliation;
+6. History overlay still renders the full committed chronology in order;
+7. History export source still contains full `context.turns`;
+8. streaming deltas target current Story only;
+9. feedback committed revision replaces current Story without normal-surface duplicate revision residue;
+10. failed/pending recovery reconciliation remains latest-only;
+11. media/image/TTS controls and current committed projection remain unaffected;
+12. choices/direct input remain reachable and exact-literal dispatch unchanged;
+13. frozen CSA/draft/reset contracts remain GREEN;
+14. mobile layout does not acquire overflow from the correction.
 
-Names may be adjusted only to fit an already-existing R3 contract cleanly; semantics must remain this narrow.
+Run:
+- focused R3 frontend/render/history tests;
+- full `npm.cmd test`;
+- changed JS/MJS `node --check`;
+- `git diff --check`.
 
-### Focal actor rules
+Do not weaken existing tests merely to make this presentation change pass. Rewrite only assertions that explicitly encoded the now-rejected normal-surface full-history duplication.
 
-A focal/relevant actor projection is valid only when:
-- `actor_id` is a registered canonical Company heroine;
-- that actor is present in the post-Story scene after applying entered/exited/present evidence;
-- `quote` is an exact contiguous substring of the current Story;
-- the quote contains that actor's exact canonical name and materially grounds that actor as current/relevant to the scene.
+## 5. TEST deployment
 
-Invalid focal evidence is dropped locally to `null` with a warning. It must never fail the Story turn.
+This should be a frontend-only cut unless the mandatory trace proves otherwise.
 
-Do not select the first present heroine, alphabetically lowest heroine, or arbitrary heroine when five are present.
+Expected changed artifact:
+- `gamebuilder-company-r3` only.
 
-### Dialogue-line rules
-
-Each projected line is valid only when:
-- `speaker_id` is a registered canonical Company heroine;
-- the speaker is present in the post-Story scene;
-- `text` is non-empty and occurs verbatim as spoken dialogue in the current Story;
-- `evidence_quote` is an exact contiguous substring of the current Story and provides bounded attribution evidence tying that canonical actor to that spoken text;
-- no narrator/player/inner-thought/Mind-Monitor text is projected as NPC dialogue.
-
-Normalize exact text, do not paraphrase or translate it. Do not merge different speakers.
-
-If the Observer returns invalid/fabricated/remote speaker evidence, drop only that line and record a bounded warning. The Story/commit remains usable.
-
-Natural bare-quote Story prose is allowed. Do NOT require a Story rewrite just to make TTS work in this cut. The Observer is already the one post-Story projection step and may identify speaker attribution, but strict server-side grounding must reject unsupported mappings.
-
-Do not add a fuzzy heuristic that assigns anonymous quotes to the nearest actor name without validated Observer evidence.
-
-### Prompt scope
-
-If the Observer system/product prompt must be updated:
-- add only these presentation extraction requirements;
-- preserve all existing player-agency, choices, time, scene, Mind Monitor, CSA/private-emotion and navigation instructions verbatim in meaning;
-- do not change Story generation prompts in this cut.
-
-## 4. Persistence/reducer boundary
-
-The new validated presentation fields may be stored in the existing per-turn `observer_applied` JSON that is already persisted with the turn.
-
-Requirements:
-- no DB migration;
-- no new table/column;
-- reducer must not use dialogue/focal presentation fields to mutate gameplay state;
-- readback/refresh obtains them from the committed latest turn;
-- old turns without the fields remain valid and simply produce no eligible media unless deterministic legacy speaker parsing already proves eligibility.
-
-The failing previous fixture may be used only to test backward-compatible fail-open behavior; never revise its committed turns.
-
-## 5. Rewire current media projection — minimal only
-
-Update `runtime-r3/domain/media.js` and frontend/view-model plumbing only as necessary so current media consumes validated committed presentation evidence.
-
-Character priority:
-1. explicitly requested character only if currently present and registered;
-2. latest validated `observer_applied.focal_actor` when currently present;
-3. validated current committed dialogue speaker when unambiguous/relevant;
-4. single present registered heroine if exactly one exists;
-5. otherwise no image character — never arbitrary choice.
-
-Dialogue/TTS priority:
-- use validated committed `dialogue_lines` first;
-- deterministic explicit speaker-prefix parsing may remain as a compatibility fallback only when it independently proves canonical speaker identity;
-- never synthesize anonymous quotes by guessing.
-
-All existing media constraints remain:
-- image pool is general unless already-committed evidence proves sex pool eligibility;
-- no raw player intent as sexual success proof;
-- no LLM image ranking;
-- no media state mutation;
-- server is final TTS voice/presence eligibility authority;
-- TTS OFF remains zero calls;
-- no speech synthesis browser fallback.
-
-## 6. Deterministic regressions
-
-Add exact tests before live deploy.
-
-At minimum prove:
-1. five present heroines + validated focal heroine => exact focal image character;
-2. five present heroines + no focal + one validated dialogue speaker => that speaker is eligible;
-3. five present heroines + no grounded focal/dialogue => no arbitrary character;
-4. focal actor with non-Story quote is dropped;
-5. focal actor not present after Story is dropped;
-6. dialogue text not verbatim in Story is dropped;
-7. dialogue attribution evidence not exact/current is dropped;
-8. remote/unknown/player/narrator dialogue is dropped;
-9. valid bare-quote Story plus strictly grounded Observer speaker projection yields canonical dialogue line;
-10. invalid media projection never blocks turn commit;
-11. presentation fields do not alter reduced gameplay scene/location/presence/time/CSA state;
-12. committed readback/refresh can reconstruct current media projection;
-13. TTS server still maps exact registered speaker to canonical voice ID;
-14. TTS OFF still makes zero API calls;
-15. TTS ON uses only validated committed dialogue;
-16. replay cache/dedup/stale fencing from `25688dd...` remains green;
-17. image stale fencing from `25688dd...` remains green;
-18. source scan still finds no R3 product `speechSynthesis` / `SpeechSynthesisUtterance`;
-19. frozen agency/navigation/choice/CSA/draft/reset regressions remain green.
-
-Run focused tests, full `npm.cmd test`, changed JS/MJS `node --check`, and `git diff --check`.
-
-## 7. TEST deploy
-
-Deploy exact affected TEST artifacts only.
-
-Likely API changes:
-- Observer prompt/normalizer/applied projection;
-- media projection consumption.
-
-Likely frontend changes only if view-model/controller requires the newly committed fields. If frontend source is unchanged, do not redeploy it merely for symmetry.
-
-Preserve the existing `TTS_WORKER` binding and all current vars/secrets exactly.
+Do NOT redeploy API merely for symmetry if API source/config is unchanged.
+Keep API version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b` active if unaffected.
 
 No Production.
-No migration.
-No secret rotation/printing.
-No provider/model/config change beyond the already accepted media binding.
+No migration/schema/RPC.
+No provider/model/config change.
+No TTS binding change.
+No owner/preserved-game mutation.
 
-Record source SHA and exact Worker version IDs.
+Record exact source SHA and exact deployed frontend Worker version.
 
-## 8. Mandatory bare-public acceptance
+## 6. Mandatory bare-public acceptance
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
@@ -271,96 +172,88 @@ Use only:
 No `?api=` override.
 No storage preseed.
 No direct-API gameplay substitute.
-Fresh disposable TEST games only.
+Fresh disposable TEST game for mutable acceptance.
 Never mutate owner game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`.
-Never mutate previous failure fixture `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1`.
 
-### Gate A — grounded image
+### Gate A — normal latest-only chronology
 
-Create visible Setup -> Opening and ordinary company/social turns that materially involve a registered heroine.
+Create visible Setup -> Opening -> at least 4 ordinary committed turns.
 
+After each commit inspect normal gameplay surface.
 Require:
-- committed latest turn contains strictly validated relevant/focal and/or dialogue speaker projection;
-- chosen image character equals that grounded present heroine;
-- server returns an approved image for that exact heroine;
-- visible image renders without blocking Story/choices/input;
-- no arbitrary heroine is selected when evidence is ambiguous;
-- refresh/re-entry reconstructs the same current eligible heroine/image from committed context;
-- stale prior response cannot overwrite a later committed media projection.
+- Opening visible once at Turn0;
+- Turn1: Opening absent from normal Story surface, Turn1 current Story visible once;
+- Turn2–Turn4: only latest Story visible in normal Story surface;
+- `#story-history` contains no committed turn cards / stale old Story text;
+- latest Story is not duplicated;
+- four choices/direct input remain usable;
+- no blocking console/network error.
 
-### Gate B — TTS OFF
+### Gate B — History overlay integrity
 
-With fresh/session TTS OFF:
-- commit a turn containing validated registered heroine dialogue;
-- prove zero `/media/tts` synthesis calls;
-- narrator/player/private thought/Mind Monitor remain unsent.
-
-### Gate C — TTS ON character routing
-
-Enable through the visible TTS control and use a committed turn with validated present heroine dialogue.
-
+At Turn4 open visible `플레이 기록`.
 Require:
-- frontend sends exact validated dialogue + canonical character ID only;
-- R3 server resolves exact canonical voice ID;
-- transport is R3 API -> `TTS_WORKER` Service Binding -> audio URL;
-- `#audio-player` receives a playable returned URL;
-- no direct browser-to-TTS-worker call;
-- no browser speechSynthesis;
-- no duplicate synthesis for same committed batch;
-- UI/gameplay stays responsive.
+- History overlay contains Opening + Turns1–4 exactly once each in canonical order;
+- literal actions/story summaries remain available as previously supported;
+- closing History returns to unchanged latest current scene;
+- opening History does not resubmit or mutate gameplay.
 
-If live dialogue projection is invalid, stop on that exact projection failure. Do not retry/regenerate until a better sample appears.
+### Gate C — refresh/re-entry
 
-### Gate D — replay/transition/refresh
-
+Refresh/re-enter the same fresh game.
 Require:
-- replay uses cached URL without duplicate synthesis where existing contract specifies;
-- next committed turn fences old image/audio;
-- refresh/re-entry reconstructs media eligibility from committed turn evidence;
-- gameplay state/turn count is unchanged by media actions.
+- committed Turn4 remains authority;
+- normal Story surface still shows only Turn4/current latest Story;
+- Opening/Turns1–3 do not reappear as normal residue;
+- History overlay still reconstructs all five committed entries;
+- choices, player thought, Mind Monitor, image/TTS projection remain coherent with latest committed turn where eligible.
 
-### Gate E — mobile
+### Gate D — one more turn after refresh
 
-Approx `390x844`:
-- image panel is usable/non-blocking;
-- TTS toggle/replay/audio remain reachable;
-- choices and direct input remain reachable;
-- no overflow/overlay blocker.
+Commit Turn5 after refresh via visible direct input or choice.
+Require:
+- Turn5 becomes the sole current Story;
+- Turn4 moves only to History overlay, not normal story residue;
+- exactly one gameplay commit/request;
+- no duplicate media/TTS synthesis caused by the timeline change.
 
-## 9. Stop conditions
+### Gate E — mobile 390x844
+
+On the same accepted frontend at approximately 390x844:
+- latest current Story, image/Mind Monitor/player thought, four choices, direct input, TTS controls, and History button reachable;
+- History overlay usable and closable;
+- no old turn cards consuming the normal scene vertically;
+- no horizontal overflow/blocking overlay.
+
+Do not reopen native reset-confirm acceptance in this cut.
+
+## 7. GREEN definition
 
 GREEN only if:
-- committed presentation projection is strictly grounded and fail-open;
-- live image Gate A passes with an approved image for the exact relevant present heroine;
-- TTS OFF zero-call gate passes;
-- TTS ON server character routing/audio URL passes;
-- replay/transition/refresh passes;
-- mobile passes;
-- no gameplay authority or provider/model/schema drift.
+- root cause is reproduced or otherwise directly proven;
+- normal gameplay is latest-current-scene only;
+- full committed chronology remains intact in History overlay/export/readback;
+- refresh/re-entry and post-refresh next turn remain latest-only;
+- no gameplay/state/Story/Observer/media/TTS authority change;
+- desktop and mobile pass;
+- full tests pass;
+- no Production/migration/provider/model/owner-game mutation.
 
-If the existing Observer cannot reliably produce exact grounded speaker attribution without inventing data, STOP `FAILED_PRODUCT` with raw Story + observer raw/applied evidence. Do not add another model call, fuzzy quote-speaker heuristic, or arbitrary fallback.
+Do NOT claim owner-ready on completion.
 
-If `TTS_WORKER` or approved media data newly becomes unavailable, STOP with the exact environment/data boundary; do not fall back to browser TTS or placeholders.
+If GREEN, the only planned next stage is a separate operator-registered final holistic owner-style long-play acceptance across all frozen features. Do not create or start that next task yourself.
 
-Do not claim owner-ready.
-Do not start timeline cleanup or holistic owner play in this task.
+## 8. Terminal handling
 
-## 10. Completion report
+On completion:
+1. post exact source SHA and changed files;
+2. report focused/full test counts;
+3. report exact frontend TEST version and unchanged API version;
+4. report fresh acceptance game ID;
+5. report Gate A–E evidence with turn-by-turn normal-surface counts and History overlay counts;
+6. report refresh/re-entry and post-refresh turn evidence;
+7. list any remaining defect/blocker honestly;
+8. overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` in place;
+9. stop.
 
-Post to Issue #68:
-- final source/main SHA;
-- exact changed files;
-- focused/full validation counts;
-- TEST API/frontend version IDs;
-- fresh fixture IDs;
-- sampled raw Story dialogue + normalized focal/dialogue projection evidence;
-- Gate A image character/source/render result;
-- Gate B zero-call evidence;
-- Gate C canonical character/voice/server-binding/audio URL evidence without exposing secrets;
-- Gate D replay/transition/refresh evidence;
-- mobile result;
-- any dropped invalid projection warnings;
-- confirmation that gameplay state/turn authority was unchanged;
-- remaining defect: timeline/current-scene residue and final holistic owner-style acceptance only if this cut is GREEN.
-
-Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and stop. Do not create or start the next task.
+Do not create another CURRENT_TASK file/path, branch, PR, next task, or owner-ready handoff.
