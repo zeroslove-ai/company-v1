@@ -1,339 +1,377 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-csa-three-tier-remaining-live-acceptance-v1
-Mode: ACCEPTANCE-ONLY — CLOSE REMAINING THREE-TIER CSA LIVE LANES / NO SOURCE REPAIR
-Updated: 2026-08-25 01:51 KST
+Status: READY
+Task ID: company-r3-csa-player-facing-presentation-sanitization-v1
+Mode: NARROW P1 REPAIR — CSA PLAYER-FACING PRESENTATION SANITATION / STALE EXACT-NINE COPY REMOVAL / RESUME REMAINING LIVE ACCEPTANCE
+Updated: 2026-08-25 02:02 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `81b76e6f7176ac2b4a8673a264158a832b756d70`
-Accepted W5 transport test SHA: `262571e1de377126751e176806ae59489f036379`
+Registration base main: `58862dec04e0ce6a6203197a10b5ade9fa623040`
 Reviewed actor-grounding executable source: `60fe42f0b015dc0579888e96b98715b1ab5b5b7f`
+Accepted W5 transport test SHA: `262571e1de377126751e176806ae59489f036379`
 Binding CSA canon commit: `8db9cc0cccde68fc66f973de19c28c13154d9960`
 Binding live acceptance commit: `81c8d7beca6bb29dd1c13ffa672e085616e8aed8`
-Previous task: `company-r3-csa-w5-turn-transport-diagnostic-repair-v1`
-Previous terminal: Issue #68 `5398456446`
-Operator review: Issue #68 `5398487218`
-TEST R3 API: `game-proxy-company-r3` / `cbfb8900-1ba9-4886-9405-452e7ae760db`
-TEST R3 frontend: `gamebuilder-company-r3` / `7e3ae305-bec1-4fb9-9c4e-6e9d86448a9e`
+Previous task: `company-r3-csa-three-tier-remaining-live-acceptance-v1`
+Previous terminal: Issue #68 `5398583519`
+Operator review: Issue #68 `5398619147`
+Preserved failed game: `ccd2ff92-1ca4-44cb-9155-6f05f8d2ef93`
+TEST R3 API baseline: `game-proxy-company-r3` / `cbfb8900-1ba9-4886-9405-452e7ae760db`
+TEST R3 frontend baseline: `gamebuilder-company-r3` / `7e3ae305-bec1-4fb9-9c4e-6e9d86448a9e`
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
 ## Authority / reuse law
 
 - Work on `main` only.
-- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Never create a second CURRENT_TASK file, ops branch, feature branch, or implementation PR.
-- Read before execution: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, current CSA catalog/runtime/frontend source, terminal `5398456446`, review `5398487218`, then this task.
-- Actual deployed browser play is the product gate. Direct API is supporting read-only evidence only and must not replace visible product interaction.
-- Freeze current runtime/API/frontend/content semantics in this task. This is acceptance-only.
-- Do NOT edit source, tests, prompts, catalogs, provider/model/config, frontend, DB schema, migrations, or deployment config.
-- Do NOT redeploy unchanged Workers.
-- Do NOT change timeout values, add retry/regeneration, add a semantic verifier/router/gateway, or sample-until-pass.
+- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Never create another CURRENT_TASK file, ops branch, feature branch, or implementation PR.
+- Read before execution: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, current `frontend-r3/csa.js`, current CSA tests, terminal `5398583519`, review `5398619147`, then this task.
+- Freeze the accepted 21-slot catalog, bounded selectors, structured +1-turn rule-change architecture, W5 transport, actor-direction binding, provider/model behavior, runtime API semantics, and TEST schema.
+- This task repairs **player-facing CSA presentation only** plus regression coverage, then resumes live acceptance.
+- Do not redesign CSA meaning or remove the finite S1 action-family authority.
 - No Production access.
-- No preserved evidence-game reset or mutation.
+- No preserved-game reset/reuse/mutation.
 - Never claim OWNER_READY.
 
 Success terminal:
-`CSA_THREE_TIER_REMAINING_LIVE_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CSA_PLAYER_FACING_PRESENTATION_FIXED_AND_REMAINING_LIVE_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`CSA_THREE_TIER_REMAINING_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CSA_PLAYER_FACING_PRESENTATION_OR_REMAINING_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ---
 
-# 0. Accepted facts — do not reopen without new deterministic evidence
+# 0. Accepted facts — do not reopen
 
-The previous chain has now established:
+The previous live campaign proved:
 
-- canonical visible CSA target is exactly three tiers `약함 | 중간 | 강함`, seven canonical slots per tier, 21 total;
-- APPLY/CHANGE/REMOVE are structured Story turns, each successful operation consumes exactly one gameplay turn and commits rule state atomically with Story;
-- exact-nine and zero-turn CSA semantics are superseded;
-- bounded selectors and direction-sensitive actor-pair semantics are canonical;
-- `rule_change_story_binding` preserves exact selected actor IDs/names/roles/direction without becoming a second gameplay writer;
-- rule-change Story does not receive app-control audit literal as ordinary Story intent;
-- exact browser-shaped W5 operation `breast_touch_conversation` with subject `heroine5`/이메이 and counterparty `general_park_jungwoo`/박정우 passes deterministic `/turn -> reserve -> Story binding -> Observer -> one atomic commit` regression;
-- the same W5 pair committed once through the deployed TEST browser with `/turn` SSE 200 and correct Story/active-rule actor grounding;
-- focused tests were 17/17 and full `npm test` 561/561;
-- current runtime/API/frontend source did not require a repair for the previous transient `not_sent` observation;
-- current TEST Workers are already the accepted source-equivalent versions listed above.
+- visible primary tabs are `약함 | 중간 | 강함`;
+- visible catalog count is exactly 7 / 7 / 7 = 21;
+- no source/runtime/frontend deployment drift existed before the campaign;
+- Setup + Opening succeeded once in fresh game `ccd2ff92-1ca4-44cb-9155-6f05f8d2ef93`;
+- execution stopped before any gameplay rule-change turn because the first desktop catalog gate exposed raw Strong action-family IDs to the player:
+  `지원 행동군: kiss, sexual_touch, genital_exposure, genital_touch, oral, penetration`.
 
-Do not spend this task re-proving or redesigning the W5 transport unless a new visible regression occurs during the coherent campaign.
+This is a **frontend player-facing projection P1**, not evidence against the catalog/runtime semantics.
 
----
+Source inspection also shows same-layer stale/internal copy that must be closed in this repair rather than waiting for repeated live failures:
 
-# 1. Read-only preflight
+- raw tier/metadata projection such as `strong`;
+- raw category fallback such as `world_behavior` on pending update cards;
+- technical heading `21-slot canonical catalog`;
+- stale Manual copy `현재 제공되는 것은 9개 프리셋 규칙뿐입니다.`;
+- raw action-family enum list.
 
-Before gameplay, verify once:
-
-1. current `main` is source-equivalent to the accepted runtime, with only the W5 test/lifecycle descendants expected;
-2. deployed TEST API is still `cbfb8900-1ba9-4886-9405-452e7ae760db` and source-equivalent to the accepted actor-grounding runtime;
-3. deployed TEST frontend remains `7e3ae305-bec1-4fb9-9c4e-6e9d86448a9e`;
-4. TEST R3 schema remains compatible read-only;
-5. no current unexpected job/turn mutation exists in the new disposable game before Setup.
-
-If source/runtime/deployment drift is found, STOP BLOCKED with exact evidence. Do not repair or redeploy inside this acceptance lease.
-
-No full test rerun is required unless preflight reveals source drift. The accepted 561/561 suite is evidence for the frozen source; this task is for product behavior.
+Do not reopen 7/7/7 catalog count or W5 transport/actor grounding from these findings.
 
 ---
 
-# 2. One fresh coherent browser campaign only
+# 1. Narrow presentation inventory
 
-Create exactly one new disposable adult TEST game through the visible Setup UI.
+Inventory **only player-facing CSA text/projection paths** reachable from `frontend-r3/csa.js` and directly associated tests.
 
-Run Setup + Opening once. Then continue one coherent player-style campaign, targeting approximately 14–18 committed gameplay turns as needed to cover the lanes below. Rule-change turns count as gameplay turns.
+Classify each field:
 
-Do not create a second game, reset, regenerate, or replay a failed action to seek a better result.
+- `KEEP_PRODUCT_COPY`
+- `LOCALIZE_PRODUCT_LABEL`
+- `HIDE_INTERNAL_METADATA`
+- `REMOVE_STALE_EXACT_NINE_COPY`
+- `AUDIT_LITERAL_NOT_PLAYER_STORY`
+- `UNRELATED_DO_NOT_TOUCH`
 
-The campaign may use ordinary movement/social turns to establish scene reality and valid registered adult selectors. Do not directly seed scene state or fabricate NPC presence.
+At minimum inspect:
 
-At first deterministic P0/P1, STOP immediately and preserve the failed game as evidence.
+- preset card title/tier label;
+- supported S1 action-family presentation;
+- pending CHANGE metadata line;
+- active-card fallback labels;
+- catalog section heading;
+- Manual text;
+- scope selector labels;
+- actor selector fallback labels;
+- operation/audit literal only to ensure no raw internal ID is unnecessarily displayed through History/UI fallback.
 
----
-
-# 3. Visible catalog / desktop gate
-
-Before the first rule change, inspect the visible CSA app on desktop.
-
-PASS requires:
-
-- primary tabs exactly `약함 | 중간 | 강함`;
-- seven canonical visible rule cards per tier, 21 total;
-- no extra category navigation inserted as product structure;
-- visible labels/rule text preserve owner canon meaning rather than euphemistic/sanitized substitutes;
-- preset-specific bounded selectors only;
-- direction-sensitive rules expose meaningful subject/counterparty roles;
-- named designation Strong rules expose named registered-adult selection where applicable;
-- no player-facing raw template IDs, JSON, revision, R3 IDs, trigger/action/duration DSL;
-- retired exact-nine options are not selectable.
-
-Record visible card -> W/M/S slot -> runtime template mapping as supporting evidence without exposing raw IDs in normal player UI.
-
-If the visible product is not 7/7/7, STOP BLOCKED.
+Do not inventory unrelated app/player/NPC panels unless the CSA change directly touches them.
 
 ---
 
-# 4. Required rule-change chronology
+# 2. Product-facing presentation contract
 
-Use visible CSA controls only for mutation.
+## 2.1 Tier labels
 
-For every successful APPLY / CHANGE / REMOVE operation record:
+Visible tier labels must be Korean product labels:
 
-`visible structured selection -> outgoing structured operation -> reserved logical turn -> streamed Story announcement -> observer raw/applied -> durable active-rule state -> next Story/UI`
+- `weak` -> `약함`
+- `medium` -> `중간`
+- `strong` -> `강함`
 
-Each successful operation must:
+Internal `weak|medium|strong` may remain as data values / catalog fields / DOM dataset attributes where not visible text.
 
-- increment committed gameplay turn by exactly +1;
-- produce one Story and one Observer only;
-- visibly dramatize a grounded institutional announcement via company/public channel;
-- not expose the private app as the institutional source;
-- allow character-specific surprise/embarrassment/reluctance while keeping institutional compliance separate from attraction/desire/romance/arousal/private consent-as-feeling;
-- commit rule state atomically with Story;
-- end with normal four Story choices and keep free input available;
-- not duplicate after refresh/re-entry.
+Do not expose raw internal tier enum as player text.
 
-Required sequence coverage:
+## 2.2 S1 finite action families
 
-1. **Weak APPLY** — use one Weak clothing rule W1 or W2 on a valid female employee scope.
-2. **Ordinary unrelated turn under active Weak rule** — social/non-work action; the rule remains background authority and must not replace player intent.
-3. **CHANGE** — change that active rule into another compatible canonical Weak rule, preferably one direction-sensitive W4–W7 when scene reality permits; exact actor direction must be preserved.
-4. **Ordinary relevant turn** — verify the changed rule persists after its announcement turn and the announcement itself did not satisfy/end the ongoing rule.
-5. **REMOVE** — remove that active rule; verify +1 Story turn and no future authority residue while committed history remains intact.
+Keep the canonical runtime IDs and supported finite set exactly unchanged:
 
-Do not use W5 solely to re-prove the already accepted exact pair if another Weak recurring/contact rule can cover the remaining semantics naturally. If W5 is naturally used, do not treat it as a special regression rerun.
+- `kiss`
+- `sexual_touch`
+- `genital_exposure`
+- `genital_touch`
+- `oral`
+- `penetration`
+
+They remain internal authority identifiers. The player-facing Strong S1 card must project them through a deterministic finite Korean label map, for example equivalent meanings:
+
+- kiss -> `입맞춤`
+- sexual_touch -> `성적 접촉`
+- genital_exposure -> `성기 노출`
+- genital_touch -> `성기 접촉`
+- oral -> `구강 성행위`
+- penetration -> `삽입 성행위`
+
+Use concise natural Korean product copy such as `지원 범위: ...`.
+
+Requirements:
+
+- no raw enum token appears visibly;
+- no family is added, removed, merged into generic unlimited authority, or converted into a free-form DSL;
+- runtime payload/catalog IDs remain exact and unchanged;
+- this projection is presentation-only and not a second semantic writer.
+
+Unknown future action-family IDs must fail closed in presentation: do not show the raw ID. Use a neutral non-technical fallback or omit the unknown label while leaving runtime validation authoritative.
+
+## 2.3 Internal category / technical metadata
+
+Do not visibly render internal metadata such as:
+
+- `world_behavior`;
+- raw `weak|medium|strong`;
+- raw template IDs;
+- selector schema IDs;
+- trigger/mode/action-family enum IDs;
+- revision/R3/internal JSON jargon.
+
+Pending CHANGE UI should use product labels/rule descriptions only. Internal category/tier values can remain in JS state/data attributes but not visible prose.
+
+## 2.4 Catalog / Manual copy
+
+Replace technical/stale presentation:
+
+- `21-slot canonical catalog` -> natural product heading such as `규칙 선택` or `상식개변 규칙`;
+- stale `9개 프리셋` Manual statement -> current product truth: three tiers and 21 curated rules, e.g. `약함·중간·강함 세 단계에 각 7개씩, 총 21개의 규칙이 제공됩니다.`
+
+Do not expose implementation words such as canonical, slot, template, schema, enum, R3 in normal player copy.
+
+## 2.5 Fallback safety
+
+Where a catalog item/name unexpectedly fails resolution, player UI must not fall back to raw `template_id`, actor ID, or category ID if that would expose internals. Prefer a neutral readable fallback such as `규칙` / `직원` while preserving runtime truth internally.
+
+Do not add fuzzy actor resolution or alter selector validation.
 
 ---
 
-# 5. Medium representative semantics
+# 3. Allowed source scope
 
-After Weak CHANGE/REMOVE closure, cover Medium through visible product controls.
+Expected source/test paths:
+
+- `frontend-r3/csa.js`
+- `test/r3-csa-contract.test.mjs`
+
+Only expand to another frontend/test file if deterministic evidence proves it owns the same player-facing CSA projection defect.
+
+Do NOT edit:
+
+- `content/csa_catalog.json` semantics or IDs;
+- runtime CSA reducer/binding;
+- worker/store/provider;
+- DB schema/migrations;
+- provider/model/config/timeout/secrets;
+- Stage-A agency/MM semantics.
+
+If fixing the visible leak appears to require changing the canonical catalog/runtime meaning, STOP BLOCKED before doing so.
+
+---
+
+# 4. Deterministic regression requirements
+
+Add/update focused tests so the previous QA gap cannot recur.
 
 Required minimum:
 
-- one Medium clothing rule: M1 `속옷 근무` or M2 `나체 근무`;
-- one Medium direct actor-pair physical/sexual institutional rule: one of M3/M4/M6/M7 with exact valid registered adult subject/counterparty direction;
-- M5 `정액은 피로회복 방법` combined coherently with another compatible active rule when scene reality and selectors permit.
+1. visible three-tier labels remain `약함 | 중간 | 강함` and 7/7/7 catalog semantics stay intact;
+2. player-facing S1 supported-family projection contains Korean product labels for all six exact supported families;
+3. rendered/player-facing projection does **not** expose literal strings:
+   - `sexual_touch`
+   - `genital_exposure`
+   - `genital_touch`
+   - raw `oral` / `penetration` as enum labels
+   - `world_behavior`
+   - `21-slot canonical catalog`
+   - `9개 프리셋`
+4. no player-facing raw template ID fallback for canonical active/pending cards;
+5. Manual copy states current three-tier / 21-rule truth;
+6. W5 frontend selector handoff test remains green;
+7. exact W5 `/turn -> reserve -> Story binding -> Observer -> commit` regression remains green;
+8. S1 runtime `supported_action_families` remains exactly `["kiss","sexual_touch","genital_exposure","genital_touch","oral","penetration"]` — presentation repair must not mutate authority;
+9. existing Stage-A/CSA tests touched by changed files remain green.
 
-PASS requires:
+Prefer a render/output-level test where practical instead of only checking that forbidden source text disappeared. Source-string assertions may supplement but not replace the presentation proof if a lightweight DOM harness already exists.
 
-- Medium framing behaves as company-wide employment/compliance rule, not a private preference;
-- exact direct physical meaning is not generalized away;
-- selected actors and direction are not substituted;
-- compliance does not manufacture unrelated affection/desire/romance/arousal/obedience/personality rewrite;
-- out-of-scope actors/scenes are not forced by the rule;
-- later ordinary turn still receives active Medium authority where relevant.
+Then run:
 
-Do not require every Medium slot in this task; this is representative live semantic acceptance, not exhaustive 21-case combinatorial testing.
+- focused CSA suite;
+- full `npm test`;
+- JS syntax checks for changed JS;
+- `git diff --check`.
 
----
-
-# 6. Strong representative semantics
-
-Cover all of the following where valid scene reality permits:
-
-## 6.1 S1 finite authority
-
-Activate S1 `성적 업무지시권` with a valid bounded actor pair.
-
-PASS requires:
-
-- only the catalog-supported finite action families are presented/treated as institutionally supported;
-- one supported action-family instruction can be recognized within exact selected scope;
-- one free-form unsupported action must **not** become mandatory merely because S1 is active;
-- no generic command executor or open-ended sexual DSL appears;
-- actor direction is not reversed.
-
-Do not introduce new action-family authority to make the live test easier.
-
-## 6.2 Named Strong designation
-
-Activate at least one of S2/S3/S5 with a named registered adult employee.
-
-PASS requires exact named identity durability and correct institutional meaning. S2, S3 and S5 must not collapse into interchangeable generic “support employee” semantics.
-
-## 6.3 Multi-NPC Strong capability
-
-Exercise S4 or S7 when scene reality permits.
-
-- S4: no bystander auto-injection; an additional adult joins only after actual player approval/direction and valid scene reality.
-- S7: trainer and trainee identities/direction remain exact.
-
-## 6.4 S6 evaluation if naturally practical
-
-If S6 can be exercised without fabricating a scenario, verify evaluation changes narrative/institutional context only and does not create a hidden affinity/obedience/corruption score.
-
-S6 is optional in this bounded task if the coherent scenario cannot reach it naturally. Report COVERAGE_NOT_REACHED for S6 only, not for the whole task, if all mandatory Strong lanes above pass.
+No DB write is needed.
 
 ---
 
-# 7. Multi-rule combination / residue
+# 5. TEST deployment
 
-Create at least:
+Expected deploy change: **frontend only**.
 
-- one compatible **two-rule** combination;
-- one compatible **three-rule** combination during the same campaign.
+After tests pass:
 
-At least one combination should cross tiers where practical.
+- deploy exact changed `gamebuilder-company-r3` frontend to TEST;
+- record exact new frontend Worker version;
+- do **not** redeploy unchanged `game-proxy-company-r3` API;
+- verify API remains `cbfb8900-1ba9-4886-9405-452e7ae760db` unless unexpected drift is found;
+- no Production deployment/access;
+- no DB migration/schema/ledger write.
 
-PASS requires:
-
-- each active rule remains independently inspectable in UI/state;
-- Story can hold multiple compatible premises without collapsing into one generic sexual mode;
-- one rule can be CHANGE/REMOVE without erasing or corrupting unrelated active rules;
-- removed rule authority leaves no stale enforcement in a later relevant turn;
-- remaining active rules continue normally;
-- no retired historical rule reappears;
-- no player-facing generic DSL is needed.
-
-Include at least one later unrelated ordinary social/non-work turn while multiple rules are active. Player intent must remain primary.
+If API/runtime source unexpectedly changed, STOP and report instead of silently redeploying it.
 
 ---
 
-# 8. Refresh / History / mobile
+# 6. Fresh browser presentation re-check
 
-After meaningful rule chronology exists:
+Never reuse/reset failed game `ccd2ff92-1ca4-44cb-9155-6f05f8d2ef93` or any earlier evidence game.
 
-## Refresh / re-entry
+Create exactly one fresh disposable adult TEST game through visible Setup after the frontend deployment.
 
-Perform one browser refresh/re-entry.
-
-PASS requires:
-
-- no duplicate rule-change Story or duplicate Commit;
-- active rules exactly match committed state;
-- removed rules remain removed;
-- current Story/choices/MM and scene are canonical after reload;
-- no stale local CSA draft becomes authoritative.
-
-## History
-
-Open visible History.
-
-PASS requires understandable chronological placement of rule-change Story turns among ordinary turns, with no duplicate entries or raw technical jargon.
-
-## Mobile
-
-Inspect approximately `390x844` viewport.
+Before any CSA mutation, re-run the desktop catalog gate.
 
 PASS requires:
 
-- Story remains first reading priority;
-- `약함 | 중간 | 강함` tabs are reachable;
-- seven-rule tier surfaces remain usable;
-- bounded selectors are usable without horizontal/overlay breakage;
-- active rule 변경/해제 controls are reachable;
-- choices/compact buttons/free input remain reachable;
-- no blocking loader covers arrived Story;
-- no normal player-facing `r3_*`, revision, Commit jargon.
+- tabs `약함 | 중간 | 강함`;
+- exactly 7 cards per tier;
+- owner-canon rule meanings remain direct and unsanitized;
+- S1 support families are visible only as natural Korean product labels, with all six finite meanings represented;
+- no raw action-family enum token;
+- no `world_behavior`, raw tier enum, raw template ID, JSON/revision/R3 jargon;
+- no stale exact-nine/9-preset text in Manual;
+- no technical `21-slot canonical catalog` heading;
+- bounded selectors remain usable.
 
-Do not redesign CSS in this task. A material mobile defect is BLOCKED evidence for a later repair task.
-
----
-
-# 9. MM / private-app / agency cross-checks
-
-Across the campaign:
-
-- same-turn MM on rule-change turns, when present, must match the same affected actor/rule reality;
-- invalid/stale actors must not survive MM;
-- NPCs never know the private app or supernatural cause;
-- player inner thought must not invent attraction/desire/consent interpretation/moral judgement;
-- ordinary free input retains exact actor/target/action/topic/refusal/movement/self-state/intent;
-- active CSA authority may affect world/NPC compliance only within its bounded rule semantics and may not replace an unrelated player action.
-
-At least one ordinary turn should deliberately switch away from work/CSA topic to prove the game remains character simulation rather than an institutional-rule checklist.
+If the presentation gate still fails, STOP immediately. No second game or hotfix-in-place during the live attempt.
 
 ---
 
-# 10. Safety / data / deployment boundary
+# 7. Resume remaining CSA live acceptance only after presentation PASS
 
-- Source/test/content writes: `0`.
-- DB schema/migration/ledger writes: `0`.
-- `supabase db push`: forbidden.
-- migration repair/history rewrite/backfill: forbidden.
-- provider/model/config/secret/timeout changes: forbidden.
-- API/frontend redeploy: forbidden unless a separate future operator task authorizes repair; this task only verifies current deployed product.
-- Production access: `0` required.
-- preserved/manual/QA/sentinel/evidence games: do not access or mutate.
-- previous disposable games are evidence only and must not be reused/reset.
-- bearer capability tokens/secrets must never be posted to Issue #68.
-- no retry/regeneration/sample-until-pass.
+Use the same fresh game and continue one coherent browser campaign. Do not re-prove accepted W5 unless naturally encountered.
+
+Cover the remaining lanes from the previous task:
+
+## Weak chronology
+
+1. W1 or W2 APPLY through visible controls: exactly +1 Story turn, grounded institutional announcement, atomic rule state.
+2. unrelated social/non-work ordinary turn: player intent remains primary while active rule stays background authority.
+3. CHANGE to another compatible Weak rule, preferably W4/W6/W7 when scene reality permits: exactly +1, exact actors/direction.
+4. relevant ordinary turn proving changed rule persists beyond announcement.
+5. REMOVE: exactly +1, history remains, future authority residue absent.
+
+## Medium
+
+- M1 or M2 clothing rule;
+- one direct actor-pair from M3/M4/M6/M7 with exact direction;
+- M5 combined with another compatible rule when scene reality permits;
+- later relevant ordinary turn proves active authority without affection/desire/personality rewrite.
+
+## Strong
+
+- S1 finite authority: one supported family works only within exact selected scope;
+- one unsupported free-form action must not become mandatory merely because S1 exists;
+- one named designation S2/S3/S5;
+- S4 or S7 multi-NPC capability with exact identities and no bystander injection;
+- S6 if naturally practical, otherwise bounded COVERAGE_NOT_REACHED for S6 only.
+
+## Multi-rule / residue
+
+- one compatible two-rule combination;
+- one compatible three-rule combination;
+- remove/change one rule without corrupting unrelated active rules;
+- later unrelated ordinary social/non-work turn;
+- removed rule leaves no stale authority.
+
+## Refresh / History / mobile
+
+- one refresh/re-entry: no duplicate Commit/Story, active/removed rules exact;
+- visible History chronology understandable and no raw technical jargon;
+- approximately 390x844 mobile: Story-first, tabs/selectors/change/remove/choices/free input reachable, no blocking loader, no raw internals.
+
+## MM/private app/agency
+
+Across reached rule-change turns:
+
+- MM, when present, matches same affected actor/rule reality;
+- no stale/invalid actor survives;
+- NPCs do not know private app/supernatural cause;
+- compliance != affection/desire/romance/arousal/private consent-as-feeling;
+- player thought does not invent mind/consent;
+- unrelated ordinary action is not replaced by active CSA.
+
+Stop at first deterministic P0/P1. No retry, regeneration, second game, or sample-until-pass.
+
+---
+
+# 8. Safety / data boundary
+
+- Preserve failed game `ccd2ff92-1ca4-44cb-9155-6f05f8d2ef93` read-only forever in this task.
+- Previous evidence/manual/QA/sentinel games: no access/mutation/reset.
+- Production access = 0 required.
+- DB schema/migration/ledger/history repair = 0.
+- `supabase db push` forbidden.
+- provider/model/config/secret/timeout changes forbidden.
 - no new branch/PR/CURRENT_TASK file.
+- no bearer capability/secrets in Issue #68.
+- no OWNER_READY claim.
 
 ---
 
-# 11. Stop / report contract
+# 9. Terminal report
 
-STOP immediately on first deterministic P0/P1 or material ambiguity affecting product acceptance.
-
-Success report must include:
+Report:
 
 - start/final main SHA;
-- proof executable runtime/frontend remained frozen;
-- exact TEST Worker versions;
-- fresh game ID;
-- visible catalog 7/7/7 result;
-- exact successful APPLY/CHANGE/REMOVE turn numbers and +1 proof;
-- announcement/private-app/MM results;
-- Weak representative result;
-- Medium clothing + direct actor-pair + M5-combination results;
-- S1 finite supported/unsupported authority result;
-- named Strong result;
-- S4 or S7 result;
-- S6 result or explicit bounded COVERAGE_NOT_REACHED;
-- two-rule and three-rule combination results;
-- residue/isolation/later ordinary-turn result;
-- refresh/re-entry and History result;
-- desktop/mobile result;
-- source/test/content writes = 0;
+- implementation SHA before lifecycle;
+- exact changed files;
+- presentation inventory findings;
+- exact Korean S1 family label mapping;
+- proof runtime family enum stayed unchanged;
+- proof stale 9-preset / technical catalog heading / raw category/tier/action identifiers are not player-facing;
+- focused/full test counts;
 - DB/migration writes = 0;
+- exact TEST API version unchanged;
+- exact new TEST frontend version;
+- fresh game ID;
+- desktop presentation gate result;
+- all Weak APPLY/ordinary/CHANGE/ordinary/REMOVE turns actually reached and +1 evidence;
+- Medium lanes reached;
+- S1 supported + unsupported result;
+- named Strong and S4/S7 result;
+- S6 result or bounded non-reach;
+- two-rule/three-rule combination and residue result;
+- refresh/History/mobile result;
+- MM/private-app/agency results;
 - Production access = 0;
-- preserved evidence-game access/mutation = 0;
+- preserved evidence mutation = 0;
 - P0/P1/P2/P3 findings.
 
 Success terminal:
-`CSA_THREE_TIER_REMAINING_LIVE_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CSA_PLAYER_FACING_PRESENTATION_FIXED_AND_REMAINING_LIVE_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`CSA_THREE_TIER_REMAINING_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CSA_PLAYER_FACING_PRESENTATION_OR_REMAINING_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task and do not claim OWNER_READY.
+Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
