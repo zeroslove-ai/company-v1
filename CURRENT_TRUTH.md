@@ -1,68 +1,58 @@
 # Company Current Truth
 
-**Current owner decision: full product-and-runtime redesign is in progress. No Company v1/v2/Hospital gameplay architecture is currently binding as the forward implementation target.**
+**Current owner decision: the Company redesign canon is accepted and binding on `main`. Implementation must follow it; historical Company v1/v2/Hospital/draft redesign documents are reference evidence only.**
 
-Updated: 2026-08-21
+Updated: 2026-08-24 KST
 
-## Read order
+## Mandatory read order
 
 Before any Company implementation/review/deploy decision, read:
 
 1. `AGENTS.md`
 2. this `CURRENT_TRUTH.md`
-3. `docs/ops/CURRENT_TASK.md`
-4. after owner acceptance, the redesign authority under `docs/redesign/` in its declared hierarchy
-5. prior v1/v2/Hospital documents only as historical product/design/failure evidence
+3. `docs/redesign/COMPANY_CANON.md`
+4. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
+5. `docs/redesign/MEDIA_CATALOG_CONTRACT.md` when media/image work is involved
+6. `docs/ops/CURRENT_TASK.md`
 
-## Current stop state
+Do not rely on memory or a historical Issue/PR when current repository authority is available.
 
-The prior Company v1 repair line and Company v2 clean-runtime/product-canon line are both superseded as forward authority.
+## Binding product/architecture state
 
-The current task is `company-full-redesign-reset-v1` with `Status: WAITING_OWNER_DECISION`.
+- Product: `상식개변: 회사편`, adult company-life interactive fiction / character simulation.
+- Product authority: `docs/redesign/COMPANY_CANON.md`.
+- Live acceptance authority: `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`.
+- Media catalog authority: `docs/redesign/MEDIA_CATALOG_CONTRACT.md`.
+- Runtime architecture remains A′: high-parity Company presentation/content + thin client + server-owned turn kernel + Story LLM + one post-Story observer + isolated R3 persistence + optional sidecars.
+- Current implementation may be defective; implementation/tests/live DB do not redefine the product.
 
-No runtime/frontend/SQL/DB/deploy/gameplay implementation is authorized until the new redesign canon is owner-accepted.
+## Important owner corrections promoted into canon
 
-Draft PR #94 and previous v2 product-canon candidates are historical evidence only and must not be merged/reopened as forward authority.
+- CSA APPLY creates a newly issued official institutional/company rule/notice. NPCs may react because it is new, then comply when applicable and gradually adapt. No retroactive memory normalization; no private-app/supernatural awareness; compliance is not desire/consent-as-feeling/romance/personality rewrite.
+- Rule `continue_until_recipient_orgasm` continues a qualifying **already-current** sexual action; it does not authorize starting any new requested sexual action when none is underway.
+- Character source must be dramatizable; internal profile labels must not leak as dossier prose.
+- Prior refusal/conflict/pressure/help/intimacy/CSA-adaptation context must survive through grounded Story/memory without restoring generic relationship/consent/emotion state engines.
+- MM deepens the same committed Story reality; player-inner-thought may not invent the player’s mind.
+- Full four choices in Story + four compact 5-character buttons is intentional two-layer UI.
+- Image catalog requires a repository semantic manifest and scene-grounded general/sex selection; media remains non-authoritative.
+- Live QA must behave like an adult player and cannot equate structural/Commit green with product green.
 
-All preserved manual/QA/evidence games remain read-only.
+## Historical provenance
 
-## Why the authority was reset
+- Draft PR #95: product-first redesign provenance, superseded as authority by main consolidated canon.
+- Draft PR #96: A′ architecture provenance, consolidated into main canon.
+- Issue #102 Crack review: reference benchmark only.
+- Issue #68 terminal `5394232327`: current browser-audit defect evidence, not product law.
 
-The 2026-08-19 clean-runtime rebuild solved or addressed several structural transport/concurrency issues, but it also demonstrated a product-authority failure: runtime/UI work progressed before the actual Company product identity, canonical content, setup, UI surfaces, and owner-visible acceptance scenarios were made hard gates.
+## Execution law
 
-The deployed/implemented v2 line could pass large structural test suites while still presenting a generic office-assistant/demo product instead of `상식개변: 회사편`.
+`docs/ops/CURRENT_TASK.md` is execution authority only. It MUST cite and preserve the current canon. It may not change product meaning to make implementation/tests easier.
 
-Therefore neither current code nor current tests define the product.
+Product-law change protocol:
 
-## New authority order
+1. explicit owner decision;
+2. update canon on `main` first;
+3. update acceptance if affected;
+4. only then register implementation task.
 
-The redesign is rebuilt in this order:
-
-1. Product Constitution — what game this is.
-2. Executable Acceptance Scenarios — what the player must actually experience.
-3. Golden UI / Content Master — canonical content and deliberate product surfaces.
-4. Gameplay / State / Memory Model — what becomes durable truth.
-5. Architecture Decision Record — choose implementation only after 1–4.
-6. Gap Matrix — compare chosen target to current assets.
-7. CURRENT_TASK — execute a narrow accepted slice only.
-
-`CURRENT_TASK.md` is execution authority only. It may not supersede or reinterpret accepted higher-level product/design authority.
-
-## Existing assets during redesign
-
-Treat all existing implementation as candidates, not authority:
-
-- Company v1 runtime: historical/reference only;
-- current Company v2 transport/concurrency/persistence kernel: possible KEEP candidate, not presumed;
-- current v2 product layer/frontend: implementation evidence, not target product definition;
-- Hospital runtime: donor/reference only;
-- `content/*.json`: authoritative established semantic content facts unless owner explicitly redesigns that content;
-- completed prior Company UI: product-surface/golden evidence, not automatically frozen pixel layout.
-
-The redesign may KEEP, REWIRE, REBUILD, DELETE, or DEFER any technical asset after owner review.
-
-## Loop / mutation rule
-
-The automation loop is intentionally stopped.
-
-No `CURRENT_TASK_READY` should be generated from the redesign drafts themselves. Future automation must require an explicit owner re-enable plus an accepted implementation task.
+Production access/change remains prohibited unless explicitly authorized.

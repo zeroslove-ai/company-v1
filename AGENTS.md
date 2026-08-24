@@ -1,22 +1,52 @@
 # Company v1 development rules
 
-These rules are binding for Company v1 implementation, review, and rollout work.
+These rules are binding for Company implementation, review, QA, and rollout.
 
-- Before giving or executing any Company v1 runtime instruction, read `CURRENT_TRUTH.md` and the current documents it links. Do not rely on memory when the answer depends on repository, PR, deployment, migration, or live-DB state.
-- When reviewing a moving branch, freeze an exact `REVIEW_SHA` first. Do not mix facts from a later HEAD into the review. If HEAD moves, review the new range separately.
-- Current checked-out source, live DB catalog/function bodies, Git ancestry, and immutable run evidence outrank historical handoff prose and completion reports. Verify material claims against the relevant source of truth before approval.
-- Keep one active implementation cut and one canonical implementation PR by default. Work only inside the authorized authority domain; record unrelated defects instead of fixing them incidentally.
-- Prefer root-cause authority consolidation over compatibility patches, retries, semantic gates, or duplicated writers. One durable domain has one canonical writer.
-- Test count is not evidence of correctness. Never preserve obsolete runtime behavior merely to keep a legacy test green, and never add compatibility code only to satisfy a stale test.
-- When an architecture cut changes a contract, classify affected tests as `KEEP`, `REWRITE`, or `DELETE`. Canonical product invariants stay; duplicate mocks, implementation-detail assertions, source/SQL regex checks, legacy compatibility tests, and fake E2E tests may be rewritten or removed when their authority is superseded.
-- Use focused invariant tests during implementation. A full suite may be run as a regression signal, but its raw pass count is not an acceptance gate; failures must be triaged against the current canonical contract.
-- Acceptance for runtime authority changes prioritizes: targeted invariant tests, source↔DB contract verification, exact-SHA deployment gates, and a real TEST Golden Path using the existing canary/E2E/reset helpers. Do not create a new harness unless the existing one cannot express a required invariant.
-- DB/API staged rollout must be explicit. If an API SHA requires a DB contract that is not live, deployment must be blocked until the required Stage A contract is verified. Stage B enforcement follows only after the new API passes TEST verification and caller inventory.
-- Historical applied migrations are immutable. Use additive migrations only.
-- Do not reset TEST, deploy, access Production, merge, or move a Draft PR to Ready without explicit owner approval when the current cut has not already authorized that action.
-- Do not add semantic gates or provider/model changes as incidental fixes.
-- Update `09_CURRENT_TRUTH.md` only with verified current facts and clearly labelled target/planned decisions; never write a plan as if it were already deployed.
+## Mandatory authority read
 
-## Test-suite consolidation
+Before giving or executing any Company runtime/content/UI instruction, read in order:
 
-The current large legacy suite is not a preservation target. After Authority Consolidation Cut 1 is safely rolled out, and before later authority cuts are allowed to inherit the old suite unquestioned, perform an explicit test-suite reset/consolidation: inventory tests, mark each `KEEP` / `REWRITE` / `DELETE`, remove duplicate or superseded tests, and retain a smaller contract-oriented suite plus live Golden Path coverage. No numeric target is binding; semantic coverage and authority alignment are the criteria.
+1. `CURRENT_TRUTH.md`
+2. `docs/redesign/COMPANY_CANON.md`
+3. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
+4. `docs/redesign/MEDIA_CATALOG_CONTRACT.md` for image/media work
+5. `docs/ops/CURRENT_TASK.md`
+
+Do not rely on memory, old Issue comments, draft PR text, current tests, or current code when they conflict with the main canon.
+
+`CURRENT_TASK.md` is execution authority only. It cannot reinterpret or weaken product canon.
+
+## Product-first law
+
+- Test count is not evidence of correctness.
+- Turn Commit, DB readback, exact four choices, and network health are structural evidence only.
+- Actual deployed browser play is required for product acceptance.
+- Live QA must include real adult-oriented player behavior, social/non-work play, refusal/change-of-mind, movement/alone state, CSA lifecycle, MM/player thought, media, mobile, memory, and refresh lanes as required by `LIVE_ACCEPTANCE_MATRIX.md`.
+- Do not claim owner-ready from a narrow 4-turn critical smoke.
+
+## Architecture law
+
+- Preserve A′ unless an explicit owner decision changes it.
+- One ordinary turn remains server-owned Story -> one post-Story observer -> atomic Commit.
+- Prefer root-cause fixes at the owning boundary.
+- Do not add generic relation/consent/emotion engines, generic physical ontology, generic CSA execution DSL, separate choice/MM/media LLMs, automatic retry-until-lucky, or provider/model correctness swaps as incidental fixes.
+- One durable domain has one canonical writer.
+- `scene_note` remains the first immediate continuity mechanism; add structure only after a concrete accepted failure proves need.
+
+## Content law
+
+- Canonical finite semantic content belongs in repository content, not SQL/frontend shadow catalogs.
+- Character cards must be written for dramatizable behavior and may not leak internal labels directly into Story.
+- Media semantic/curation catalog follows `MEDIA_CATALOG_CONTRACT.md`; DB `image_library` is a deployed/query index, not a second independent semantic truth once the repository manifest is introduced.
+
+## Review / mutation safety
+
+- Freeze exact review SHA before reviewing moving source.
+- Current source, live DB, Git ancestry, and immutable run evidence are verification sources for implementation facts, but they do not override product canon.
+- Historical applied migrations are immutable; use additive migrations only.
+- Do not access/change Production, mutate preserved evidence games, force-push/rewrite history, or change provider/model for correctness without explicit authorization.
+- When live play finds a defect, preserve the exact game/turn, identify the first broken boundary, fix narrowly, and rerun a fresh relevant acceptance path. Do not sample until lucky.
+
+## Change control
+
+Any new product-law change requires explicit owner decision -> canon update on main -> acceptance update -> implementation task. Code-first product decisions are prohibited.
