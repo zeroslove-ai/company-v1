@@ -1,241 +1,260 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-test-migration-lineage-reconciliation-v1
-Mode: TEST MIGRATION LINEAGE RECONCILIATION — SOURCE HISTORY ONLY / NO DB WRITE
-Updated: 2026-08-24 21:39 KST
+Task ID: company-r3-test-schema-target-convergence-v1
+Mode: CURRENT-R3 TEST SCHEMA TARGET AUDIT / SAFE ADDITIVE BRIDGE / NO MIGRATION-HISTORY REPAIR
+Updated: 2026-08-24 22:00 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `8b543c4ec3077bd55d7f6eb5d5ca6946220fb4d2`
-Accepted blocker review: Issue #68 comment `5395345392`
-Blocked terminal: Issue #68 comment `5395267488`
-Owner-accepted canon lineage: `docs/redesign/COMPANY_CANON.md` on current main
-Staged convergence task to resume later: `company-r3-canon-convergence-staged-repair-v3`
+Registration base main: `d6ff6995b788ed7fff22e601618a59c85a29a0d8`
+Accepted blocker review: Issue #68 comment `5395590824`
+Blocked lineage terminal: Issue #68 comment `5395511287`
+Earlier staged-repair blocker: Issue #68 comment `5395267488`
+Owner-accepted canon: current main `docs/redesign/COMPANY_CANON.md`
+Historical safe precedent only: Issue #68 additive-schema audit terminal `5317875505`, operator review `5317921790`, blocked apply `5317989486` / review `5318048332`
+Staged product convergence to resume only after operator review: `company-r3-canon-convergence-staged-repair-v3`
 
 ## Reuse / authority law
 
 - Work on `main` only.
 - Reuse this exact `docs/ops/CURRENT_TASK.md` path. Overwrite it in place for lifecycle state.
 - Do NOT create a new CURRENT_TASK file.
-- Do NOT create an ops branch or any other branch for this task.
-- Read before work:
+- Do NOT create an ops branch or any other branch.
+- Read before work, in order:
   1. `AGENTS.md`
   2. `CURRENT_TRUTH.md`
   3. `docs/redesign/COMPANY_CANON.md`
   4. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
   5. `docs/redesign/MEDIA_CATALOG_CONTRACT.md`
-  6. Issue #68 terminal `5395267488`
-  7. Issue #68 operator review `5395345392`
-  8. this CURRENT_TASK
-- This is a migration-source lineage repair only. It does not authorize product/runtime redesign or semantic changes.
+  6. current R3 migration files listed below
+  7. Issue #68 terminal `5395511287`
+  8. Issue #68 operator review `5395590824`
+  9. this CURRENT_TASK
+- Current owner canon and current main R3 source outrank historical v1/v2 bridge artifacts.
+- The old `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql` from historical branch evidence is precedent only. Do NOT reuse its SQL.
+- Preserve A′ / R3 architecture. This task is TEST schema convergence only, not product redesign.
 
-Target terminal:
-`TEST_MIGRATION_LINEAGE_RECONCILED_AWAITING_OPERATOR_REVIEW`
+Target success terminal:
+`R3_TEST_SCHEMA_TARGET_CONVERGED_AWAITING_OPERATOR_REVIEW`
 
-Never claim OWNER_READY. Do not resume the staged product repair inside this task.
+Blocked terminal:
+`R3_TEST_SCHEMA_TARGET_CONVERGENCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+Never claim OWNER_READY. Do not deploy Workers or resume browser acceptance inside this task.
 
 ---
 
 # 0. Why this task exists
 
-The staged convergence run correctly stopped before TEST deployment because the live TEST Supabase migration ledger contains applied versions absent from the current checkout. `supabase db push --dry-run` failed with `LegacyDbPushMissingLocalError` before any write.
+Global TEST migration history is historically inconsistent with current repository filenames. Two lineage tasks correctly refused `supabase migration repair`; the latest fresh read found 36 applied ledger rows and many remote/local historical rows whose exact filename lineage remains ambiguous.
 
-The terminal recorded remote-only applied versions including:
+That ambiguity must NOT continue to block current R3 product work indefinitely.
 
-- `20260803043354`
-- `20260803043423`
-- `20260803043444`
-- `20260803043638`
-- `20260803124757`
-- `20260803215756`
-- `20260804102357`
-- `20260810022340`
-- `20260810022427`
-- `20260810024638`
-- `20260810091948`
-- `20260810095457`
-- `20260810095904`
-- `20260812071904`
-- `20260814023308`
-- `20260814051254`
-- `20260814091536`
-- `20260814093123`
-- `20260816011104`
-- `20260816013408`
-- `20260816021437`
+Historical Issue #68 work already established the safe repository precedent: do not rewrite migration history; instead compare actual TEST schema objects to the current target contract and, when the delta is fully proven additive/non-destructive, apply the smallest TEST-only schema bridge without inserting/updating migration-history rows.
 
-Do NOT assume that list is complete. Query the live TEST ledger read-only again at task start and treat fresh evidence as authoritative.
-
-Current repository `supabase/migrations/` also contains differently numbered historical migration files. Therefore the solution is NOT to blindly add remote filenames, and it is NOT to run migration-history repair. The task must reconcile both sides and prove which repository files are exact historical originals, renamed duplicates, or genuine forward migrations.
+This task repeats that method FRESHLY for **current Company R3 only**. It must not attempt to reconcile all v1/v2 migration filenames.
 
 ---
 
-# 1. Hard prohibitions
+# 1. Current R3 target source
+
+Compute the final desired TEST schema by reading the current-main R3 migrations in chronological order, including at minimum:
+
+1. `supabase/migrations/20260821000100_company_r3_milestone0.sql`
+2. `supabase/migrations/20260821000200_company_r3_csa_mvp.sql`
+3. `supabase/migrations/20260822000100_company_r3_failed_retry_stage_leases.sql`
+4. `supabase/migrations/20260822000200_company_r3_opening_revision_fence.sql`
+5. `supabase/migrations/20260822000300_company_r3_feedback_revision.sql`
+6. `supabase/migrations/20260823000100_company_r3_same_game_reset.sql`
+
+Include any later current-main migration that actually mutates `company_r3_*` objects if one exists at task start.
+
+The target is the **final composed object state**, not the fact that a particular migration filename exists in the remote ledger.
+
+Do not modify those historical/current migration files in this task.
+
+---
+
+# 2. Hard prohibitions
 
 This task MUST NOT:
 
-- run `supabase migration repair` or mutate `supabase_migrations.schema_migrations` in any way;
-- run non-dry-run `supabase db push`;
-- apply any migration to TEST;
-- author new schema behavior or new SQL semantics;
-- rewrite the SQL body of an already-applied historical migration;
-- fabricate/reconstruct a historical migration from guessed intent;
-- use version/name similarity alone as equivalence proof;
+- run `supabase migration repair`;
+- insert/update/delete `supabase_migrations.schema_migrations` or any migration-history table;
+- run `supabase db push` (dry-run or non-dry-run is unnecessary for this task);
+- replay every historical v1/v2 migration;
+- rename/delete/rewrite any `supabase/migrations/*.sql` file;
+- apply the old historical Company-v1 bridge SQL;
+- fabricate target SQL from prose or filename similarity;
 - deploy API/frontend Workers;
-- create/reset/mutate/play any TEST game;
-- access or modify Production;
+- create/reset/play/mutate TEST games;
+- mutate preserved evidence game rows as part of schema installation;
+- access Production;
 - change runtime/frontend/content/provider/model/config/secrets;
-- cherry-pick/replay the local-only source edits described by terminal `5395267488` merely because they passed local tests;
-- create another task file or branch.
+- add a new semantic engine, compatibility layer, retry, or parser;
+- create a new branch/task file/PR.
 
-Historical applied migration truth is immutable. The goal is to make repository migration source accurately represent that truth without changing the database ledger.
-
----
-
-# 2. Fresh read-only inventory
-
-Before changing repository files, capture a complete inventory.
-
-## 2.1 Local repository inventory
-
-For every current `supabase/migrations/*.sql` file record:
-
-- version/timestamp prefix;
-- filename;
-- Git blob SHA and file hash;
-- first introducing commit and reachable refs where practical;
-- whether the exact file/version is currently present on `main`.
-
-## 2.2 TEST migration ledger inventory
-
-Against TEST project `fmcrspgxstsmxxsmkeee`, read migration history only.
-
-Capture every applied row available from `supabase_migrations.schema_migrations`, including:
-
-- version;
-- name;
-- statement list / stored statements when the live schema exposes it;
-- any other non-secret provenance field useful for exact comparison.
-
-Do not print credentials or secrets.
-
-## 2.3 Git historical provenance search
-
-Search all locally reachable Git history/refs/tags and relevant remote refs for exact historical migration files matching every remote-applied version absent from current `main`.
-
-Use exact Git objects/commits where possible. Issue #68 historical migration-application comments may be used as corroborating provenance, but prose alone is not sufficient to manufacture SQL.
-
-Fetch remote refs if needed, but do not create a working branch.
+No provider/model/config changes.
 
 ---
 
-# 3. Required classification matrix
+# 3. Fresh live TEST schema audit
 
-Build an explicit one-row-per-version matrix covering BOTH remote and local histories.
+TEST project: `fmcrspgxstsmxxsmkeee`.
 
-For every remote-applied version classify exactly one:
+Use read-only catalog queries first. Do not infer from the migration ledger alone.
 
-- `PRESENT_EXACT` — exact version/file already exists locally and statement evidence is consistent;
-- `GIT_RECOVERABLE_EXACT` — exact applied-version file exists in historical Git and can be restored byte-for-byte with corroborating remote statement/name evidence;
-- `APPLIED_EQUIVALENT_TO_RENUMBERED_LOCAL` — a current differently-numbered local file is demonstrably the same historical SQL as a remote-applied migration; exact statement order/content and Git provenance must prove this, not filename similarity;
-- `UNPROVEN_REMOTE_APPLIED` — exact provenance/equivalence cannot be proven.
+Inventory every R3 target object relevant to current main, including:
 
-For every local version not present in the remote applied ledger classify exactly one:
+- `company_r3_games`
+- `company_r3_state`
+- `company_r3_turn_jobs`
+- `company_r3_turns`
+- `company_r3_system_events`
+- `company_r3_turn_revision_history`
+- `company_r3_feedback_attempts`
+- all columns/defaults/nullability/checks/FKs/PKs/unique constraints required by current R3 source;
+- all current `company_r3_*` RPC/function signatures and `pg_get_functiondef` bodies;
+- execute/table grants and revokes relevant to service_role/public/anon/authenticated;
+- indexes/constraints that current R3 source relies on;
+- current row counts for R3 tables only, so an apparently additive ALTER can be classified for evidence/data impact.
 
-- `GENUINE_FORWARD` — intentionally unapplied forward migration with no historical applied equivalent;
-- `RENUMBERED_HISTORICAL_DUPLICATE` — exact content/provenance maps to a remote-applied version under a different filename;
-- `UNPROVEN_LOCAL_ONLY` — cannot safely classify.
+Also read the TEST migration ledger only as corroborating evidence. Do not mutate it.
 
-If ANY row is `UNPROVEN_REMOTE_APPLIED` or `UNPROVEN_LOCAL_ONLY`, STOP without changing migration source. Report the exact unresolved versions and evidence needed. Do not guess.
-
----
-
-# 4. Permitted repository reconciliation
-
-Proceed only if the complete historical matrix is proven.
-
-Permitted source changes are limited to `supabase/migrations/*` and this existing `docs/ops/CURRENT_TASK.md` lifecycle file.
-
-## 4.1 Restore exact applied originals
-
-For every `GIT_RECOVERABLE_EXACT` migration:
-
-- restore the historical file under its exact applied version/name;
-- restore byte-for-byte from the proven Git object/commit;
-- do not edit comments, formatting, SQL, grants, or statement order.
-
-Remote stored statements are verification evidence, not a license to synthesize an approximate SQL file when no Git original exists.
-
-## 4.2 Remove/replace renamed historical duplicates
-
-A differently numbered current local migration may be deleted from `main` ONLY when all of the following are proven:
-
-1. it is not an applied TEST version;
-2. it is byte/statement-equivalent to a specific remote-applied historical migration;
-3. Git provenance shows it is a renamed/canonicalized duplicate rather than a distinct later migration;
-4. removing it does not strand a genuinely forward dependency.
-
-Do not edit a renamed duplicate into a different migration. Restore the applied original and remove only the proven duplicate source alias.
-
-## 4.3 Preserve genuine forward migrations
-
-Leave every `GENUINE_FORWARD` migration unchanged. This task does not apply it.
+Capture a stable pre-apply schema fingerprint over the target R3 catalog/definitions so post-apply comparison is reproducible.
 
 ---
 
-# 5. Validation — dry-run only
+# 4. Required object-by-object classification
 
-After source reconciliation:
+For every final target R3 object/attribute classify exactly one:
 
-1. verify `git diff --check`;
-2. verify every restored historical file hash equals its proven Git source object;
-3. rerun the complete local-vs-remote classification and ensure no applied remote version is missing locally;
-4. run `supabase db push --dry-run` against TEST only.
+- `ALREADY_EQUIVALENT` — live TEST is already equivalent to current-main final R3 target;
+- `SAFE_ADDITIVE_CREATE_OR_REPLACE` — missing/different target can be reached without deleting/reinterpreting committed gameplay data or migration history;
+- `SAFE_ACL_ONLY` — only grant/revoke convergence is required;
+- `MISSING_PREREQUISITE` — a required object/dependency is absent and cannot safely be created within this bounded bridge;
+- `DATA_OR_EVIDENCE_REWRITE_REQUIRED` — reaching target would update/delete/rewrite existing R3 gameplay/evidence rows;
+- `DESTRUCTIVE_OBJECT_CHANGE_REQUIRED` — target requires dropping data-bearing table/column/constraint in a way that risks existing evidence or current callers;
+- `AMBIGUOUS` — target/live equivalence cannot be proven.
 
-PASS criteria for the dry run:
+Do not treat comments, whitespace or function input parameter names as semantic differences when PostgreSQL identity/caller behavior proves equivalence. Conversely, do not treat function body differences as equivalent merely because signatures match.
 
-- no `LegacyDbPushMissingLocalError`;
-- no historical remote-applied migration is proposed for reapplication;
-- no proven renamed historical duplicate is proposed as a new migration;
-- every migration proposed by dry-run, if any, is explicitly classified `GENUINE_FORWARD` and remains unapplied by this task.
+## Mandatory safety rule for existing rows
 
-If dry-run proposes any ambiguous/historical migration, STOP and do not push/apply.
+Current failed/audit games are preserved evidence. Schema installation itself must not rewrite their gameplay rows.
 
-Do not run a non-dry-run DB command even after PASS.
+Examples:
+- a `CREATE OR REPLACE FUNCTION` is normally eligible for safe classification;
+- creating a genuinely missing side table with no rewrite of existing rows may be eligible;
+- adding a column may be eligible only when its installation semantics do not rewrite/reinterpret preserved rows and the final runtime contract is still correct;
+- a required blanket `UPDATE company_r3_turn_jobs ...` backfill on preserved rows is `DATA_OR_EVIDENCE_REWRITE_REQUIRED` and must STOP this task unless read-only evidence proves the live schema already has the needed state and no backfill is required;
+- `DROP TABLE`, data-bearing `DROP COLUMN`, or destructive reset of rows is not permitted.
+
+If ANY required target remains `MISSING_PREREQUISITE`, `DATA_OR_EVIDENCE_REWRITE_REQUIRED`, `DESTRUCTIVE_OBJECT_CHANGE_REQUIRED`, or `AMBIGUOUS`, do not apply anything. STOP BLOCKED with the exact first unsafe boundary and full classification summary.
 
 ---
 
-# 6. Landing policy
+# 5. Build the smallest current-R3 bridge only if fully safe
 
-If and only if the full lineage matrix and dry-run PASS:
+Proceed only if the COMPLETE final R3 delta consists solely of:
 
-- commit the migration-source reconciliation normally on `main`;
-- fast-forward push `main` normally;
-- verify local HEAD == origin/main;
-- do not deploy or apply migrations;
-- overwrite this same CURRENT_TASK file to `Status: WAITING_REVIEW` in the normal terminal lifecycle commit if required by the runner convention;
-- post one terminal report to Issue #68.
+- `ALREADY_EQUIVALENT`;
+- `SAFE_ADDITIVE_CREATE_OR_REPLACE`;
+- `SAFE_ACL_ONLY`.
 
-The terminal report must include:
+Build the bridge from the exact current-main R3 SQL definitions, preserving final chronological supersession. Do not copy obsolete earlier function bodies when a later R3 migration supersedes them.
 
-- start/final main SHA;
-- fresh remote ledger count and complete remote-only/local-only classification summary;
-- exact mapping of every restored applied migration to its Git source commit/blob;
-- exact mapping of every removed renamed duplicate to the remote-applied version it duplicated;
-- list of preserved `GENUINE_FORWARD` migrations;
-- `supabase db push --dry-run` result;
-- confirmation `migration repair` count = 0;
-- DB write/migration apply count = 0;
+The bridge may exist only as an ephemeral `.tmp/` or OS temp artifact for this task; do not add another canonical SQL/migration source file. Record its SHA-256 in the terminal.
+
+Installation SQL itself must contain **no gameplay-row INSERT/UPDATE/DELETE**, other than DML text inside a function body that is merely being defined and is not invoked during installation.
+
+Do not add a migration-ledger row for the bridge.
+
+---
+
+# 6. Atomic TEST-only execution channel
+
+Historical evidence shows `supabase db query --file` rejects multiple top-level commands through its prepared-statement path. Do not repeat that failed multi-command method.
+
+If a bridge is required, package the entire safe bridge as **one PostgreSQL statement** compatible with that execution path, for example one `DO $bridge$ ... $bridge$` block using deterministic dynamic DDL, or another provably single-statement mechanism.
+
+Requirements before mutation:
+
+1. prove the artifact parses as one top-level SQL statement;
+2. prove it contains exactly the classified bridge operations and nothing else;
+3. re-read live R3 schema fingerprint immediately before execution and require it to equal the audited pre-apply fingerprint;
+4. confirm TEST project identity exactly;
+5. confirm migration-history write count remains 0;
+6. confirm no R3 game mutation command is present in installation SQL.
+
+Then execute the bridge **once** against TEST.
+
+No speculative retry. If submission outcome is ambiguous, STOP and verify read-only state before any further action; do not submit a second time merely to get green.
+
+A single PostgreSQL statement is atomic. If the available client cannot execute the proven single statement, STOP BLOCKED before mutation.
+
+---
+
+# 7. Post-apply verification
+
+After a successful bridge execution, use read-only catalog checks only.
+
+Prove:
+
+- every current-main final R3 target object is now `ALREADY_EQUIVALENT`;
+- required R3 function signatures/bodies match final current-main target semantics;
+- table columns/constraints/ACLs match the safe target scope;
+- preserved R3 table row counts are unchanged by bridge installation except metadata that PostgreSQL itself necessarily changes for schema definitions; gameplay rows themselves were not updated/deleted/inserted;
+- migration ledger row count/content is unchanged from pre-apply snapshot;
+- no v1/v2 object was unintentionally changed;
+- no Production access occurred.
+
+Do NOT create/play/reset a game in this task. Browser acceptance belongs to the staged convergence continuation after operator review.
+
+If the live schema is already fully equivalent at preflight, make zero DB writes and classify success as `NO_BRIDGE_REQUIRED`.
+
+---
+
+# 8. Repository/lifecycle policy
+
+Permitted repository change in this task:
+
+- this existing `docs/ops/CURRENT_TASK.md` lifecycle state only.
+
+Do not commit temp bridge artifacts.
+Do not edit migration source.
+Do not create a branch.
+
+At terminal, overwrite this same CURRENT_TASK to `Status: WAITING_REVIEW` if runner convention requires it, and normally fast-forward main only for that docs lifecycle change.
+
+---
+
+# 9. Required terminal report
+
+Post one Issue #68 terminal containing:
+
+- START/FINAL main SHA;
+- current canon SHA read;
+- TEST project identity;
+- pre/post R3 schema fingerprints;
+- migration ledger pre/post count/fingerprint and confirmation history mutations = 0;
+- complete R3 object classification counts and all non-equivalent objects;
+- whether result was `NO_BRIDGE_REQUIRED` or `BRIDGE_APPLIED`;
+- bridge SHA-256 if used;
+- exact single-statement execution mechanism if used;
+- DB schema write count;
+- gameplay-row mutation count = 0;
+- migration apply/db-push/repair count = 0;
 - deploy count = 0;
-- game mutation count = 0;
+- game creation/reset/turn count = 0;
 - Production access = 0;
-- changed files;
-- unresolved versions, if blocked.
+- changed repository paths;
+- any unsafe/ambiguous object if blocked.
 
-Successful terminal:
-`TEST_MIGRATION_LINEAGE_RECONCILED_AWAITING_OPERATOR_REVIEW`
+Success terminal:
+`R3_TEST_SCHEMA_TARGET_CONVERGED_AWAITING_OPERATOR_REVIEW`
 
-Blocked terminal if provenance cannot be proven:
-`TEST_MIGRATION_LINEAGE_RECONCILIATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Blocked terminal:
+`R3_TEST_SCHEMA_TARGET_CONVERGENCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-STOP after terminal. Do not automatically resume `company-r3-canon-convergence-staged-repair-v3`; operator review will register the continuation.
+STOP after terminal. Do not automatically restart `company-r3-canon-convergence-staged-repair-v3`; operator review will register the continuation.
