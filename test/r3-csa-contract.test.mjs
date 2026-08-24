@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCanonicalCompanyR3Content } from '../runtime-r3/domain/content-loader.js';
-import { applyR3Csa, buildRuleChangeStoryBinding, createR3CsaCatalog, R3_CSA_TEMPLATE_IDS } from '../runtime-r3/domain/csa.js';
+import { applyR3Csa, buildActiveS1StoryBinding, buildRuleChangeStoryBinding, createR3CsaCatalog, R3_CSA_TEMPLATE_IDS } from '../runtime-r3/domain/csa.js';
+import { buildStoryContext } from '../runtime-r3/domain/memory.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { createCsaDraft, csaDraftOperation, stageCsaOperation } from '../frontend-r3/csa-draft.js';
@@ -109,6 +110,51 @@ test('rule-change Story binding preserves exact W5 actors and direction without 
   assert.match(binding.rule.rule_text, /가슴/);
 });
 
+test('active S1 projection exposes player authority and exact finite pair binding', () => {
+  const state = { profile, scene: { location_id: content.locations[0].location_id, present_actor_ids: ['heroine5', 'general_park_jungwoo'] }, csa_active: ['r3_csa_1'], csa_rules: {
+    r3_csa_1: { id: 'r3_csa_1', active: true, slot: 'S1', template_id: 'sexual_work_instruction_authority', content: 'bounded S1', mode: 'on_player_request', trigger: 'on_player_request', subject_scope: 'female_employee', counterparty_scope: 'male_employee', selector: { subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' }, supported_action_families: ['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration'] }
+  } };
+  const literalAction = 'literal-preserved';
+  const context = buildStoryContext({ state: { state }, turns: [] }, literalAction, { content });
+  const binding = context.active_s1_story_binding;
+  assert.equal(binding.issuer.actor_id, 'player');
+  assert.equal(binding.issuer.name, profile.name);
+  assert.deepEqual(binding.issuer.canonical_player_identity, { name: profile.name, department: { id: profile.department_id, name: content.departments[0].name }, position: { id: profile.position_id, name: content.positions[0].name } });
+  assert.equal(binding.subject.actor_id, 'heroine5');
+  assert.equal(binding.subject.name, content.characters.heroine5.name);
+  assert.equal(binding.counterparty.actor_id, 'general_park_jungwoo');
+  assert.equal(binding.counterparty.name, content.generalNpcs.find(actor => actor.id === 'general_park_jungwoo').name);
+  assert.deepEqual(binding.supported_action_families, ['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration']);
+  assert.match(binding.direction, /player.*issuer|player.*issues/i);
+  assert.match(binding.unsupported_boundary, /outside.*not mandatory/i);
+  assert.equal(context.literal_action, literalAction);
+  assert.equal(context.active_rules[0].selector, undefined);
+  assert.equal(binding.immutable, true);
+  assert.equal(buildActiveS1StoryBinding({ rule: { ...state.csa_rules.r3_csa_1, active: false }, content }), null);
+});
+
+/* test('ordinary active S1 Story projection binds player issuer to exact selected pair and finite boundary', () => {
+  const state = { profile, scene: { location_id: content.locations[0].location_id, present_actor_ids: ['heroine5', 'general_park_jungwoo'] }, csa_active: ['r3_csa_1'], csa_rules: {
+    r3_csa_1: {
+      id: 'r3_csa_1', active: true, slot: 'S1', template_id: 'sexual_work_instruction_authority', content: 'bounded S1', mode: 'on_player_request', trigger: 'on_player_request',
+      subject_scope: 'female_employee', counterparty_scope: 'male_employee', selector: { subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' },
+      supported_action_families: ['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration']
+    }
+  } };
+  const context = buildStoryContext({ state: { state }, turns: [] }, '서원희 차장이 박정우 팀장에게 키스하도록 업무지시한다.', { content });
+  assert.deepEqual(context.active_s1_story_binding.issuer, { actor_id: 'player', name: 'player', canonical_name: 'player', role: 'player / authority issuer', scope: 'player' });
+  assert.deepEqual([context.active_s1_story_binding.subject.actor_id, context.active_s1_story_binding.subject.name], ['heroine5', '?대찓??]);
+  assert.deepEqual([context.active_s1_story_binding.counterparty.actor_id, context.active_s1_story_binding.counterparty.name], ['general_park_jungwoo', '諛뺤젙??']);
+  assert.deepEqual(context.active_s1_story_binding.supported_action_families, ['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration']);
+  assert.match(context.active_s1_story_binding.direction, /player.*issuer|player.*issues/i);
+  assert.match(context.active_s1_story_binding.unsupported_boundary, /outside.*not mandatory/i);
+  assert.equal(context.literal_action, '서원희 차장이 박정우 팀장에게 키스하도록 업무지시한다.');
+  assert.equal(context.active_rules[0].selector, undefined);
+  assert.equal(context.active_s1_story_binding.immutable, true);
+  assert.equal(buildActiveS1StoryBinding({ rule: { ...state.csa_rules.r3_csa_1, active: false }, content }), null);
+});
+
+*/
 test('actor-pair Story bindings keep finite direction for W4/W6/W7, M3/M4, and M6/M7', () => {
   const cases = [
     ['lap_facing_conversation', 'W4', 'heroine5', 'general_park_jungwoo', /박정우/],

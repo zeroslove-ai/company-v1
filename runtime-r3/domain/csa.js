@@ -186,6 +186,31 @@ export function buildRuleChangeStoryBinding({ event, content } = {}) {
   };
 }
 
+export function buildActiveS1StoryBinding({ rule, content, playerIdentity = null } = {}) {
+  if (!rule || rule.active === false || (rule.slot ?? null) !== 'S1') return null;
+  const catalog = createR3CsaCatalog(content?.csaPresets);
+  const item = catalogItem(catalog, rule.template_id);
+  if (!item || item.slot !== 'S1') return null;
+  const selector = rule.selector ?? {};
+  const subject = actorBinding(selector.subject_actor_id, rule.subject_scope, 'employee receiving the player\'s supported sexual-work instruction', content);
+  const counterparty = actorBinding(selector.counterparty_actor_id, rule.counterparty_scope, 'bounded adult counterparty in the player\'s instruction context', content);
+  const families = [...(rule.supported_action_families ?? item.supported_action_families ?? [])];
+  const canonicalPlayerName = playerIdentity?.name ?? 'player';
+  return {
+    type: 'active_s1_story_binding',
+    immutable: true,
+    issuer: { actor_id: 'player', name: canonicalPlayerName, canonical_name: canonicalPlayerName, role: 'player / authority issuer', scope: 'player', canonical_player_identity: playerIdentity },
+    subject,
+    counterparty,
+    selected_actor_ids: [subject.actor_id, counterparty.actor_id].filter(Boolean),
+    direction: 'The player issues the supported instruction to the selected subject; when the instruction names the counterparty, the subject performs the supported action toward or with that counterparty. The counterparty is not the issuer.',
+    supported_action_families: families,
+    unsupported_boundary: 'Only the listed finite supported action families receive mandatory S1 institutional authority. An action outside that list remains an ordinary player request or instruction and is not mandatory merely because S1 is active.',
+    literal_agency_boundary: 'Preserve the player literal actor, target, action, direction, request, and intent; a supported literal may not be replaced with rule discussion, confirmation, future deferral, a different act, or an unrelated participant.',
+    authority: { label: item.authority_label ?? '', official_work_order_same_turn: true, compliance_is_not_desire_or_private_consent: true }
+  };
+}
+
 export function applyR3Csa({ state, content, rawOperations, catalog = createR3CsaCatalog(content?.csaPresets) } = {}) {
   if (!Array.isArray(rawOperations) || rawOperations.length !== 1) throw new Error('r3_csa_operations_invalid');
   const next = clone(state); const activeIds = Array.isArray(next.csa_active) ? [...next.csa_active] : []; const rules = { ...(next.csa_rules ?? {}) };

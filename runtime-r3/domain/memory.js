@@ -1,5 +1,5 @@
 import { canonicalActors, canonicalLocation, productPremise, relevantActorIds } from './content.js';
-import { buildRuleChangeStoryBinding } from './csa.js';
+import { buildActiveS1StoryBinding, buildRuleChangeStoryBinding } from './csa.js';
 
 const bounded = (value, max) => String(value ?? '').slice(0, max);
 const REQUEST_TRIGGER_VALUES = new Set(['on_player_request', 'on_counterparty_request']);
@@ -78,6 +78,10 @@ export function buildStoryContext(context, literalAction, { content, opening = f
         ...(executionTiming ? { execution_timing: executionTiming } : {})
       };
     });
+  const activeS1Rule = [...new Set(Array.isArray(state.csa_active) ? state.csa_active : [])]
+    .map(id => rules[id])
+    .find(rule => rule?.active && rule.slot === 'S1');
+  const activeS1StoryBinding = buildActiveS1StoryBinding({ rule: activeS1Rule, content, playerIdentity: canonicalPlayerIdentity });
   return {
     product,
     opening,
@@ -94,6 +98,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     actors: canonicalActors(content, actorIds),
     clothing: state.clothing ?? {},
     active_rules: activeRules,
+    ...(activeS1StoryBinding ? { active_s1_story_binding: activeS1StoryBinding } : {}),
     ...(ruleChangeEvent || csaOperation ? {
       pending_rule_change_turn: {
         type: 'rule_change_turn',
