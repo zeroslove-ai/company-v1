@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-media-tts-live-acceptance-v1
 Mode: ACCEPTANCE-ONLY — FREEZE CSA / MEDIA + TTS DEPLOYED BROWSER PRODUCT GATE
-Updated: 2026-08-25 06:04 KST
+Updated: 2026-08-25 06:08 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main before this overwrite: `fd455df80b5f1e1c3dddd63c814f40e45623ef7c`
@@ -296,3 +296,42 @@ Browser-control blocked:
 `MEDIA_TTS_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+## Terminal result
+
+Terminal: `MEDIA_TTS_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Start/final executable `main` SHA: `67872fcf90c476aa069913f94c442af25b059d81`.
+- Source, test, content, prompt, provider, model, config, catalog, DB/schema,
+  migration, deployment, and Production writes: `0`.
+- Accepted TEST API: `game-proxy-company-r3` / `fc98e0c3-db75-4088-bc0c-eddf129af4b6`.
+- Accepted TEST frontend: `gamebuilder-company-r3` /
+  `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`.
+- Read-only media catalog inventory: version `1`, edition `company-v1`, five
+  active general entries (one per heroine), zero repository sex entries.
+
+Browser readiness passed on the bare TEST frontend: DOM, screenshot, setup
+fields, bounded repeat DOM read, and media/TTS control location. Exactly one
+fresh visible adult game was created: `9a5c3943-2e9e-4254-b6de-7638bdd88a76`.
+Opening Turn 0 and ordinary committed Turns 1-4 were visible. The ordinary
+story grounded `김제나` as the focal heroine and preserved free input plus
+four natural choices. No ordinary image was visible; the page had one hidden
+zero-sized placeholder image, and browser network/request evidence could not
+be read.
+
+TTS OFF was visibly verified with `aria-pressed=false` before one committed
+dialogue turn (Turn 4); zero `/media/tts` calls could not be independently
+proven because the browser network observability surface was unavailable.
+TTS ON was visibly verified with `aria-pressed=true`, then one eligible
+heroine dialogue input was submitted once. The browser session timed out
+before the resulting committed state and any TTS request/result could be
+reconciled. There was one read-only reattachment to the same fresh game;
+the follow-up read-only snapshot also timed out. Gameplay action resend and
+retry count: `0`.
+
+Per the browser-observability stop law, adult committed-scene media,
+refusal/non-occurrence, de-escalation/scene-end, refresh/re-entry, and bounded
+replay were not run. No P0/P1 product finding is claimed; the exact first
+broken boundary is browser control/observability after the TTS-ON action.
+All preserved evidence games remained untouched and no owner-ready claim was
+made. Operator review is required before any later task or live operation.
