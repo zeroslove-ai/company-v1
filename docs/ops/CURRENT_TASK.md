@@ -1,6 +1,8 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
+Terminal result: CROSS_BOUNDARY_CORE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW
+Terminal blocker: fresh deployed-browser W3↔M1 rejection preserved durable state and did not consume a turn, but the deployed frontend surfaced only the generic unsent-input message and did not show the conflicting visible rule names required by the P1 compatibility gate.
 Task ID: company-r3-cross-boundary-core-p1-correction-v1
 Mode: OWNER-PRIORITY CORE PRODUCT CORRECTION — NAVIGATION / RULE-CHANGE ANNOUNCEMENT / CSA LITERAL AGENCY / FINITE COMPATIBILITY
 Updated: 2026-08-25 07:47 KST
