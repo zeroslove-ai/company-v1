@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCanonicalCompanyR3Content } from '../runtime-r3/domain/content-loader.js';
-import { applyR3Csa, createR3CsaCatalog, R3_CSA_TEMPLATE_IDS } from '../runtime-r3/domain/csa.js';
+import { applyR3Csa, buildRuleChangeStoryBinding, createR3CsaCatalog, R3_CSA_TEMPLATE_IDS } from '../runtime-r3/domain/csa.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 
@@ -31,8 +31,8 @@ async function postTurn(worker, gameId, auth, payload) {
 
 function providerFor({ failCsa = false, calls = [] } = {}) {
   return {
-    async *story({ opening = false, literalAction = '', csaOperation = null }) {
-      calls.push({ stage: 'story', literalAction, csaOperation });
+    async *story({ opening = false, literalAction = '', csaOperation = null, ruleChangeBinding = null }) {
+      calls.push({ stage: 'story', literalAction, csaOperation, ruleChangeBinding });
       if (failCsa && csaOperation) throw new Error('csa_story_failed');
       const prefix = opening ? 'Opening' : `Story: ${literalAction}`;
       yield `${prefix}\n\n1. Continue naturally\n2. Move to the next scene\n3. Speak with the colleague\n4. Write a free action`;
@@ -90,6 +90,51 @@ test('named strong selectors stay bounded and the server records one structured 
   assert.throws(() => applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'S2', subject_scope: 'female_employee', subject_actor_id: 'not-registered' }] }), /actor_selector_invalid/);
 });
 
+test('rule-change Story binding preserves exact W5 actors and direction without player substitution', () => {
+  const state = { revision: 0, committed_turn: 0, scene: { present_actor_ids: ['heroine5', 'general_park_jungwoo'] }, csa_active: [], csa_rules: {}, clothing: {} };
+  const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'breast_touch_conversation', subject_scope: 'female_employee', counterparty_scope: 'male_employee', subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' }] });
+  const binding = buildRuleChangeStoryBinding({ event: next.last_rule_change, content });
+  assert.equal(binding.rule.template_id, 'breast_touch_conversation'); assert.equal(binding.rule.slot, 'W5');
+  assert.deepEqual(binding.selected_actor_ids, ['heroine5', 'general_park_jungwoo']);
+  assert.deepEqual(binding.selected_actors.map(actor => [actor.actor_id, actor.name]), [['heroine5', '이메이'], ['general_park_jungwoo', '박정우']]);
+  assert.equal(binding.subject.actor_id, 'heroine5'); assert.equal(binding.counterparty.actor_id, 'general_park_jungwoo');
+  assert.match(binding.direction, /박정우.*이메이/); assert.doesNotMatch(binding.direction, /player/i);
+  assert.match(binding.rule.rule_text, /가슴/);
+});
+
+test('actor-pair Story bindings keep finite direction for W4/W6/W7, M3/M4, and M6/M7', () => {
+  const cases = [
+    ['lap_facing_conversation', 'W4', 'heroine5', 'general_park_jungwoo', /박정우/],
+    ['buttock_touch_conversation', 'W6', 'heroine5', 'general_park_jungwoo', /박정우.*이메이/],
+    ['recurring_light_kiss_conversation', 'W7', 'heroine5', 'general_park_jungwoo', /이메이.*박정우/],
+    ['breast_stimulation_ejaculation_support', 'M3', 'heroine5', 'general_park_jungwoo', /이메이.*박정우/],
+    ['manual_stimulation_ejaculation_support', 'M4', 'heroine5', 'general_park_jungwoo', /이메이.*박정우/],
+    ['semen_fatigue_recovery_practice', 'M5', 'heroine5', 'general_park_jungwoo', /이메이.*박정우/],
+    ['direct_genital_exam', 'M6', 'general_park_jungwoo', 'heroine5', /이메이.*박정우/],
+    ['direct_breast_nipple_exam', 'M7', 'heroine5', 'general_park_jungwoo', /박정우.*이메이/],
+    ['sexual_work_instruction_authority', 'S1', 'heroine5', 'general_park_jungwoo', /박정우.*이메이/],
+    ['sexual_work_training_designation', 'S7', 'heroine5', 'general_park_jungwoo', /이메이.*박정우/]
+  ];
+  for (const [template_id, slot, subject_actor_id, counterparty_actor_id, expected] of cases) {
+    const item = createR3CsaCatalog(content.csaPresets).items.find(candidate => candidate.id === template_id);
+    const next = applyR3Csa({ state: { scene: { present_actor_ids: [subject_actor_id, counterparty_actor_id] }, csa_active: [], csa_rules: {}, clothing: {} }, content, rawOperations: [{ operation: 'activate', template_id, subject_scope: item.default_subject_scope, counterparty_scope: item.default_counterparty_scope, subject_actor_id, counterparty_actor_id }] });
+    const binding = buildRuleChangeStoryBinding({ event: next.last_rule_change, content });
+    assert.equal(binding.rule.slot, slot); assert.match(binding.direction, expected);
+  }
+});
+
+test('named designation bindings preserve exact adults and S4 excludes unselected bystanders', () => {
+  for (const template_id of ['player_dedicated_sexual_support_designation', 'company_sexual_support_designation', 'sexual_work_assignee_designation', 'sexual_work_performance_evaluation']) {
+    const item = createR3CsaCatalog(content.csaPresets).items.find(candidate => candidate.id === template_id);
+    const next = applyR3Csa({ state: { scene: { present_actor_ids: ['heroine5'] }, csa_active: [], csa_rules: {}, clothing: {} }, content, rawOperations: [{ operation: 'activate', template_id, subject_scope: item.default_subject_scope, counterparty_scope: item.default_counterparty_scope, subject_actor_id: 'heroine5' }] });
+    const binding = buildRuleChangeStoryBinding({ event: next.last_rule_change, content });
+    assert.deepEqual(binding.selected_actor_ids, ['heroine5']); assert.equal(binding.selected_actors[0].name, '이메이');
+  }
+  const next = applyR3Csa({ state: { scene: { present_actor_ids: ['heroine5', 'general_park_jungwoo'] }, csa_active: [], csa_rules: {}, clothing: {} }, content, rawOperations: [{ operation: 'activate', template_id: 'joint_participation_approval', subject_scope: 'female_employee', counterparty_scope: 'male_employee', subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' }] });
+  const binding = buildRuleChangeStoryBinding({ event: next.last_rule_change, content });
+  assert.deepEqual(binding.selected_actor_ids, ['heroine5', 'general_park_jungwoo']); assert.match(binding.direction, /unselected bystander/i);
+});
+
 test('visible APPLY uses exactly one Story/Observer/commit and never the zero-turn writer', async () => {
   const store = new InMemoryR3Store(); let applyCsaCalls = 0; store.applyCsa = () => { applyCsaCalls += 1; throw new Error('zero_turn_writer_must_not_run'); };
   const calls = []; const worker = createR3Worker({ store, provider: providerFor({ calls }), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
@@ -115,7 +160,7 @@ test('CHANGE then REMOVE each consume one turn and preserve historical Story chr
   const change = await postTurn(worker, gameId, auth, { action_id: 'change-2', expected_turn: 2, literal_action: 'Change the selected rule', csa_operation: { operation: 'update', id: ruleId, template_id: 'work_in_underwear_only', subject_scope: 'female_employee', subject_actor_id: 'heroine1' } });
   assert.equal(change.at(-1).data.status, 'committed'); assert.equal(change.at(-1).data.context.state.state.csa_rules[ruleId].template_id, 'work_in_underwear_only');
   const remove = await postTurn(worker, gameId, auth, { action_id: 'remove-2', expected_turn: 3, literal_action: 'Remove the selected rule', csa_operation: { operation: 'deactivate', id: ruleId } });
-  const final = remove.at(-1).data.context; assert.equal(final.state.committed_turn, 3); assert.equal(final.state.state.csa_active.length, 0); assert.equal(final.turns.length, 4); assert.match(final.turns[1].story_text, /Apply/); assert.match(final.turns[2].story_text, /Change/); assert.match(final.turns[3].story_text, /Remove/);
+  const final = remove.at(-1).data.context; assert.equal(final.state.committed_turn, 3); assert.equal(final.state.state.csa_active.length, 0); assert.equal(final.turns.length, 4); assert.equal(final.turns[1].literal_action, 'Apply a rule'); assert.equal(final.turns[2].literal_action, 'Change the selected rule'); assert.equal(final.turns[3].literal_action, 'Remove the selected rule'); assert.ok(final.turns.slice(1).every(turn => turn.story_text.length > 0));
 });
 
 test('failed CSA Story leaves the previous active-rule state authoritative', async () => {
@@ -136,7 +181,7 @@ test('ordinary free input stays Story-first after a CSA operation', async () => 
   const calls = []; const worker = createR3Worker({ store: new InMemoryR3Store(), provider: providerFor({ calls }), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
   await postTurn(worker, gameId, auth, { action_id: 'apply-ordinary', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee', subject_actor_id: 'heroine1' } });
   const ordinary = await postTurn(worker, gameId, auth, { action_id: 'ordinary-after-csa', expected_turn: 2, literal_action: 'I walk to the lounge and greet my colleague.' });
-  assert.equal(ordinary.at(-1).data.status, 'committed'); assert.equal(calls.at(-2).csaOperation, null); assert.equal(ordinary.at(-1).data.context.turns.at(-1).literal_action, 'I walk to the lounge and greet my colleague.');
+  assert.equal(ordinary.at(-1).data.status, 'committed'); const ruleStory = calls.find(call => call.stage === 'story' && call.csaOperation); assert.equal(ruleStory.literalAction, ''); assert.equal(ruleStory.ruleChangeBinding.rule.template_id, 'work_nude'); assert.equal(calls.at(-2).csaOperation, null); assert.equal(calls.at(-2).literalAction, 'I walk to the lounge and greet my colleague.'); assert.equal(ordinary.at(-1).data.context.turns.at(-1).literal_action, 'I walk to the lounge and greet my colleague.');
 });
 
 test('frontend CSA draft UI uses one existing turn handoff and no legacy app writer', () => {

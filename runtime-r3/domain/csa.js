@@ -1,4 +1,5 @@
 import { clone } from './contracts.js';
+import { actorDirectory } from './content.js';
 
 export const R3_CSA_TEMPLATE_IDS = Object.freeze([
   'no_bra_under_work_clothes', 'no_panties_under_work_clothes', 'cleavage_exposed_work',
@@ -52,12 +53,6 @@ export function createR3CsaCatalog(raw = {}) {
     execution: item.execution?.kind === 'clothing_state' ? { kind: 'clothing_state', required_state: boundedClothing(item.execution.required_state) } : null
   }));
   return { version: raw.version ?? 'company-r3-csa-21-slot-v2', schema_version: 4, items, compatibility_lineage: { ...(raw.compatibility_lineage ?? {}) }, slot_aliases: { ...(raw.slot_aliases ?? {}) }, retired_template_ids: [...(raw.retired_template_ids ?? [])] };
-}
-
-function actorDirectory(content) {
-  const result = { ...(content?.characters ?? {}) };
-  for (const actor of content?.generalNpcs ?? []) result[actor.id] = actor;
-  return result;
 }
 
 function matchesScope(id, scope, content) {
@@ -125,8 +120,69 @@ function applyClothing(state, activeRules, catalog, content) {
 function ruleChangeRecord(operation, item, scope, id) {
   return {
     type: 'rule_change_turn', operation: operation.operation, rule_id: id ?? null, template_id: item?.id ?? null,
-    slot: item?.slot ?? null, tier: item?.tier ?? null, subject_scope: scope?.subject ?? null, counterparty_scope: scope?.counterparty ?? null,
+    slot: item?.slot ?? null, tier: item?.tier ?? null, rule_text: item?.rule_text ?? '', subject_scope: scope?.subject ?? null, counterparty_scope: scope?.counterparty ?? null,
     selector: clone(scope?.selector ?? {}), authority_label: item?.authority_label ?? '', supported_action_families: [...(item?.supported_action_families ?? [])]
+  };
+}
+
+const ACTOR_PAIR_ROLES = Object.freeze({
+  W4: Object.freeze({ subject: 'female employee seated on the counterparty\'s lap facing them', counterparty: 'counterparty whose lap supports the subject during the conversation', direction: (subject, counterparty) => `${subject} sits facing ${counterparty} on ${counterparty}'s lap and continues the conversation.` }),
+  W5: Object.freeze({ subject: 'female employee whose breast is touched', counterparty: 'counterparty who keeps a hand on the subject\'s breast during conversation', direction: (subject, counterparty) => `${counterparty} keeps a hand on ${subject}'s breast while they continue the conversation.` }),
+  W6: Object.freeze({ subject: 'female employee whose buttock is touched', counterparty: 'counterparty who touches the subject\'s buttock during conversation', direction: (subject, counterparty) => `${counterparty} touches ${subject}'s buttock while they continue the conversation.` }),
+  W7: Object.freeze({ subject: 'female employee in the recurring conversation pair', counterparty: 'counterparty in the recurring conversation pair', direction: (subject, counterparty) => `${subject} and ${counterparty} exchange a light kiss at the ends of their conversation turns.` }),
+  M3: Object.freeze({ subject: 'female support worker who stimulates the recipient with her breasts', counterparty: 'male recipient whose genitals are stimulated', direction: (subject, counterparty) => `${subject} uses her breasts to stimulate ${counterparty}'s genitals as the configured support service.` }),
+  M4: Object.freeze({ subject: 'female support worker who stimulates the recipient by hand', counterparty: 'male recipient whose genitals are stimulated', direction: (subject, counterparty) => `${subject} uses her hand to stimulate ${counterparty}'s genitals as the configured support service.` }),
+  M5: Object.freeze({ subject: 'configured subject in the recovery-practice pair', counterparty: 'configured counterparty in the recovery-practice pair', direction: (subject, counterparty) => `${subject} and ${counterparty} are the exact configured pair for the institutional recovery-practice premise.` }),
+  M6: Object.freeze({ subject: 'person whose genitals are examined', counterparty: 'examiner who examines the subject\'s genitals', direction: (subject, counterparty) => `${counterparty} directly examines ${subject}'s genitals as the configured company examination.` }),
+  M7: Object.freeze({ subject: 'person whose breasts and nipples are examined', counterparty: 'examiner who examines the subject\'s breasts and nipples', direction: (subject, counterparty) => `${counterparty} directly examines ${subject}'s breasts and nipples as the configured company examination.` }),
+  S1: Object.freeze({ subject: 'employee receiving the supported sexual-work instruction', counterparty: 'configured adult counterparty in the instruction context', direction: (subject, counterparty) => `${counterparty} gives the supported instruction to ${subject}; the configured pair is not interchangeable.` }),
+  S4: Object.freeze({ subject: 'selected adult participant', counterparty: 'other selected adult participant', direction: (subject, counterparty) => `${subject} and ${counterparty} are the selected participants for the approved joint interaction; no unselected bystander is added.` }),
+  S7: Object.freeze({ subject: 'designated trainer', counterparty: 'adult trainee receiving the training', direction: (subject, counterparty) => `${subject} trains ${counterparty} under the configured sexual-work training designation.` })
+});
+
+function actorBinding(id, scope, role, content) {
+  const actorId = id ? String(id) : null;
+  const actor = actorId ? actorDirectory(content)?.[actorId] : null;
+  return {
+    role,
+    scope: scope ?? null,
+    actor_id: actorId,
+    name: actor?.name ?? null,
+    canonical_name: actor?.name ?? null
+  };
+}
+
+function fallbackDirection(event, subject, counterparty) {
+  const subjectName = subject.name ?? `the selected ${subject.scope ?? 'subject'}`;
+  const counterpartyName = counterparty.name ?? `the selected ${counterparty.scope ?? 'counterparty'}`;
+  return `${subjectName} is the selected subject and ${counterpartyName} is the selected counterparty; preserve this direction exactly.`;
+}
+
+export function buildRuleChangeStoryBinding({ event, content } = {}) {
+  if (!event || event.type !== 'rule_change_turn') return null;
+  const catalog = createR3CsaCatalog(content?.csaPresets);
+  const item = catalogItem(catalog, event.template_id);
+  const roles = ACTOR_PAIR_ROLES[event.slot] ?? null;
+  const selector = event.selector ?? {};
+  const subject = actorBinding(selector.subject_actor_id, event.subject_scope, roles?.subject ?? 'selected subject', content);
+  const counterparty = actorBinding(selector.counterparty_actor_id, event.counterparty_scope, roles?.counterparty ?? 'selected counterparty', content);
+  const subjectName = subject.name ?? `the selected ${subject.scope ?? 'subject'}`;
+  const counterpartyName = counterparty.name ?? `the selected ${counterparty.scope ?? 'counterparty'}`;
+  const direction = roles?.direction ? roles.direction(subjectName, counterpartyName) : fallbackDirection(event, subject, counterparty);
+  const selectedActors = [subject, counterparty].filter(actor => actor.actor_id).map(actor => ({ actor_id: actor.actor_id, name: actor.name, role: actor.role, scope: actor.scope }));
+  return {
+    type: 'rule_change_story_binding',
+    immutable: true,
+    operation: event.operation,
+    rule: { template_id: item?.id ?? event.template_id ?? null, slot: item?.slot ?? event.slot ?? null, tier: item?.tier ?? event.tier ?? null, label: item?.label ?? null, rule_text: item?.rule_text ?? event.rule_text ?? '' },
+    subject,
+    counterparty,
+    selected_actor_ids: selectedActors.map(actor => actor.actor_id),
+    selected_actors: selectedActors,
+    direction,
+    authority: { label: item?.authority_label ?? event.authority_label ?? '', announcement_channel: 'grounded institutional announcement', private_app_is_not_source: true },
+    supported_action_families: [...(item?.supported_action_families ?? event.supported_action_families ?? [])],
+    boundary: 'The structured operation, selected actors, roles, and direction are immutable Story facts. Dramatize the institutional announcement and immediate grounded reactions without substituting actors, reversing direction, or inventing unselected participants.'
   };
 }
 

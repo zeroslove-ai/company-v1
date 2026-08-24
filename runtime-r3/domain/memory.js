@@ -1,4 +1,5 @@
 import { canonicalActors, canonicalLocation, productPremise, relevantActorIds } from './content.js';
+import { buildRuleChangeStoryBinding } from './csa.js';
 
 const bounded = (value, max) => String(value ?? '').slice(0, max);
 const REQUEST_TRIGGER_VALUES = new Set(['on_player_request', 'on_counterparty_request']);
@@ -42,7 +43,7 @@ export function requestExecutionTiming(rule = {}) {
   } : null;
 }
 
-export function buildStoryContext(context, literalAction, { content, opening = false, feedbackText = '', csaOperation = null, ruleChangeEvent = null } = {}) {
+export function buildStoryContext(context, literalAction, { content, opening = false, feedbackText = '', csaOperation = null, ruleChangeEvent = null, ruleChangeBinding = null } = {}) {
   const state = context?.state?.state ?? {};
   const turns = Array.isArray(context?.turns) ? context.turns : [];
   const location = canonicalLocation(content, state.scene?.location_id);
@@ -52,12 +53,14 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const product = productPremise(content);
   const department = (content?.departments ?? []).find(item => item?.department_id === state.profile?.department_id);
   const position = (content?.positions ?? []).find(item => item?.position_id === state.profile?.position_id);
+  const storyLiteralAction = ruleChangeEvent || csaOperation ? '' : literalAction;
   const canonicalPlayerIdentity = {
     name: state.profile?.name ?? null,
     department: { id: state.profile?.department_id ?? null, name: department?.name ?? null },
     position: { id: state.profile?.position_id ?? null, name: position?.name ?? null }
   };
   const rules = state.csa_rules && typeof state.csa_rules === 'object' ? state.csa_rules : {};
+  const exactRuleChangeBinding = ruleChangeBinding ?? (ruleChangeEvent ? buildRuleChangeStoryBinding({ event: ruleChangeEvent, content }) : null);
   const activeRules = [...new Set(Array.isArray(state.csa_active) ? state.csa_active : [])]
     .map(id => rules[id])
     .filter(rule => rule?.active)
@@ -78,7 +81,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   return {
     product,
     opening,
-    literal_action: literalAction,
+    literal_action: storyLiteralAction,
     player_agency_contract: PLAYER_AGENCY_CONTRACT,
     canonical_player_identity: canonicalPlayerIdentity,
     player_identity_contract: PLAYER_IDENTITY_CONTRACT,
@@ -98,6 +101,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
         boundary: 'This exact visible app operation is the player action for this turn. Announce the institutional change naturally in Story, enact only its bounded immediate consequence, and return to the player literal intent. Do not infer affection, desire, consent, or app awareness from compliance.'
       }
     } : {}),
+    ...(exactRuleChangeBinding ? { rule_change_story_binding: exactRuleChangeBinding } : {}),
     opening_contract: opening ? {
       product_title: product.title,
       private_app_name: product.app_name,
