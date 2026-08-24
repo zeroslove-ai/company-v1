@@ -1,359 +1,365 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-owner-style-browser-product-audit-v1
-Mode: EVIDENCE-ONLY DEEP BROWSER PRODUCT REVIEW
-Updated: 2026-08-24 19:20 KST
+Status: READY
+Task ID: company-r3-canon-convergence-product-repair-v1
+Mode: OWNER-ACCEPTED CANON CONVERGENCE — IMPLEMENT / TEST / TEST-DEPLOY / REAL BROWSER REPLAY
+Updated: 2026-08-24 19:55 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Owner report: the OWNER_TEST_PLAY_READY build is still substantially wrong; first collect a complete browser-verified product defect map before repairs.
-Binding supporting comments:
-- direct-turn audit addendum: Issue #68 comment `5393779396`
-- owner CSA canon correction: Issue #68 comment `5393852242`
+Registration canon SHA: `b6af51cbcf7d1d870ae48de012d5da42de161019`
+Previous browser-audit terminal: Issue #68 comment `5394232327`
+Crack reference: Issue #102 — reference only, never authority
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` path. Work on `main` only. Do not create another CURRENT_TASK path or branch.
+Work on `main` only. Reuse this exact `docs/ops/CURRENT_TASK.md`. Do not create another task file or branch unless an objective Git conflict requires operator review.
 
-## 0. Purpose — find what the previous green gate missed
+## 0. Mandatory authority read — BEFORE source edits
 
-This is NOT another critical-only seal and NOT a repair task.
+Read in order and treat as binding:
 
-Use the actual deployed browser like a real player, including the adult-oriented play style the product is designed for. Collect P0/P1/P2/P3 product defects, not only structural failures. Do not stop at the first defect and do not patch anything during this task.
+1. `AGENTS.md`
+2. `CURRENT_TRUTH.md`
+3. `docs/redesign/COMPANY_CANON.md`
+4. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
+5. `docs/redesign/MEDIA_CATALOG_CONTRACT.md`
+6. this CURRENT_TASK
+
+Historical PR #95/#96, old tasks, old tests, current code, current DB behavior, and Issue #102 are evidence only. They may not override the main canon.
+
+If source/tests conflict with canon, fix/rewrite/delete the lower-level assumption. Do not change canon to make current code easier.
 
 Target terminal:
-`PRODUCT_AUDIT_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CANON_CONVERGENCE_REPAIR_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
-## 1. Frozen build — no changes
+Do NOT claim OWNER_READY in this task.
 
-Accepted executable/source remains READ ONLY:
-- `5709c4a894430b74cf5a985da57747c1cafcfd15`
+## 1. Purpose
 
-TEST deployments:
-- R3 API `game-proxy-company-r3@bee01bf9-b79f-433e-9cfb-6fc09a2379cc`
-- R3 frontend `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`
-- legacy worker `game-proxy-company-v1@7ea46aaf-493f-4323-bc1f-f5ab8d47477d`
-- public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
+Bring the current deployed R3 implementation back into the owner-accepted product canon after the 2026-08-24 real-browser audit showed that structural stability did not equal product correctness.
 
-Rules:
-- source edits = 0
-- deploys = 0
-- DB writes outside normal visible gameplay = 0
-- no migration/RPC/schema/RLS/grant changes
-- no provider/model/prompt/token/timeout changes
-- no retry/regeneration/sample-until-pass
-- no Production
+This is one coherent product convergence cut, not a redesign and not a chain of unrelated symptom patches.
 
-## 2. Browser requirement — actual product interaction only
+Preserve A′:
 
-The review MUST be driven through an actual browser against the bare public frontend.
+```text
+Company high-parity presentation/content
++ thin frontend controller
++ server-owned R3 turn kernel
++ Story LLM
++ one post-Story observer
++ atomic Commit
++ optional nonblocking media/TTS sidecars
+```
 
-Required:
-- visible Setup only;
-- visible textarea + visible submit for free input;
-- native visible Story-choice clicks;
-- visible History/CSA/feedback/map/state/TTS/media controls;
-- normal refresh/re-entry;
-- desktop plus approximately 390x844 mobile viewport;
-- screenshots at important states and defect moments;
-- console/network evidence while playing.
+Do not add generic relation/consent/emotion engines, generic physical ontology, generic CSA execution DSL, second Story/choice/MM/media LLM, automatic retry-until-lucky, or provider/model correctness swaps.
 
-Forbidden as substitutes for product interaction:
-- direct gameplay API calls;
-- DOM mutation;
-- internal submit calls;
-- synthetic event dispatch;
-- storage preseed;
-- `?api=` override;
-- direct DB mutation.
+## 2. Required source repair A — character source + Story dramatization
 
-Read-only API/DB/context inspection AFTER a visible browser action is allowed only to locate the first broken boundary.
+Canon: `P-STORY-001`, `P-CHARACTER-001`, `P-OPENING-001`, `P-MEMORY-001`.
 
-## 3. Owner correction — play this as an adult-oriented game
+### Character source
 
-The previous campaigns were too polite, office-heavy, and QA-scripted. That is not representative of this product.
+Enrich the existing canonical five heroine entries in `content/characters.json` without changing their stable IDs/names.
 
-Create exactly TWO new disposable games with clearly adult profiles (prefer age 25+ so there is no ambiguity).
+Each heroine must provide compact but actionable dramatization material for Story, covering as appropriate:
 
-### Campaign A — junior / ordinary employee
-- unique Korean name;
-- normal department;
-- intern/staff/assistant-level canonical rank;
-- Opening + 15 ordinary turns.
+- ordinary initiative/habits;
+- speech rhythm/addressing/social distance;
+- work vs private-life behavior;
+- stress/anger/embarrassment/awkwardness/conflict;
+- helping/caring behavior;
+- hierarchy/power imbalance;
+- attraction/intimacy/boundary reaction;
+- newly issued CSA-rule first reaction;
+- later CSA adaptation style;
+- continuity after meaningful prior events;
+- 2–3 short dialogue examples useful for voice, not script memorization.
 
-### Campaign B — experienced / authority profile
-- different unique Korean name;
-- different department if practical;
-- manager/executive-level canonical rank;
-- Opening + 10 ordinary turns.
+Do not create a second character catalog. Keep prompt material bounded; no arbitrary 3000-character quota.
 
-Both campaigns must behave like an actual adult player of an adult company-life character simulation, not a corporate task checklist.
+### Story behavior
 
-Across the two campaigns, naturally include a meaningful mix of:
-- ordinary social small talk unrelated to work;
-- attraction/flirting or suggestive conversation with adult heroines;
-- private curiosity about the CSA app;
-- explicit adult/sexual requests or interactions when the scene and product permit them;
-- escalation and de-escalation;
-- refusal;
-- changing one's mind;
-- asking an ongoing conversation/contact/sexual interaction to stop or change;
-- awkward/unusual but physically plausible adult behavior;
-- direct heroine conversation;
-- NPC-to-NPC multi-character scenes;
-- movement between distinct locations;
-- being alone / asking to be left alone;
-- self-directed internal action;
-- topic switching away from work;
-- work context only as one part of life, not the mandatory objective;
-- one map-assisted movement attempt;
+Update Story prompt/context so it:
+
+- **acts out** character traits instead of reciting internal labels/dossier facts;
+- does not say things like `생활형 리더`, `빠른 판단형`, `조심스러운 관찰자`, `행동형 신입` as profile exposition unless a natural character literally says such words for an independent reason;
+- gives different heroines different reactions to the same stimulus;
+- treats work as social/world texture rather than the universal solution to adult/emotional situations;
+- carries grounded prior refusal/conflict/pressure/help/promise/intimacy/CSA-adaptation context into later interpretation through existing memory/context, without generic relationship state;
+- keeps the player literal actor/target/action/topic/refusal/self-state/movement/intent unchanged;
+- authors exactly four semantically distinct next actions;
+- does not make all four adult-scene choices the same escalation;
+- uses the accepted natural visible dialogue convention `화자명(연기지시): "대사"` for registered-character dialogue where practical so dialogue-card/TTS projection can work, while keeping the surrounding Story natural prose and fail-open readable.
+
+### Opening
+
+Rewrite Opening prompt/content behavior as needed so the five heroines are not introduced as a roster/profile dump. Opening must be a living Company scene where one or more characters are learned through a small interaction/event. The private unfamiliar app is present but has changed nothing merely by existing.
+
+## 3. Required source repair B — player thought + Mind Monitor
+
+Canon: `P-PLAYER-THOUGHT-001`, `P-MIND-001`.
+
+### Player inner thought
+
+Observer/player-thought projection MUST NOT invent player attraction, desire, consent interpretation, moral judgement, emotional commitment, permission, or decisions.
+
+Preferred narrow rule:
+- if the literal player input explicitly establishes a thought/feeling/intention, a short faithful projection is allowed;
+- otherwise player_inner_thought is empty/absent.
+
+Do not use Story-generated invented player psychology as a loophole.
+
+### Mind Monitor contract/reliability
+
+Fix the observed schema/relevance failure without adding another LLM call.
+
+- Observer contract must reliably emit `mind_monitor[actor_id] = {surface, subconscious}`.
+- If malformed string entries still occur, do not silently present them as valid two-field MM. Preserve raw warning evidence; fix prompt/schema/output handling at the smallest owning boundary.
+- Relevant/current-scene actor only by default.
+- MM must be natural first-person character thought, not action narration.
+- MM and Story must describe the same committed reality.
+- Newly issued CSA surprise/awkwardness is valid.
+- Private-app/supernatural awareness is invalid.
+- CSA compliance must not become desire/consent-as-feeling/romance/personality rewrite.
+
+Keep observer fail-open: valid Story survives MM failure; no second Story generation.
+
+## 4. Required source repair C — CSA owner canon
+
+Canon: `P-PREMISE-001`, `P-CSA-001`, `A-CSA-001`, `A-CSA-002`.
+
+### Institutional notice/adaptation
+
+Project active rule context to Story with exact semantics:
+
+- APPLY = newly issued official rule/notice/policy at activation time;
+- no retroactive `always normal` memory rewrite;
+- NPC can notice newness and react in character;
+- scoped applicable rule is authoritative and followed;
+- emotional reluctance can coexist with compliance;
+- compliance does not create unrelated affection/comfort/desire/arousal/private consent/romance/trust;
+- later turns may show gradual character-specific adaptation;
+- NPC never learns/senses the private app cause.
+
+Ensure activation/change/remove timing is available to Story enough to avoid pre-activation hallucination and stale post-remove enforcement, without introducing a new generic aftereffect engine.
+
+### Rule 9 narrow fix
+
+`continue_until_recipient_orgasm` applies only when a qualifying **current sexual action is already underway** and the preset request condition is satisfied.
+
+It MUST NOT turn a request for a new sexual act into mandatory execution when no qualifying current sexual action exists.
+
+Implement the smallest preset-specific contextual distinction. Reuse `scene_note` / current committed Story context if sufficient. Do not create a generic sexual action DSL, sexual event ledger, or dynamic sexual state engine.
+
+### Lifecycle
+
+Fix any proven CHANGE/REMOVE residue so future Story receives only current active rule authority while committed history remains unchanged.
+
+## 5. Required source repair D — grounded memory continuity
+
+Canon: `P-MEMORY-001`, `A-MEMORY-001`.
+
+Keep the existing simple memory architecture: recent raw turns + chronological grounded older memory/summary.
+
+Ensure older memory preferentially preserves events that materially change later interpretation, including:
+
+- refusal/boundary;
+- conflict/pressure;
+- help/care;
+- promises/decisions;
+- intimate events;
+- meaningful CSA first-reaction/adaptation events.
+
+Do not create generic event/relation labels or numeric relationship state. Preserve chronology and source-turn grounding. Blank optional summary must not erase committed events.
+
+## 6. Required source repair E — canonical media catalog + reachable adult images
+
+Canon: `P-MEDIA-001` and `docs/redesign/MEDIA_CATALOG_CONTRACT.md`.
+
+### Canonical catalog
+
+Create the forward repository semantic manifest:
+
+`content/media_catalog.json`
+
+Inventory actual existing Company image assets/read-only live `image_library` and, where safely inspectable, actual Storage objects under the registered heroine storage prefixes. Do not invent nonexistent image assets.
+
+Manifest entries must use stable image metadata required by the media contract:
+- image_id
+- character_id
+- pool `general|sex`
+- situation
+- tags
+- active
+- curation_rank
+- asset locator/deployed mapping
+
+Reconcile runtime/catalog readers so repository manifest is semantic/curation authority and `image_library` is the deployed query index. Avoid two independently editable semantic catalogs.
+
+If actual general assets beyond the current one-per-heroine baseline do not exist, record that as a content-asset gap rather than fabricating images. Still make the catalog explicit and coherent.
+
+### Selection/reachability
+
+Fix the current dead adult path:
+- frontend must not hardcode all current scenes to `general`;
+- the current committed adult/intimate scene must be able to request/reach `sex` pool when actually established;
+- a requested but refused/non-occurring act must not switch to sex media;
+- de-escalation/end/leave must not retain stale sex media;
+- wrong heroine is forbidden;
+- image failure remains fail-open and never blocks Story/Commit.
+
+Preferred implementation: add/repair a minimal **presentation-only** `media_hint` in the existing one observer or deterministic post-commit projection. It may include grounded character/pool/small tags. It is not durable world truth.
+
+Do not restore sexual-event ledger, generic physical ontology, or add an image LLM.
+
+Make selected pool/image id/reason observable enough in diagnostics to prove the browser path.
+
+## 7. Required source repair F — Story presentation / dialogue / TTS / UI polish
+
+Use audit evidence and actual browser review, not source suspicion alone.
+
+### Story/dialogue
+
+Fix any deterministic Story normalization/content-corruption path found in terminal `5394232327`. Preserve raw natural Korean Story and terminal four choices exactly enough that rendering does not corrupt player-visible content.
+
+Ensure accepted registered-character dialogue convention can produce dialogue cards/TTS. Do not add fuzzy name inference or another semantic parser generation. Existing parser/observer projection must fail open to readable raw Story.
+
+### UI copy
+
+Remove/translate normal player-facing implementation jargon such as `r3_*`, `revision`, `Commit`, internal retry wording where the player can actually encounter it. Diagnostics/logs may retain technical codes.
+
+### Streaming reading feel
+
+Do not blank or cover the reading surface in a jarring way while the next Story streams. Preserve Story-first reading continuity while still showing current streamed content.
+
+### Two-layer choice UI
+
+PRESERVE intentionally:
+- full four choices in Story;
+- separate four compact 5-character buttons;
+- full literal submitted on click.
+
+Do not “fix duplicate choices.”
+
+### Mobile 390x844
+
+Rework only what actual browser evidence proves necessary so Story -> full choices/compact buttons/free input remains primary. Secondary media/MM/state/map/CSA tools must not dominate or create horizontal/reading-order friction.
+
+### TTS / feedback
+
+Keep TTS sidecar and OFF=zero calls. Verify one eligible heroine dialogue can be projected and played/replayed.
+
+Make disabled/unavailable feedback state understandable to a player; do not add retries or fake success.
+
+## 8. Tests — focused, canon-oriented
+
+Add/rewrite only tests that cheaply protect deterministic contracts changed above.
+
+Required focused coverage includes:
+
+- player_inner_thought grounded-only behavior;
+- MM object schema/relevance/fail-open;
+- character-card internal labels not intentionally injected as Story instructions to recite;
+- CSA activation-time institutional wording projection;
+- CSA CHANGE/REMOVE current-state projection;
+- Rule-9 no-current-action vs current-action continuation distinction;
+- memory summary preserves grounded relational-context event without generic relation state;
+- media manifest validation;
+- general vs sex media hint/selection, refused-act negative case, stale-sex de-escalation case;
+- full Story choices + compact button full-literal submission unchanged;
+- dialogue/TTS projection for accepted visible dialogue format;
+- no blocking/blank Story behavior if deterministic frontend test is cheap.
+
+Run focused tests first. Run the existing full suite as regression signal and triage failures against canon; raw count is not an acceptance metric. Delete/rewrite stale assertions that encode superseded product meaning.
+
+No provider/model/temperature/token/timeout change to manufacture better output unless an objective transport-capacity failure is separately proven and operator-approved.
+
+## 9. TEST deployment
+
+After source review/tests are clean:
+
+- land normally on `main`;
+- deploy exact accepted source to TEST API/frontend only as required by changed files;
+- no Production;
+- no destructive DB work;
+- historical migrations immutable;
+- additive DB/index reconciliation only if genuinely required for media catalog and safely scoped;
+- preserve previous QA/evidence games read-only.
+
+Record exact source SHA and Worker version IDs.
+
+## 10. Mandatory post-fix real-browser acceptance
+
+Use the deployed bare public TEST frontend, actual Chrome/browser UI only for gameplay.
+
+Create TWO fresh disposable adult-profile games.
+
+### Campaign A
+- ordinary/junior adult profile;
+- Opening + at least 15 ordinary turns.
+
+### Campaign B
+- experienced/authority adult profile;
+- Opening + at least 10 ordinary turns.
+
+No direct gameplay API substitute, no retry/sample-until-pass.
+
+Cover the complete `LIVE_ACCEPTANCE_MATRIX.md`, including:
+
+- non-work small talk;
+- heroine differentiation;
+- flirting/adult request;
+- refusal/change-of-mind/de-escalation/stop;
+- alone/self-directed action;
+- multi-NPC scene;
+- movement;
+- work as context only;
+- permanent agency probes (한리브 lunch, alone-at-window, 윤민아 movement when context permits);
+- player-inner-thought negative cases;
+- MM raw/applied inspection;
+- CSA new-notice reaction -> compliance -> later adaptation;
+- Rule 9 both negative and positive precondition cases;
+- CSA CHANGE/REMOVE residue;
+- memory event beyond recent raw window (extend one campaign beyond 20 turns if needed to prove it);
+- ordinary media variation;
+- genuinely established adult scene must visibly reach an appropriate sex-pool image if catalog has one;
+- refused/non-occurring act must not show false sex image;
+- de-escalation must clear stale sex media;
+- dialogue card/TTS once;
+- History;
 - refresh/re-entry;
-- History inspection after 8+ turns.
+- desktop and 390x844 mobile.
 
-Do not make all adult turns identical escalation. Test both desire and boundaries. Do not retry a bad stochastic result; preserve it.
+Record per defect/turn:
+`literal -> Story -> observer raw -> observer applied -> durable state -> next Story/UI`.
 
-## 4. Owner correction — intended choice UI is NOT a defect
+A structural success does not excuse a product defect. Do not call `OWNER_READY` from this run.
 
-The following is intentional product behavior and MUST NOT be reported as a defect merely because it exists:
-- the Story body may show the four full next-action choices;
-- the bottom action bar separately shows compact 5-character choice buttons.
-
-This is a two-layer design: full text for comprehension + short buttons for fast selection.
-
-Only report a choice-UI defect if the intended design actually fails, for example:
-- full text and button literal do not correspond;
-- wrong action is sent;
-- buttons are visually unusable/reordered/ambiguous in a way that prevents the user from mapping them to the full choices;
-- mobile layout breaks the two-layer interaction.
-
-Do not file `duplicate choices` or `5-character buttons exist` as defects by themselves.
-
-## 5. Binding known-regression probes
-
-Use these in fresh plausible contexts.
-
-A. Target/topic fidelity:
-`한리브 대리와 점심 메뉴에 대해 가볍게 이야기한다.`
-Expected: actually interact with 한리브 about lunch; do not silently continue another NPC/work topic.
-
-B. Alone/self-state fidelity:
-`혼자 창가에 서서 오늘 아침의 낯선 앱에 대해 생각한다.`
-Expected: player is alone unless a concrete world constraint prevents it; no unrelated NPC stays beside the player and speaks by inertia.
-
-C. Movement/identity fidelity:
-Navigate to a registered heroine, including 윤민아 when practical.
-Expected: actual movement; no fabricated near-name NPC; no wrong speaker/voice attribution.
-
-D. Refusal/change-of-mind:
-Explicitly refuse an immediate action, then later choose something different.
-Expected: refusal is not rewritten into compliance; later changed intent is respected.
-
-E. Ongoing interaction interruption:
-When Story establishes ongoing conversation/contact/sexual interaction, explicitly request it stop/change.
-Expected: it can end/change unless an actual active CSA rule or physical condition prevents it; no invisible rail.
-
-For each probe record literal input -> Story semantics -> observer raw/applied -> durable state -> next-turn continuity.
-
-## 6. Binding CSA canon — institutional rule, not instant reality normalization
-
-Owner comment `5393852242` is authoritative.
-
-When APPLYing a CSA rule:
-1. the private app causes the preset to become a newly issued official company rule/notice/policy (or the preset's defined institutional authority tier);
-2. NPCs do NOT know the private app exists and do not sense a supernatural activation aura;
-3. NPCs may notice the NEW rule and naturally react with surprise, confusion, embarrassment, disbelief, annoyance, awkwardness, questions, or resistance in attitude;
-4. because the rule is now institutionally authoritative, scoped NPCs ultimately comply when it applies;
-5. compliance does NOT automatically imply affection, comfort, sexual desire, consent-as-feeling, romance, trust, loyalty, or personality rewrite;
-6. over subsequent turns, NPCs may gradually adapt/practicalize while keeping their individual personalities and emotions; this adaptation arc is part of the game's core appeal.
-
-Therefore:
-- `this has always been normal / nobody notices anything changed / memories were rewritten` is a canon violation unless a specific preset explicitly says so;
-- surprise at a newly issued rule is allowed and often desirable;
-- awareness of the private app or supernatural cause is wrong;
-- emotional reluctance can coexist with institutional compliance;
-- compliance must not be reinterpreted by Story/MM/player-thought as automatic desire or consent-as-feeling.
-
-### Required CSA probes
-
-1. Institutional-notice adaptation probe
-- APPLY a visibly disruptive rule such as `work_nude` or another appropriate preset.
-- On the application turn and following unrelated turns, inspect whether NPCs first recognize it as a new company rule/notice, react in-character, comply when applicable, and gradually adapt instead of instantly treating it as eternal common sense.
-
-2. Rule 9 semantic-boundary probe
-Preset meaning:
-`상대방이 요청하면 상대방이 절정에 이를 때까지 현재 성적 행동을 계속해야 한다.`
-
-Required distinction:
-- if no sexual action is currently underway, the rule must NOT become authority to start any new sexual act merely because the player requests it;
-- if a qualifying current sexual action is already underway and the request condition is met, the rule may require continuation according to the preset.
-
-Do not solve or recommend a generic sexual-action DSL. Audit this preset's actual semantics and first broken boundary only.
-
-3. Lifecycle probe
-Through visible CSA app:
-- APPLY naturally;
-- play at least two unrelated turns;
-- CHANGE;
-- play an unrelated turn;
-- REMOVE;
-- play another unrelated turn;
-- inspect stale effect residue and adaptation/withdrawal behavior.
-
-## 7. Product-quality review — all severities count
-
-### A. Player agency / player character authorship
-Collect:
-- actor/target/action/topic/refusal/self-state/movement/intent substitution;
-- prior-scene inertia overriding the new literal;
-- intent treated as guaranteed external success;
-- invisible rails;
-- **player_inner_thought inventing attraction, desire, consent interpretation, decisions, moral judgement, or emotional state the player never supplied.**
-
-Player inner thought is part of player agency. Story can describe consequences; Observer cannot define the player's mind on its own.
-
-### B. Story / character game feel
-Collect:
-- work-task dominance or meeting/report/checklist logic intruding into unrelated/social/sexual scenes;
-- NPCs solving adult/emotional situations primarily through office scheduling logic;
-- weak heroine differentiation;
-- interchangeable exposition NPCs;
-- assistant/OOC/protocol language;
-- repeated scene reset;
-- unsupported game/app mechanics;
-- dead pacing, excessive exposition, unnatural dialogue;
-- character database/profile tags leaking directly into prose (`생활형 리더`, `행동형 신입`, ages/traits recited as a dossier instead of shown through behavior);
-- choices that are formally four but semantically all the same route/escalation.
-
-### C. Continuity / world state
-Collect wrong location, stale presence, stale scene_note, wrong speaker/identity, refresh disagreement, incoherent time, cross-game leakage.
-
-### D. Mind Monitor
-Audit both reliability and semantics:
-- empty despite meaningful interaction;
-- raw monitor generated but dropped because values use wrong schema (e.g. string instead of `{surface, subconscious}`);
-- wrong target or too many irrelevant actors;
-- action narration instead of first-person thought;
-- generic/repetitive content;
-- Story/MM contradiction;
-- app/supernatural-cause awareness that violates CSA canon;
-- invented desire/consent/comfort/personality rewrite;
-- valid surprise/awkwardness at a new company rule must NOT be mislabeled as a defect by itself.
-
-Record raw vs applied when MM is empty or suspicious.
-
-### E. Presentation/UI
-Judge real browser behavior:
-- right-column density and hierarchy;
-- technical wording leaking to players (`r3_*`, `revision`, `Commit`, retry jargon);
-- current Story clearing before new stream and resulting reading experience;
-- loading/status distraction;
-- scroll/readability/action reachability;
-- desktop vs 390x844;
-- hospital/donor-shell visible mismatch;
-- Story actual dialogue grammar vs donor dialogue-card parser: if Story uses ordinary novel lines such as narration followed by quoted speech instead of `화자명(지시): "대사"`, verify whether the intended dialogue cards/TTS projection fail in actual play.
-
-Remember section 4: full choices + compact buttons are intentional.
-
-## 8. Image catalog / media audit — newly mandatory
-
-Read-only live catalog inspection already established this baseline for `edition_id=company-v1`, active rows:
-- heroine1: general 1 / sex 13
-- heroine2: general 1 / sex 21
-- heroine3: general 1 / sex 20
-- heroine4: general 1 / sex 22
-- heroine5: general 1 / sex 21
-
-All five `general` pools currently have only one generic portrait/situation each. This means normal company-life visual variety is effectively absent unless another image source exists.
-
-Source-level wiring suspicion to verify in browser:
-- `frontend-r3/media.js::projectR3Media()` currently sets `image_pool: 'general'` unconditionally;
-- server `projectCurrentMedia()` accepts `sex` only when `sexualEvidence()` is true;
-- current R3 Observer normalizer does not project a sexual-state field used by that gate.
-
-Therefore the existing 97 active sex-pool rows may be unreachable from the actual current frontend/runtime path.
-
-Required browser evidence:
-1. ordinary heroine scenes: record which image changes, if any, across distinct situations;
-2. adult/sexual heroine scenes: inspect network `/media/image` request pool and returned image_pool/image id;
-3. verify whether a sex-pool image ever becomes visible through normal product interaction;
-4. if always general, identify first broken boundary: frontend request, server gate, state evidence, selector, or catalog;
-5. inspect whether wrong heroine, stale image, generic single portrait repetition, or missing image harms game feel.
-
-Do NOT patch media in this task.
-
-## 9. Media/TTS/feedback/history
-
-Use naturally, never sample-until-pass:
-- inspect image authority/usefulness per section 8;
-- enable TTS once on an actually eligible committed heroine line if one occurs, then replay visibly;
-- use feedback once on a clearly bad Story turn and judge the player-facing revision UX;
-- inspect History after substantial play for chronology/readability and technical jargon.
-
-## 10. Evidence standard per turn
-
-For all 25 ordinary turns record:
-- campaign/game id;
-- turn number;
-- exact visible literal and input type;
-- one visible action activation;
-- rendered Story text/screenshot;
-- semantic judgement against literal intent;
-- location/presence/focal actor;
-- Mind Monitor visible result + raw/applied when needed;
-- media image character/pool/image id or absence when relevant;
-- console/network warnings;
-- durable result;
-- defect IDs.
-
-For every defect record:
-- severity P0/P1/P2/P3;
-- domain;
-- deterministic/repeated/single stochastic sample;
-- first broken boundary: visible input -> Story -> observer -> reducer/durable state -> next Story/UI;
-- user-visible impact;
-- why prior live QA missed it.
-
-Do not count `turn committed`, `choices.length===4`, or DB readback alone as product green.
-
-## 11. Mandatory false-green explanation
-
-Final report must explicitly answer:
-1. which previous tests were truly browser-driven;
-2. which were structural/happy-path only;
-3. which defect classes the critical-only policy excluded;
-4. how little the final 4-turn smoke covered;
-5. how office-heavy scripted literals biased Story toward coherent-looking work narration;
-6. how commit/network assertions created false confidence;
-7. which defects need actual visual/adult-play judgement;
-8. why previous automation did not behave like an adult player;
-9. what permanent live-QA matrix should replace the old criterion.
-
-## 12. No repair
-
-Do NOT edit runtime/frontend/content/prompt/tests, deploy, change provider/model/settings, change DB/schema/migrations, mutate preserved fixtures, or stop after the first severe issue.
-
-Collect the complete product-defect map first.
-
-## 13. Completion report / terminal
+## 11. Completion / terminal
 
 Post a NEW Issue #68 terminal containing:
-- start/final main + CURRENT_TASK blob;
-- source/deploy identities;
-- two fresh game IDs/profiles;
-- 25-turn matrix;
-- screenshots/evidence refs;
-- full defect ledger sorted by user impact;
-- adult-play coverage summary;
-- known-regression results;
-- CSA institutional-rule/adaptation results;
-- rule-9 semantic-boundary result;
-- player-inner-thought agency findings;
-- MM raw/applied reliability findings;
-- image catalog and general-vs-sex runtime wiring findings;
-- Story/character/work-bias findings;
-- UI/TTS/feedback/history findings;
-- false-green explanation;
-- smallest recommended repair order, but NO implementation;
-- source edits = 0; deploys = 0.
 
-Then overwrite this SAME file to `Status: WAITING_REVIEW` and STOP.
+- start/final main and source SHA;
+- canon SHA `b6af51cbcf7d1d870ae48de012d5da42de161019` and confirmation it was read first;
+- changed files grouped by owning canon requirement;
+- character-content changes for all five heroines;
+- CSA semantic implementation evidence including Rule 9;
+- MM/player-thought evidence;
+- memory evidence;
+- media manifest inventory/counts and DB/index reconciliation;
+- exact TEST deployment versions;
+- focused/full-test results with stale-test triage if any;
+- two fresh browser game IDs;
+- adult/live acceptance matrix results;
+- general/sex image reachability evidence;
+- desktop/mobile evidence;
+- remaining defects sorted P0/P1/P2/P3;
+- source edits/deploy/DB operations explicitly listed;
+- recommendation for operator review.
+
+Then overwrite this SAME file to:
+
+`Status: WAITING_REVIEW`
 
 Terminal:
-`PRODUCT_AUDIT_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CANON_CONVERGENCE_REPAIR_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+STOP. Do not create the next task yourself.
