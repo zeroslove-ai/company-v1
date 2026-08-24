@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-three-tier-rule-change-story-v1
 Mode: OWNER-ACCEPTED CSA REDESIGN — 21-SLOT CANONICAL CATALOG / STRUCTURED RULE-CHANGE STORY TURN / TEST IMPLEMENTATION
 Updated: 2026-08-24 23:04 KST
@@ -528,3 +528,84 @@ Blocked terminal:
 `CSA_THREE_TIER_RULE_CHANGE_STORY_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Never report OWNER_READY from this task.
+
+---
+
+# TERMINAL REPORT
+
+STATUS: BLOCKED
+TERMINAL: CSA_THREE_TIER_RULE_CHANGE_STORY_BLOCKED_AWAITING_OPERATOR_REVIEW
+TASK_ID: company-r3-csa-three-tier-rule-change-story-v1
+EXPECTED_BRANCH: main
+REGISTRATION_MAIN_SHA: 7a3878acd5b93ef8a8e6559062f626587e26c2c0
+START_SHA: 7a3878acd5b93ef8a8e6559062f626587e26c2c0
+FINAL_SOURCE_SHA: bef87b18656f5f2e009d106a2436c7ee558101b9
+FINAL_CONTROL_SHA: PENDING_COMMIT
+EXECUTION_LEASE: Issue #68 comment 5396477055
+OPERATOR_INTERVENTION: Issue #68 comment 5396922047
+PROGRESS_HEARTBEAT: Issue #68 comment 5397330748
+
+## Stop reason
+
+The first fresh post-correction browser acceptance stopped at the first reproducible P1. Fresh TEST game `9b2443eb-0c4b-4d44-842f-9141d3255c7b` passed Opening, ordinary Turn 1, and one committed W5 APPLY rule-change Turn 2, but the W5 Story reversed the bounded actor direction: the structured event selected subject `heroine5`/이메이 and counterparty `general_park_jungwoo`/박정우, while the Story and committed `scene_note` narrated the player 지훈's hand on 이메이's breast. The required counterparty-scoped W5 action was therefore not preserved. No retry or sample-until-pass was performed. The same Story also mentioned the private app screen before the grounded announcement; NPCs were not shown as knowing the app, but the direction reversal alone is a blocking P1.
+
+## Verified truth and scope
+
+- Required current-truth, AGENTS, audit truth, sole-writer decision, canon, live-acceptance, task, and Issue #68 sources were re-read in the required order.
+- Binding canon blob: `26ebc9fb12984553076fcc49bbd44e1620928caa`; live-acceptance blob: `a9de6e85e0b6cf5d460a33800babc9a0f86ec898`.
+- Draft PR #103 was used only as provenance; main canon remained authoritative.
+- Source landed on main; local `HEAD == origin/main == bef87b18656f5f2e009d106a2436c7ee558101b9` before this lifecycle-only control-file commit.
+- No Production access/deploy, no migration repair/history rewrite, no preserved-game reset or mutation, and no new task/file/branch/PR.
+
+## Changed implementation files from registration base through source SHA
+
+- `content/csa_catalog.json`
+- `frontend-r3/csa.js`
+- `runtime-r3/domain/content-loader.js`
+- `runtime-r3/domain/csa.js`
+- `runtime-r3/domain/memory.js`
+- `runtime-r3/domain/worker-content.js`
+- `runtime-r3/server/provider.js`
+- `runtime-r3/server/store.js`
+- `runtime-r3/server/supabase-store.js`
+- `runtime-r3/server/worker.js`
+- `supabase/migrations/20260824142913_company_r3_rule_change_event_fence.sql`
+- `test/r3-csa-contract.test.mjs`
+- This control file is now lifecycle-only `WAITING_REVIEW`; `.tmp/` and `supabase/.temp/` remain preserved untracked evidence.
+
+## Deterministic implementation result
+
+- Canonical catalog is 21 active slots, seven per tier, with descriptive snake_case runtime IDs and raw W/M/S aliases retained only for read compatibility. The mapping is: W1 `no_bra_under_work_clothes`, W2 `no_panties_under_work_clothes`, W3 `cleavage_exposed_work`, W4 `lap_facing_conversation`, W5 `breast_touch_conversation`, W6 `buttock_touch_conversation`, W7 `recurring_light_kiss_conversation`; M1 `work_in_underwear_only`, M2 `work_nude`, M3 `breast_stimulation_ejaculation_support`, M4 `manual_stimulation_ejaculation_support`, M5 `semen_fatigue_recovery_practice`, M6 `direct_genital_exam`, M7 `direct_breast_nipple_exam`; S1 `sexual_work_instruction_authority`, S2 `player_dedicated_sexual_support_designation`, S3 `company_sexual_support_designation`, S4 `joint_participation_approval`, S5 `sexual_work_assignee_designation`, S6 `sexual_work_performance_evaluation`, S7 `sexual_work_training_designation`.
+- Selector contracts: W1/W2/W3/M1/M2 current-scene clothing/no-selector; W4/W5/W6/W7 bounded female subject + counterparty actor pair with gender/scope constraints; M3/M4/M5 bounded female supporter + male recipient pair; M6 bounded male subject + female counterparty pair; M7 bounded female subject + bounded counterparty; S1/S4/S7 bounded actor pairs; S2/S3/S5/S6 registered named-adult designation selectors. No generic trigger/action/duration DSL was added.
+- S1 finite action families: `kiss`, `sexual_touch`, `genital_exposure`, `genital_touch`, `oral`, `penetration`.
+- Old exact-nine: no-bra/no-panties/underwear-only/nude-work remain historical read compatibility mapped to W1/W2/M1/M2; waist/thigh, generic masturbate-for-recipient, standalone vaginal-sex, generic immediate-execute, and standalone continue-until-orgasm are retired and not selectable.
+- Architecture: one server-owned R3 logical turn, one Story stream, one post-Story Observer, minimal reducer, and atomic rule-state + turn commit. Rule-change event is persisted in `company_r3_turn_jobs.rule_change_event`; observer failure remains local/fail-open. No new sexual ledger, relation/consent/emotion engine, or provider/model change.
+
+## DB / migration
+
+- Required delta classified `SAFE_ADDITIVE_CREATE_OR_REPLACE`: additive `rule_change_event jsonb` and the six-argument `company_r3_reserve_turn` bridge were applied once to TEST through the accepted one-shot anonymous SQL bridge. No migration-ledger write, repair, or gameplay-row rewrite occurred. Pre/post R3 counts were unchanged at bridge time (games 147, state 147, jobs 515, turns 653). No further DB write was performed during this run; final browser readback was read-only.
+- Supabase read-only advisor repeatedly reports pre-existing RLS disabled on 11 R3/v2 tables. It was not changed in this task; this remains an operator security follow-up.
+
+## Validation and deployment
+
+- Focused R3 CSA contract: 12/12 PASS.
+- Full `npm test`: 556/556 PASS.
+- JS syntax, catalog JSON parse, and `git diff --check`: PASS.
+- TEST API deploy from `bef87b18656f5f2e009d106a2436c7ee558101b9`: Worker version `8de08ce8-8658-470d-a6ff-ef20e493a18e`.
+- TEST frontend deploy: Worker version `7e3ae305-bec1-4fb9-9c4e-6e9d86448a9e`.
+
+## Browser / DB evidence
+
+- Preserved earlier games: `0caaf228-10e3-4cd4-a578-d92fe9a73933`, `a451fdbf-854e-4237-b945-0463de528f24`, and `5ebdefcd-85b5-4a3b-a8a1-8a2da2e9bbb6`; none were reset or mutated.
+- Fresh disposable setup probe `b6ecc04f-39df-409d-8626-bc9bd45febde` remains at opening state and was not reused after the browser-surface timeout.
+- Fresh acceptance game `9b2443eb-0c4b-4d44-842f-9141d3255c7b`: Opening Turn 0, ordinary social Turn 1, W5 APPLY Turn 2; all three committed. DB readback confirmed structured event `activate / breast_touch_conversation / subject heroine5 / counterparty general_park_jungwoo`, four choices, observer raw/applied MM parity for `general_park_jungwoo` and `heroine5`, and active rule persisted atomically. CHANGE, REMOVE, Medium, Strong, S1, multi-rule, refresh/history/mobile follow-on lanes were not run after the first P1.
+- The Turn 2 Story did include a grounded wall-monitor `사내 운영지침` announcement and relevant NPC reaction/MM, but its action direction was wrong as described above; therefore announcement/MM cannot make the live acceptance green.
+
+## Findings / terminal boundary
+
+- P1: bounded W5 selector direction was reversed in live Story/scene continuity (structured counterparty 박정우 became player 지훈).
+- P1 candidate: private app screen was still narrated in the same rule-change Story despite the provider boundary; no separate retry was authorized.
+- P2/P3: not assessed after the first P1.
+- Production access = 0.
+- Preserved evidence-game mutation = 0.
+- This task is `WAITING_REVIEW`, not COMPLETE and not OWNER_READY. Operator review must decide the next narrowly bounded correction; this watcher must not create it.
