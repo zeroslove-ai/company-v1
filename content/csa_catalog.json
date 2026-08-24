@@ -17,7 +17,7 @@
       "subject_scopes": ["female_employee"],
       "counterparty_scopes": [],
       "default_subject_scope": "female_employee",
-      "selector_schema": "named_actor",
+      "selector_schema": "none",
       "execution": { "kind": "clothing_state", "required_state": { "underwear_top": "removed" } }
     },
     {
@@ -30,7 +30,7 @@
       "subject_scopes": ["female_employee"],
       "counterparty_scopes": [],
       "default_subject_scope": "female_employee",
-      "selector_schema": "named_actor",
+      "selector_schema": "none",
       "execution": { "kind": "clothing_state", "required_state": { "underwear_bottom": "removed" } }
     },
     {
@@ -43,7 +43,7 @@
       "subject_scopes": ["female_employee"],
       "counterparty_scopes": [],
       "default_subject_scope": "female_employee",
-      "selector_schema": "named_actor"
+      "selector_schema": "none"
     },
     {
       "id": "lap_facing_conversation",
@@ -107,7 +107,7 @@
       "subject_scopes": ["female_employee"],
       "counterparty_scopes": [],
       "default_subject_scope": "female_employee",
-      "selector_schema": "named_actor",
+      "selector_schema": "none",
       "execution": { "kind": "clothing_state", "required_state": { "uniform_top": "removed", "uniform_bottom": "removed", "underwear_top": "worn", "underwear_bottom": "worn" } }
     },
     {
@@ -120,7 +120,7 @@
       "subject_scopes": ["female_employee"],
       "counterparty_scopes": [],
       "default_subject_scope": "female_employee",
-      "selector_schema": "named_actor",
+      "selector_schema": "none",
       "execution": { "kind": "clothing_state", "required_state": { "uniform_top": "removed", "uniform_bottom": "removed", "underwear_top": "removed", "underwear_bottom": "removed" } }
     },
     {

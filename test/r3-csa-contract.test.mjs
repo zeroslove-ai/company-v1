@@ -59,8 +59,8 @@ test('R3 CSA catalog is the bounded 21-slot canonical catalog with explicit line
   assert.equal(catalog.compatibility_lineage.no_bra_under_work_clothes, 'no_bra_under_work_clothes');
   assert.equal(catalog.compatibility_lineage.work_nude, 'work_nude');
   assert.deepEqual(catalog.items.map(item => item.selector_schema), [
-    'named_actor', 'named_actor', 'named_actor', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair',
-    'named_actor', 'named_actor', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair',
+    'none', 'none', 'none', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair',
+    'none', 'none', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair',
     'actor_pair', 'named_actor', 'named_actor', 'actor_pair', 'named_actor', 'named_actor', 'actor_pair'
   ]);
   assert.deepEqual(catalog.items.slice(9, 14).map(item => item.counterparty_scopes), [
