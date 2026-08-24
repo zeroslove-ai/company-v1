@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-mandatory-semantic-lanes-closure-v1
 Mode: ACCEPTANCE-ONLY — CLOSE REMAINING MANDATORY CSA SEMANTIC LANES / FREEZE ALL PRIOR GREEN EVIDENCE
-Updated: 2026-08-25 03:05 KST
+Updated: 2026-08-25 03:25 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `3cd0736bf463ba0215b1eedb6daec7e4fdd0b4fc`
@@ -311,3 +311,43 @@ Browser-control blocked terminal:
 `CSA_MANDATORY_SEMANTIC_LANES_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+---
+
+# 12. Lifecycle — mandatory semantic lanes execution
+
+Status transition: READY -> WAITING_REVIEW
+
+Task identity:
+- TASK_ID: `company-r3-csa-mandatory-semantic-lanes-closure-v1`
+- CURRENT_TASK_BLOB_SHA at lease: `5ef7877a01a7cc08b848739b058e75102e5f01e0`
+- EXPECTED_BRANCH: `main`
+- START_MAIN_SHA: `0fe08b8e288224d629b1d143c4a51903c6a29539`
+- STARTED lease: Issue #68 `5399498455`
+- terminal: `CSA_MANDATORY_SEMANTIC_LANES_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
+- FINAL_MAIN_SHA: recorded by this lifecycle update commit
+
+Read-only preflight:
+- Compare `206bb957abbcdf621c22a6355bf9576610416bdd` -> `0fe08b8e288224d629b1d143c4a51903c6a29539` was docs-only (`docs/ops/CURRENT_TASK.md`); executable/runtime/frontend/content remained frozen.
+- TEST frontend latest 100% deployment remained `gamebuilder-company-r3 / 9bb754d0-632c-42e5-83b1-441ce6079688`.
+- TEST API latest 100% deployment remained `game-proxy-company-r3 / cbfb8900-1ba9-4886-9405-452e7ae760db`.
+- No DB/schema drift was changed or repaired.
+
+Browser/setup result:
+- Fresh public TEST DOM inspection and screenshot succeeded before mutation.
+- Visible Setup shell loaded and exposed the adult fields.
+- Exactly one fresh-game Setup submission was attempted with visible values: name `Mandatory Semantic QA`, age `30`, height `180`, weight `75`, penis length `15`, default Brand Strategy / Intern.
+- The single visible `설정 완료` action did not create a game. After 52 seconds of read-only observation, the URL remained the bare TEST frontend, Setup remained open, connection remained pending, and the visible validation message was `입력값을 다시 확인해 주세요.`
+- No game ID was created; no gameplay action, CSA lane, reset, retry, or second Setup submission was performed. This is a deterministic product setup gate failure and the fresh game count is 0.
+- Browser session was finalized after preserving the visible failure state; no previous evidence game was accessed.
+
+Stop classification:
+- P0/P1/P2/P3: `0/1/0/0`.
+- M5, S1 supported/unsupported, and S7 were not attempted because the single authorized fresh-game Setup gate failed first.
+- No source/test/content/prompt/provider/model/config/timeout edits: 0.
+- No API/frontend redeploy: 0.
+- No DB schema/migration/history repair/direct writes: 0.
+- Production access: 0.
+- Preserved evidence access/mutation/reset: 0.
+- Direct API gameplay substitution: 0.
+- Retry/sample-until-pass: 0.
