@@ -1,18 +1,18 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-test-schema-target-convergence-v1
-Mode: CURRENT-R3 TEST SCHEMA TARGET AUDIT / SAFE ADDITIVE BRIDGE / NO MIGRATION-HISTORY REPAIR
-Updated: 2026-08-24 22:08 KST
+Status: READY
+Task ID: company-r3-canon-convergence-staged-repair-v4
+Mode: OWNER-ACCEPTED CANON — STAGE A NARRATIVE/P1 CLOSURE AFTER R3 TEST SCHEMA CONVERGENCE
+Updated: 2026-08-24 22:18 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `d6ff6995b788ed7fff22e601618a59c85a29a0d8`
-Accepted blocker review: Issue #68 comment `5395590824`
-Blocked lineage terminal: Issue #68 comment `5395511287`
-Earlier staged-repair blocker: Issue #68 comment `5395267488`
-Owner-accepted canon: current main `docs/redesign/COMPANY_CANON.md`
-Historical safe precedent only: Issue #68 additive-schema audit terminal `5317875505`, operator review `5317921790`, blocked apply `5317989486` / review `5318048332`
-Staged product convergence to resume only after operator review: `company-r3-canon-convergence-staged-repair-v3`
+Registration base main: `da0065742962f74c2a6b0679e740fe9e655a628c`
+Accepted schema convergence terminal: Issue #68 comment `5395751404`
+Accepted schema convergence review: Issue #68 comment `5395803643`
+Previous staged-repair blocker: Issue #68 comment `5395267488`
+Previous browser convergence failure: Issue #68 comment `5394670021`
+Accepted implementation baseline to preserve: `c166eee1ccbca23227a7b8f6fd30800c4ba392bb`
+Current main runtime/source tree is authoritative; the local-only 316/316 edits reported by `5395267488` are evidence only and are NOT landed.
 
 ## Reuse / authority law
 
@@ -20,277 +20,358 @@ Staged product convergence to resume only after operator review: `company-r3-can
 - Reuse this exact `docs/ops/CURRENT_TASK.md` path. Overwrite it in place for lifecycle state.
 - Do NOT create a new CURRENT_TASK file.
 - Do NOT create an ops branch or any other branch.
-- Read before work, in order:
+- Read before edit, in order:
   1. `AGENTS.md`
   2. `CURRENT_TRUTH.md`
   3. `docs/redesign/COMPANY_CANON.md`
   4. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
   5. `docs/redesign/MEDIA_CATALOG_CONTRACT.md`
-  6. current R3 migration files listed below
-  7. Issue #68 terminal `5395511287`
-  8. Issue #68 operator review `5395590824`
-  9. this CURRENT_TASK
-- Current owner canon and current main R3 source outrank historical v1/v2 bridge artifacts.
-- The old `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql` from historical branch evidence is precedent only. Do NOT reuse its SQL.
-- Preserve A′ / R3 architecture. This task is TEST schema convergence only, not product redesign.
+  6. Issue #68 terminal `5394670021`
+  7. Issue #68 terminal `5395267488`
+  8. Issue #68 terminal `5395751404`
+  9. Issue #68 operator review `5395803643`
+  10. this CURRENT_TASK
+- Latest owner canon/current main outrank old PRs/issues/tests/live behavior.
+- PR #95/#96 and old redesign branches are provenance only.
+- Preserve the A′/R3 architecture. Do not redesign the engine to solve output quality.
+- Do not redo accepted `c166eee...` character/media/memory/CSA groundwork unless current evidence proves it wrong.
+- Do not assume any unpushed/local-only source result from `5395267488` exists. Reproduce a fix from current main only when the owning boundary is still provably wrong.
 
 Target success terminal:
-`R3_TEST_SCHEMA_TARGET_CONVERGED_AWAITING_OPERATOR_REVIEW`
+`CANON_CONVERGENCE_STAGE_A_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`R3_TEST_SCHEMA_TARGET_CONVERGENCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CANON_CONVERGENCE_STAGE_A_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-Never claim OWNER_READY. Do not deploy Workers or resume browser acceptance inside this task.
-
----
-
-# 0. Why this task exists
-
-Global TEST migration history is historically inconsistent with current repository filenames. Two lineage tasks correctly refused `supabase migration repair`; the latest fresh read found 36 applied ledger rows and many remote/local historical rows whose exact filename lineage remains ambiguous.
-
-That ambiguity must NOT continue to block current R3 product work indefinitely.
-
-Historical Issue #68 work already established the safe repository precedent: do not rewrite migration history; instead compare actual TEST schema objects to the current target contract and, when the delta is fully proven additive/non-destructive, apply the smallest TEST-only schema bridge without inserting/updating migration-history rows.
-
-This task repeats that method FRESHLY for **current Company R3 only**. It must not attempt to reconcile all v1/v2 migration filenames.
+Never claim OWNER_READY. This task is intentionally Stage A only. Do NOT start Stage B/C/D automatically.
 
 ---
 
-# 1. Current R3 target source
+# 0. Fixed starting facts
 
-Compute the final desired TEST schema by reading the current-main R3 migrations in chronological order, including at minimum:
+The migration-lineage blocker is closed for current R3 product work.
 
-1. `supabase/migrations/20260821000100_company_r3_milestone0.sql`
-2. `supabase/migrations/20260821000200_company_r3_csa_mvp.sql`
-3. `supabase/migrations/20260822000100_company_r3_failed_retry_stage_leases.sql`
-4. `supabase/migrations/20260822000200_company_r3_opening_revision_fence.sql`
-5. `supabase/migrations/20260822000300_company_r3_feedback_revision.sql`
-6. `supabase/migrations/20260823000100_company_r3_same_game_reset.sql`
+Accepted TEST schema state from terminal `5395751404`:
+- R3 structural target equals current-main source;
+- 7 R3 table structures/columns/constraints/indexes already equivalent;
+- 13 current `company_r3_*` functions already equivalent;
+- the only applied bridge was ACL-only, narrowing `service_role` table access to SELECT;
+- `supabase_migrations` stayed 36 rows, fingerprint `119aca88c88b24fafac3ecec8eb629eb` unchanged;
+- R3 gameplay row counts were unchanged;
+- migration-history mutations = 0;
+- migration apply/db push/repair = 0.
 
-Include any later current-main migration that actually mutates `company_r3_*` objects if one exists at task start.
+Therefore this Stage A MUST NOT run global migration lineage reconciliation, `supabase migration repair`, or `supabase db push` as a deployment prerequisite.
 
-The target is the **final composed object state**, not the fact that a particular migration filename exists in the remote ledger.
+A read-only R3 schema-target recheck is allowed before deployment. If current TEST R3 target has materially drifted from current main, STOP BLOCKED with exact object evidence. Do not repair migration history.
 
-Do not modify those historical/current migration files in this task.
-
----
-
-# 2. Hard prohibitions
-
-This task MUST NOT:
-
-- run `supabase migration repair`;
-- insert/update/delete `supabase_migrations.schema_migrations` or any migration-history table;
-- run `supabase db push` (dry-run or non-dry-run is unnecessary for this task);
-- replay every historical v1/v2 migration;
-- rename/delete/rewrite any `supabase/migrations/*.sql` file;
-- apply the old historical Company-v1 bridge SQL;
-- fabricate target SQL from prose or filename similarity;
-- deploy API/frontend Workers;
-- create/reset/play/mutate TEST games;
-- mutate preserved evidence game rows as part of schema installation;
-- access Production;
-- change runtime/frontend/content/provider/model/config/secrets;
-- add a new semantic engine, compatibility layer, retry, or parser;
-- create a new branch/task file/PR.
-
-No provider/model/config changes.
+No DB schema change is expected or authorized in this Stage A. If a proposed Stage-A fix genuinely requires a new DB schema contract, STOP for operator review rather than silently authoring/applying a migration.
 
 ---
 
-# 3. Fresh live TEST schema audit
+# 1. Stage-A product canon
 
-TEST project: `fmcrspgxstsmxxsmkeee`.
+Stage A is owned by:
+- `P-IDENTITY-001`
+- `P-AGENCY-001`
+- `P-PLAYER-THOUGHT-001`
+- `P-STORY-001`
+- `P-CHARACTER-001`
+- `P-OPENING-001`
+- `P-MEMORY-001`
+- `P-MIND-001`
+- `P-INPUT-001`
+- `P-QUALITY-001`
 
-Use read-only catalog queries first. Do not infer from the migration ledger alone.
-
-Inventory every R3 target object relevant to current main, including:
-
-- `company_r3_games`
-- `company_r3_state`
-- `company_r3_turn_jobs`
-- `company_r3_turns`
-- `company_r3_system_events`
-- `company_r3_turn_revision_history`
-- `company_r3_feedback_attempts`
-- all columns/defaults/nullability/checks/FKs/PKs/unique constraints required by current R3 source;
-- all current `company_r3_*` RPC/function signatures and `pg_get_functiondef` bodies;
-- execute/table grants and revokes relevant to service_role/public/anon/authenticated;
-- indexes/constraints that current R3 source relies on;
-- current row counts for R3 tables only, so an apparently additive ALTER can be classified for evidence/data impact.
-
-Also read the TEST migration ledger only as corroborating evidence. Do not mutate it.
-
-Capture a stable pre-apply schema fingerprint over the target R3 catalog/definitions so post-apply comparison is reproducible.
-
----
-
-# 4. Required object-by-object classification
-
-For every final target R3 object/attribute classify exactly one:
-
-- `ALREADY_EQUIVALENT` — live TEST is already equivalent to current-main final R3 target;
-- `SAFE_ADDITIVE_CREATE_OR_REPLACE` — missing/different target can be reached without deleting/reinterpreting committed gameplay data or migration history;
-- `SAFE_ACL_ONLY` — only grant/revoke convergence is required;
-- `MISSING_PREREQUISITE` — a required object/dependency is absent and cannot safely be created within this bounded bridge;
-- `DATA_OR_EVIDENCE_REWRITE_REQUIRED` — reaching target would update/delete/rewrite existing R3 gameplay/evidence rows;
-- `DESTRUCTIVE_OBJECT_CHANGE_REQUIRED` — target requires dropping data-bearing table/column/constraint in a way that risks existing evidence or current callers;
-- `AMBIGUOUS` — target/live equivalence cannot be proven.
-
-Do not treat comments, whitespace or function input parameter names as semantic differences when PostgreSQL identity/caller behavior proves equivalence. Conversely, do not treat function body differences as equivalent merely because signatures match.
-
-## Mandatory safety rule for existing rows
-
-Current failed/audit games are preserved evidence. Schema installation itself must not rewrite their gameplay rows.
-
-Examples:
-- a `CREATE OR REPLACE FUNCTION` is normally eligible for safe classification;
-- creating a genuinely missing side table with no rewrite of existing rows may be eligible;
-- adding a column may be eligible only when its installation semantics do not rewrite/reinterpret preserved rows and the final runtime contract is still correct;
-- a required blanket `UPDATE company_r3_turn_jobs ...` backfill on preserved rows is `DATA_OR_EVIDENCE_REWRITE_REQUIRED` and must STOP this task unless read-only evidence proves the live schema already has the needed state and no backfill is required;
-- `DROP TABLE`, data-bearing `DROP COLUMN`, or destructive reset of rows is not permitted.
-
-If ANY required target remains `MISSING_PREREQUISITE`, `DATA_OR_EVIDENCE_REWRITE_REQUIRED`, `DESTRUCTIVE_OBJECT_CHANGE_REQUIRED`, or `AMBIGUOUS`, do not apply anything. STOP BLOCKED with the exact first unsafe boundary and full classification summary.
+Key non-negotiables:
+- adult company-life interactive fiction / character simulation, not work-task simulator;
+- free-form literal actor/target/action/topic/refusal/self-state/intent preserved;
+- Story may block/fail/consequence an action, but cannot silently replace it;
+- game must not invent the player's private desire/consent/motive/thought;
+- Opening is a living scene, not roster/profile dump;
+- heroines must differentiate through behavior/dialogue, not labels;
+- Mind Monitor is `{surface, subconscious}`, current/relevant actors only, same committed reality as Story;
+- ordinary turn remains Story -> one observer; no second Story/choice/MM LLM;
+- exactly four full Story choices plus separate compact quick-action labels; compact click submits full literal unchanged;
+- Story quality/browser reality outranks green tests alone.
 
 ---
 
-# 5. Build the smallest current-R3 bridge only if fully safe
+# 2. Preserve/read-only evidence games
 
-Proceed only if the COMPLETE final R3 delta consists solely of:
+Do not reset/mutate/replay-for-green these prior evidence games:
 
-- `ALREADY_EQUIVALENT`;
-- `SAFE_ADDITIVE_CREATE_OR_REPLACE`;
-- `SAFE_ACL_ONLY`.
+- Campaign A stale-turn evidence: `3295849e-3734-4c96-90f7-8ea54042968c`
+- Campaign B MM identity evidence: `17b85d0b-fc18-4a6f-9670-caab09cf09e8`
 
-Build the bridge from the exact current-main R3 SQL definitions, preserving final chronological supersession. Do not copy obsolete earlier function bodies when a later R3 migration supersedes them.
+Use them read-only only when exact forensic evidence is still available.
 
-The bridge may exist only as an ephemeral `.tmp/` or OS temp artifact for this task; do not add another canonical SQL/migration source file. Record its SHA-256 in the terminal.
-
-Installation SQL itself must contain **no gameplay-row INSERT/UPDATE/DELETE**, other than DML text inside a function body that is merely being defined and is not invoked during installation.
-
-Do not add a migration-ledger row for the bridge.
+Fresh browser acceptance must use NEW disposable adult-profile games.
 
 ---
 
-# 6. Atomic TEST-only execution channel
+# 3. P1-A — stale/failed turn transport and player-facing recovery
 
-Historical evidence shows `supabase db query --file` rejects multiple top-level commands through its prepared-statement path. Do not repeat that failed multi-command method.
+Campaign A previously reached Turn 10, then Turn 11 surfaced `company_r3_stale_turn_timeout` and `Retry failed action` in player-facing UI.
 
-If a bridge is required, package the entire safe bridge as **one PostgreSQL statement** compatible with that execution path, for example one `DO $bridge$ ... $bridge$` block using deterministic dynamic DDL, or another provably single-statement mechanism.
+Current source already contains accepted R3 explicit failed-turn retry/stage-fencing work from earlier cuts. Do NOT reopen that architecture merely because a provider/edge request can genuinely fail.
 
-Requirements before mutation:
+First classify the current boundary from source plus read-only evidence:
 
-1. prove the artifact parses as one top-level SQL statement;
-2. prove it contains exactly the classified bridge operations and nothing else;
-3. re-read live R3 schema fingerprint immediately before execution and require it to equal the audited pre-apply fingerprint;
-4. confirm TEST project identity exactly;
-5. confirm migration-history write count remains 0;
-6. confirm no R3 game mutation command is present in installation SQL.
+`visible literal -> browser POST/request id -> action_id/attempt -> R3 job -> Story provider lifecycle -> observer -> Commit -> reconnect/context recovery -> rendered UI`.
 
-Then execute the bridge **once** against TEST.
+Required distinction:
 
-No speculative retry. If submission outcome is ambiguous, STOP and verify read-only state before any further action; do not submit a second time merely to get green.
+1. **false/ambiguous stale** — server is still validly processing/committed but client falsely terminalizes or loses the result: P1 source defect, fix owning boundary;
+2. **genuine durable failed job** — Story/provider/edge genuinely failed and durable state says failed: may be acceptable only if explicit user recovery works cleanly, no duplicate Story/Commit occurs, and player-facing UI does not expose internal jargon;
+3. **hard lock after failure** — next explicit player action cannot recover the canonical turn: P0/P1 source defect;
+4. **duplicate/replayed logical turn without explicit user retry**: P0/P1 defect.
 
-A single PostgreSQL statement is atomic. If the available client cannot execute the proven single statement, STOP BLOCKED before mutation.
+Do not use:
+- blind timeout inflation;
+- provider/model/temperature/token changes;
+- hidden automatic retry/regeneration;
+- second Story for the same logical action;
+- fake client-side commit;
+- retry-until-pass acceptance.
 
----
+If source still exposes `company_r3_stale_turn_timeout`, `r3_*`, `revision`, `Commit`, `Retry failed action`, or equivalent internals as normal game language, replace only the presentation wording while retaining diagnostic codes internally.
 
-# 7. Post-apply verification
+A dedicated recovery probe may use exactly one explicit user retry only if a fresh run naturally produces a durable failed job. That retry is product-flow evidence, not a second sample for pass-seeking. Do not count retried prose as a clean quality sample.
 
-After a successful bridge execution, use read-only catalog checks only.
-
-Prove:
-
-- every current-main final R3 target object is now `ALREADY_EQUIVALENT`;
-- required R3 function signatures/bodies match final current-main target semantics;
-- table columns/constraints/ACLs match the safe target scope;
-- preserved R3 table row counts are unchanged by bridge installation except metadata that PostgreSQL itself necessarily changes for schema definitions; gameplay rows themselves were not updated/deleted/inserted;
-- migration ledger row count/content is unchanged from pre-apply snapshot;
-- no v1/v2 object was unintentionally changed;
-- no Production access occurred.
-
-Do NOT create/play/reset a game in this task. Browser acceptance belongs to the staged convergence continuation after operator review.
-
-If the live schema is already fully equivalent at preflight, make zero DB writes and classify success as `NO_BRIDGE_REQUIRED`.
+Focused contracts must prove:
+- a legal in-flight job is not falsely abandoned;
+- a true failed/stale job reaches explicit recoverable terminal state;
+- one explicit retry uses a fresh action id / correct attempt fencing and commits at most once;
+- refresh/reconnect does not create a second Story/turn;
+- a failed action does not permanently hard-lock the next canonical turn;
+- fast path stays one visible action -> one Story -> one Commit.
 
 ---
 
-# 8. Repository/lifecycle policy
+# 4. P1-B — Story / Mind Monitor actor identity
 
-Permitted repository change in this task:
+Campaign B previously showed Story participant identity and rendered Mind Monitor heroine identity disagreeing.
 
-- this existing `docs/ops/CURRENT_TASK.md` lifecycle state only.
+Trace exact current path:
 
-Do not commit temp bridge artifacts.
-Do not edit migration source.
-Do not create a branch.
+`Story registered actor ids/dialogue -> committed scene present/focal ids -> observer raw MM actor ids -> normalizer/applied ids -> frontend canonical character-name render`.
 
-At terminal, overwrite this same CURRENT_TASK to `Status: WAITING_REVIEW` if runner convention requires it, and normally fast-forward main only for that docs lifecycle change.
+Classify the first broken boundary:
+- Story actor identity;
+- observer actor_id output;
+- grounding against current/relevant actors;
+- normalizer mapping;
+- stale prior MM reuse;
+- frontend id->name mapping.
+
+Fix only the owning boundary.
+
+Required behavior:
+- canonical exact actor IDs only;
+- MM entries only for current/relevant registered actors;
+- no fuzzy name / nearest-name / pronoun guessing / Korean-name similarity repair;
+- ambiguous/invalid MM entry drops locally with warning and never gets assigned to another heroine;
+- stale MM from a prior turn must not survive as if current when the new applied MM is empty/invalid;
+- MM failure remains local; valid Story commits;
+- visible character name must be derived from exact applied actor id;
+- MM content must describe the same committed reality as Story;
+- player private thought remains empty unless grounded in literal user input.
+
+Add focused regressions for multi-NPC and invalid/ambiguous actor-id cases.
 
 ---
 
-# 9. Required terminal report
+# 5. Opening focal projection and character dramatization
 
-Post one Issue #68 terminal containing:
+Inspect current Opening context construction, including `relevantActorIds(opening)` / heroine-card projection or equivalents.
 
-- START/FINAL main SHA;
-- current canon SHA read;
-- TEST project identity;
-- pre/post R3 schema fingerprints;
-- migration ledger pre/post count/fingerprint and confirmation history mutations = 0;
-- complete R3 object classification counts and all non-equivalent objects;
-- whether result was `NO_BRIDGE_REQUIRED` or `BRIDGE_APPLIED`;
-- bridge SHA-256 if used;
-- exact single-statement execution mechanism if used;
-- DB schema write count;
-- gameplay-row mutation count = 0;
-- migration apply/db-push/repair count = 0;
-- deploy count = 0;
-- game creation/reset/turn count = 0;
-- Production access = 0;
-- changed repository paths;
-- any unsafe/ambiguous object if blocked.
+Required distinction:
+- canonical world `present` actors remain truthful;
+- Story focal prompt context may be a smaller subset chosen for natural dramatization;
+- do not erase physically present registered characters from world state merely to simplify prose.
+
+If current Opening hands all co-located heroines full prompt cards and creates roster/profile-dump pressure, narrow only **focal Story projection**.
+
+`content/characters.json` remains canonical content, but Story receives a bounded whitelist of acting-useful material only. Preserve useful dramatization fields such as:
+- ordinary initiative/habits;
+- speech/address/social distance;
+- work/private behavior;
+- stress/anger/embarrassment/conflict;
+- help/care;
+- hierarchy behavior;
+- attraction/intimacy/boundary behavior;
+- first CSA reaction/adaptation;
+- continuity after meaningful events;
+- a small set of dialogue examples.
+
+Do not dump unrelated body/catalog/private metadata or internal archetype labels into Story prompts.
+
+Acceptance failure examples:
+- `서원희는 생활형 리더다`-style profile recitation;
+- all heroines introduced as dossier list;
+- mandatory first-work quest;
+- work/report/meeting answer mechanically injected into unrelated social/adult scene.
+
+---
+
+# 6. Agency / thought / choice regression preservation
+
+Before editing these areas, verify current-main behavior and tests. Only patch a proven gap.
+
+Permanent probes:
+- `한리브 대리와 점심 메뉴에 대해 가볍게 이야기한다.`
+- `혼자 창가에 서서 오늘 아침의 낯선 앱에 대해 생각한다.`
+- movement toward a registered heroine including 윤민아 when context permits;
+- explicit refusal followed later by changed intent;
+- stop/change an ongoing interaction.
+
+Required:
+- literal target/topic/movement/refusal/self-directed action preserved;
+- Story can narrate refusal/block/consequence, not substitute another action;
+- no invented player attraction/desire/consent/moral judgment/decision in `player_inner_thought`;
+- exactly four full provider-visible choices on completed Story;
+- observer copies/structures literal choices, does not invent replacements;
+- choice projection failure does not trigger a second Story;
+- choices should be meaningfully different, especially in adult scenes; not four variants of escalation.
+
+---
+
+# 7. Stage-A validation and landing
+
+## 7.1 Deterministic source validation
+
+Run focused tests for changed Stage-A boundaries only first:
+- R3 turn/reconnect/failed-retry presentation if changed;
+- MM actor identity/grounding;
+- Opening focal projection;
+- character bounded projection;
+- agency/player thought/choice contracts touched by the diff.
+
+Then run:
+- changed JS syntax checks;
+- JSON parse checks for changed content;
+- `git diff --check`.
+
+Before TEST deploy, run the established full repository test suite once as regression signal. Do not restore superseded behavior merely to make stale tests green.
+
+Land only reviewed Stage-A source/test changes on `main` with normal fast-forward semantics. No new branch/PR.
+
+## 7.2 TEST schema predeploy gate — read-only only
+
+Freshly read current TEST R3 target objects. Confirm the schema remains materially equivalent to current main after accepted terminal `5395751404`.
+
+Do NOT run:
+- `supabase db push`;
+- `supabase migration repair`;
+- migration-history mutation;
+- migration reapplication.
+
+If material schema drift is found, STOP BLOCKED instead of repairing it inside this task.
+
+## 7.3 TEST deployment
+
+Deploy only R3 TEST components whose source actually changed:
+- API Worker if server/runtime changed;
+- frontend Worker if frontend/presentation changed.
+
+Record exact Worker version IDs and source SHA.
+No Production deploy/access.
+
+---
+
+# 8. Fresh real-browser Stage-A acceptance
+
+After exact TEST deploy/preflight, use actual deployed browser UI, not direct gameplay API as a substitute.
+
+Create one NEW adult-profile game and run a continuous **10–12 ordinary-turn** Stage-A campaign. No regeneration/sample-until-pass.
+
+Required coverage:
+- Opening as a natural living scene with small focal interaction;
+- social/non-work small talk;
+- one full-choice click and one unrestricted free input;
+- permanent Han Ribe lunch probe;
+- self-directed/alone probe;
+- movement toward a registered heroine when practical;
+- one refusal/change-of-mind sequence;
+- one stop/change interaction;
+- heroine conversation and follow-up;
+- multi-NPC scene when natural;
+- at least one flirt/adult/intimate request plus de-escalation or boundary response;
+- player-thought negative checks;
+- at least five consecutive MM-bearing turns when the scene supports MM, with exact visible name/applied actor-id parity;
+- refresh/re-entry after Turn 3+ and confirmation of no duplicate Story/Commit;
+- four full choices remain visible/useful and compact actions still submit full literal.
+
+For every decisive probe, record:
+`literal action -> Story -> observer raw -> observer applied -> durable state -> next Story/UI`.
+
+Stage-A PASS requires:
+- no reproducible P0/P1 agency/identity/MM/Opening/narrative-transport defect;
+- no false/ambiguous stale classification;
+- if a genuine failed job naturally occurs, product exposes explicit understandable recovery and does not hard-lock/duplicate; dedicated explicit retry may be tested once, but do not use it to manufacture a clean prose sample;
+- no player-facing internal R3 jargon;
+- no roster/dossier Opening;
+- no work-task funnel dominating unrelated social/adult actions.
+
+If the campaign hits a new unrelated P1 that invalidates subsequent evidence, preserve fixture and STOP. Do not broaden into Stage B/C/D.
+
+---
+
+# 9. Global prohibitions
+
+Do NOT add or reintroduce:
+- generic relation/consent/emotion engine;
+- generic physical/posture/contact ontology;
+- sexual event ledger/dynamic sexual gauges;
+- generic CSA execution/sexual-action DSL;
+- second Story/choice/MM/media LLM;
+- fuzzy/NER/nearest actor repair;
+- automatic retry/regeneration-until-lucky;
+- provider/model/config/secret changes as quality fixes;
+- new parser generation;
+- global migration-history repair;
+- Production access/deploy;
+- destructive DB/history/game rewrite;
+- new CURRENT_TASK file or branch.
+
+Do not mutate preserved evidence games listed in this task.
+
+---
+
+# 10. Terminal / lifecycle
+
+On PASS:
+- ensure Stage-A source/test changes are actually landed on `main`;
+- verify local/remote main equality;
+- overwrite this SAME CURRENT_TASK file to `Status: WAITING_REVIEW`;
+- post one terminal to Issue #68;
+- STOP. Do NOT start Stage B automatically.
+
+Terminal must include:
+- START/FINAL main SHA and source SHA(s);
+- canon blob/SHA read;
+- exact source/test files changed;
+- focused/full test results and static checks;
+- read-only TEST schema recheck result;
+- deployed API/frontend version IDs or explicit no-change/no-deploy;
+- fresh browser game id and turn count;
+- P1-A classification and any explicit retry evidence;
+- P1-B raw/applied/render identity evidence;
+- Opening focal-cast evidence;
+- permanent agency probes;
+- player-thought negative evidence;
+- MM consecutive-turn evidence;
+- refresh/re-entry duplicate check;
+- P0/P1/P2/P3 findings;
+- Production access=0;
+- migration apply/db push/repair/history mutation=0;
+- preserved evidence games mutation=0.
 
 Success terminal:
-`R3_TEST_SCHEMA_TARGET_CONVERGED_AWAITING_OPERATOR_REVIEW`
+`CANON_CONVERGENCE_STAGE_A_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`R3_TEST_SCHEMA_TARGET_CONVERGENCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CANON_CONVERGENCE_STAGE_A_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-STOP after terminal. Do not automatically restart `company-r3-canon-convergence-staged-repair-v3`; operator review will register the continuation.
-
----
-
-# 10. Execution evidence — awaiting operator review
-
-Terminal: `R3_TEST_SCHEMA_TARGET_CONVERGED_AWAITING_OPERATOR_REVIEW`
-Execution lease: Issue #68 comment `5395654224`
-Starting main SHA: `b4199bc694e5fd6280e17e7c030c72c675510867`
-Current canon read: `docs/redesign/COMPANY_CANON.md` blob `ccfe0daa0abde7e5fdd378d3647a9cd4c325ba84`
-TEST project: `fmcrspgxstsmxxsmkeee`
-
-Pre-apply R3 schema fingerprint: `b37a6c6468aff4d71bb4dc0fbe601510`
-Post-apply R3 schema fingerprint: `d9dbeb8a2afdd4535a2f5a77b217dcd2`
-Pre/post component hashes:
-
-- columns: `294d926c539ec5a8696cfd1582348980` → unchanged
-- constraints: `0c7cd6e4bd9cba67d8cac3a9b79ae953` → unchanged
-- indexes: `0f1006be28dc0daee83bdff11f6a3750` → unchanged
-- functions: `697a10963bf44a2c3f667fa468a5abdd` → unchanged
-- table ACLs: `4fb8bd80517adf90ebf937301852c8f2` → `3891d26cc66fb288c2bb84a6c59da9fa`
-
-R3 target classification:
-
-- 7 target tables: `ALREADY_EQUIVALENT` for object existence, columns, defaults, nullability, checks, FKs, PKs, uniques, and indexes.
-- 7 target table ACL surfaces: `SAFE_ACL_ONLY` (live `service_role` had full table DML; final R3 source contract is `service_role` SELECT only, with public/anon/authenticated revoked).
-- 13 current `company_r3_*` functions: `ALREADY_EQUIVALENT` for signatures, bodies, language, `SECURITY DEFINER`, owner, and `search_path`; function ACLs were already equivalent.
-- Unsafe/ambiguous objects: none.
-
-Result: `BRIDGE_APPLIED`.
-Bridge SHA-256: `76c38e2bf96430013108851d71d761429cb4d397e864af57b392bdc07211ba86`
-Execution mechanism: one `supabase_execute_sql` call containing exactly one top-level PostgreSQL `DO $bridge$ ... $bridge$;` statement with only ACL revoke/grant operations; no table-row DML and no function invocation.
-
-Ledger pre/post: `36` rows / `119aca88c88b24fafac3ecec8eb629eb` → unchanged. Migration-history mutations: `0`.
-R3 row counts pre/post: games `146`, state `146`, turn_jobs `503`, turns `640`, system_events `59`, turn_revision_history `355`, feedback_attempts `4` → unchanged. Gameplay-row mutation: `0`.
-DB schema writes: `1` ACL-only bridge. Migration apply: `0`; `supabase db push`: `0`; migration repair: `0`; deploys: `0`; game create/reset/play/turns: `0`; Production access: `0`.
-Repository changes: this existing `docs/ops/CURRENT_TASK.md` lifecycle/evidence section only; no migration source, bridge artifact, runtime, test, or config changes.
+STOP after terminal. Operator review will decide whether to register Stage B CSA lifecycle continuation.
