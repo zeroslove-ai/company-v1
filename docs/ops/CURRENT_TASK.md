@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-final-semantic-live-acceptance-browser-recovery-v1
 Mode: ACCEPTANCE-ONLY RECOVERY — BROWSER OBSERVABILITY / S1 SUPPORTED-vs-UNSUPPORTED / S7 FINAL MANDATORY LANE
 Updated: 2026-08-25 04:22 KST
@@ -330,3 +330,22 @@ Browser-control blocked:
 `CSA_FINAL_MANDATORY_SEMANTIC_LANES_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+---
+
+# Lifecycle terminal — 2026-08-25 KST
+
+Terminal classification: `CSA_FINAL_MANDATORY_SEMANTIC_LANES_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Execution identity: `company-r3-csa-final-semantic-live-acceptance-browser-recovery-v1` + lease blob `d9e64a85367d2545a283844bd8713448ca7a1ae8` + expected branch `main`.
+- Start/final main SHA: `4636c60ce5470690a3b37b9bfb367955db3a0cc1` (no source descendants or remote delta).
+- Accepted executable frozen at `f607e4e868e18bde61ba8c46d508d3a502551c6f`; TEST API `769cd525-7b56-40cf-ad0b-f6c2132b9802`; TEST frontend `9bb754d0-632c-42e5-83b1-441ce6079688`; redeploy count `0`.
+- Browser readiness passed before Setup: DOM read, screenshot, Setup-field reads, and bounded repeat DOM read all succeeded.
+- Exactly one fresh disposable game: `babfa5a6-719b-4dbe-a392-cb2c62cc1faa`. Setup values were visibly validated as name `김도현`, age `30`, height `180`, weight `75`, penis length `15`, with the visible valid defaults `브랜드전략팀 (히로인 5명)`, `인턴 (신입 관찰)`, `균형 잡힌 체형`, and `정중한 존댓말`. Opening was exactly once and returned Turn 0, four choices, free input, and enabled controls.
+- S1 prerequisite: one visible APPLY, subject/instructed employee `서원희`, counterparty `박정우`, target scope `여성 직원`, counterparty scope `남성 직원`; one committed Story turn (+1), Turn 1; active S1 read back exactly once in the visible app.
+- Supported literal submitted once through visible free input: `서원희 차장이 박정우 팀장에게 키스하도록 업무지시한다.` It committed as Turn 2. Visible Story preserved the player as issuer, `서원희` as instructed employee, `박정우` as counterparty, and the kiss action; no actor reversal, family substitution, generic rule confirmation, or feeling/consent rewrite.
+- Unsupported literal submitted once through visible free input: `서원희 차장에게 성적인 노래를 부르라고 업무지시한다.` Play Record visibly preserved the literal as Turn 3 input. Story did not make singing institutionally mandatory and did not convert it to a supported family; it showed ordinary reaction/document follow-up. Turn 3 committed and returned four choices/free input.
+- S7 valid operation: visible Strong `성적 업무 교육·훈련 지정권`, trainer `서원희`, trainee `윤민아`, exact selected registered adults and non-swapped roles. After exactly one visible APPLY, the UI reported `입력이 서버에 전송되거나 저장되지 않았습니다. 내용을 확인한 뒤 직접 다시 제출할 수 있습니다.` The game remained at Turn 3; no S7 +1 commit occurred. This is a deterministic failure of a valid S7 operation, so S4 fallback was not attempted.
+- Final browser state before handoff: Turn 3, no duplicate Story/Commit, active S1 still visible once before the S7 attempt, four choices/free input reachable, Mind Monitor showed no information for the turn, and no raw internal IDs or private-app institutional source was observed. No refresh/re-entry was performed because the first valid S7 failure required immediate stop. Browser observation failures `0`; read-only reattachments `0`; action resends `0`; dev logs `[]`.
+- Mutations forbidden by task: source/test/content/provider/model/config writes `0`; DB schema/migration/history-repair/direct gameplay writes `0`; Production access/deploy `0`; preserved-evidence access/mutation `0`; fresh games exactly `1`.
+- Findings: P0 `0`; P1 `1` — valid S7 APPLY did not send/store and did not produce the required committed turn; P2 `0`; P3 `0`.
