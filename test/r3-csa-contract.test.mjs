@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCanonicalCompanyR3Content } from '../runtime-r3/domain/content-loader.js';
+import { canonicalActors } from '../runtime-r3/domain/content.js';
 import { applyR3Csa, buildActiveS1StoryBinding, buildRuleChangeStoryBinding, createR3CsaCatalog, R3_CSA_TEMPLATE_IDS } from '../runtime-r3/domain/csa.js';
 import { buildStoryContext } from '../runtime-r3/domain/memory.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
@@ -268,6 +269,51 @@ test('frontend W5 selector handoff preserves both actor ids through draft and tu
   assert.equal(literal_action, 'W5 audit'); assert.deepEqual(csaOperation, operation);
   const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8'); const app = fs.readFileSync(new URL('../frontend-r3/app.js', import.meta.url), 'utf8');
   assert.match(source, /const operation = clone\(csaDraftOperation\(draft\)\)/); assert.match(source, /onOperation\?\.\(\{ \.\.\.operation, literal_action/); assert.match(app, /const \{ literal_action: literalAction, \.\.\.csaOperation \} = operation/); assert.match(app, /payload\.csa_operation = pendingOperation/);
+});
+
+test('real R3 actor catalog preserves canonical gender for bounded selector scopes', async () => {
+  assert.equal(content.characters.heroine1.gender, 'female');
+  assert.equal(content.characters.heroine2.gender, 'female');
+  const ids = ['heroine1', 'heroine2', 'general_park_jungwoo'];
+  const projected = canonicalActors(content, ids);
+  const projectedById = Object.fromEntries(projected.map(actor => [actor.id, actor]));
+  assert.equal(projectedById.heroine1.gender, 'female');
+  assert.equal(projectedById.heroine2.gender, 'female');
+  assert.equal(projectedById.general_park_jungwoo.sex, 'male');
+  for (const actor of projected) assert.doesNotMatch(JSON.stringify(actor), /private_info|voice_id|storage|intimate|body/);
+
+  const worker = createR3Worker({ store: new InMemoryR3Store(), provider: providerFor(), content, gameAccessSecret: GAME_ACCESS_SECRET });
+  const response = await worker.fetch(new Request('https://r3.test/api/r3/catalogs'));
+  assert.equal(response.status, 200);
+  const catalogActors = (await response.json()).data.actors;
+  const catalogById = Object.fromEntries(catalogActors.map(actor => [actor.id, actor]));
+  assert.equal(catalogById.heroine1.gender, 'female');
+  assert.equal(catalogById.heroine2.gender, 'female');
+  assert.equal(catalogById.general_park_jungwoo.sex, 'male');
+  for (const actor of catalogActors) assert.doesNotMatch(JSON.stringify(actor), /private_info|voice_id|storage|intimate|body/);
+
+  const catalog = createR3CsaCatalog(content.csaPresets);
+  const s7 = catalog.items.find(item => item.slot === 'S7');
+  let operation = csaSelectorOperation({ item: s7 });
+  operation = mergeCsaSelectorActor({ item: s7, operation, side: 'subject', actorId: 'heroine1', actors: catalogActors });
+  operation = mergeCsaSelectorActor({ item: s7, operation, side: 'counterparty', actorId: 'heroine2', actors: catalogActors });
+  assert.deepEqual(operation, {
+    operation: 'activate', template_id: 'sexual_work_training_designation', subject_scope: 'female_employee', counterparty_scope: 'female_employee',
+    subject_actor_id: 'heroine1', counterparty_actor_id: 'heroine2'
+  });
+  assert.equal(isCsaSelectorOperationReady(s7, operation, catalogActors), true);
+  assert.doesNotThrow(() => applyR3Csa({ state: { scene: { present_actor_ids: ids }, csa_active: [], csa_rules: {}, clothing: {} }, content, rawOperations: [operation] }));
+  const sameScope = mergeCsaSelectorScope({ item: s7, operation, side: 'subject', scope: 'female_employee', actors: catalogActors });
+  assert.equal(sameScope.subject_actor_id, 'heroine1');
+
+  const s1 = catalog.items.find(item => item.slot === 'S1');
+  let s1Operation = csaSelectorOperation({ item: s1 });
+  s1Operation = mergeCsaSelectorActor({ item: s1, operation: s1Operation, side: 'subject', actorId: 'heroine1', actors: catalogActors });
+  s1Operation = mergeCsaSelectorActor({ item: s1, operation: s1Operation, side: 'counterparty', actorId: 'general_park_jungwoo', actors: catalogActors });
+  assert.deepEqual(s1Operation, {
+    operation: 'activate', template_id: 'sexual_work_instruction_authority', subject_scope: 'female_employee', counterparty_scope: 'male_employee',
+    subject_actor_id: 'heroine1', counterparty_actor_id: 'general_park_jungwoo'
+  });
 });
 
 test('frontend bounded selectors merge actor ids and resolve compatible scopes', () => {

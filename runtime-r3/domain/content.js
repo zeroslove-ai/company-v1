@@ -106,7 +106,7 @@ export function canonicalActors(content, actorIds = []) {
   const directory = actorDirectory(content);
   return [...new Set(actorIds)].flatMap(actorId => {
     const actor = directory[actorId]; if (!actor) return [];
-    if (actor.character_id) return [{ id: actorId, name: actor.name, kind: 'heroine', department: actor.department, position: actor.position, prompt_card: heroineCard(actor) }];
+    if (actor.character_id) return [{ id: actorId, name: actor.name, kind: 'heroine', gender: actor.gender, department: actor.department, position: actor.position, prompt_card: heroineCard(actor) }];
     return [{ id: actorId, name: actor.name, kind: 'general_npc', sex: actor.sex, age: actor.age, role: actor.role, department_id: actor.department_id, personality: actor.personality, speech: actor.speech }];
   });
 }
