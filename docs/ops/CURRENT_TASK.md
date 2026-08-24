@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-mandatory-semantic-lanes-valid-setup-recovery-v1
 Mode: ACCEPTANCE-ONLY RECOVERY — VALID SETUP INPUT / CLOSE M5 + S1 BOUNDARY + S7-OR-S4 / FREEZE ALL PRIOR GREEN
 Updated: 2026-08-25 03:23 KST
