@@ -105,6 +105,20 @@ test('R3 approved image selection is deterministic and bounded to usable candida
   assert.equal(selectApprovedImage({ projection, candidates: [] }), null);
 });
 
+test('R3 media manifest is complete, unique, and uses stable storage locators', () => {
+  const entries = content.mediaCatalog.entries;
+  assert.equal(entries.length, 102);
+  assert.equal(entries.filter(entry => entry.pool === 'general').length, 5);
+  assert.equal(entries.filter(entry => entry.pool === 'sex').length, 97);
+  assert.equal(new Set(entries.map(entry => entry.image_id)).size, entries.length);
+  for (const entry of entries) {
+    assert.match(entry.asset_locator, /^storage:\/\/Image\/.+/);
+    assert.ok(entry.character_id && entry.situation && entry.tags.length > 0);
+    assert.equal(entry.active, true);
+    assert.ok(Number.isInteger(entry.curation_rank));
+  }
+});
+
 test('committed dialogue is the only TTS input and canonical voice is exact', () => {
   const context = contextFor({ story: `${heroine.name} (calm): "Exact line"\nNarrator: "Not a character"` });
   const batch = resolveCommittedTtsBatch({ context, content, speakerId: 'heroine1', spokenText: 'Exact line' });
@@ -184,7 +198,11 @@ test('server TTS authorization keeps exact latest-turn and fail-open boundaries'
 
 test('media routes read committed state, never call the provider, and use the TTS binding contract', async () => {
   const store = new InMemoryR3Store();
-  store.listImageCandidates = async () => [{ image_id: 'heroine1-main', image_url: 'https://approved.test/heroine1.jpg', curation_rank: 1, image_pool: 'general' }];
+  let imageQuery = null;
+  store.listImageCandidates = async (...args) => {
+    imageQuery = args;
+    return [{ image_id: 'heroine1-main', image_url: 'https://approved.test/heroine1.jpg', character_id: 'rogue', situation: 'rogue', tags: ['rogue'], image_pool: 'sex', curation_rank: 1 }, { image_id: 'rogue-db-only', image_url: 'https://approved.test/rogue.jpg' }];
+  };
   let providerCalls = 0; const provider = { story: async function* () { providerCalls += 1; yield 'unused'; }, observe: async () => { providerCalls += 1; return {}; } };
   const bindingCalls = [];
   const env = { TTS_WORKER_URL: 'https://tts.test/', TTS_WORKER: { fetch: async (url, init) => { bindingCalls.push({ url, init }); return new Response(JSON.stringify({ url: 'https://audio.test/line.mp3' }), { headers: { 'content-type': 'application/json' } }); } } };
@@ -194,7 +212,19 @@ test('media routes read committed state, never call the provider, and use the TT
   const state = store.states.get(gameId); state.revision = 1; state.committed_turn = 1; state.state.scene.present_actor_ids = ['heroine1']; state.state.scene.scene_note = 'desk';
   store.turns.set(`${gameId}:1`, { game_id: gameId, turn_number: 1, revision: 1, story_text: `${heroine.name}: "Exact line"`, observer_applied: {} });
   const imageResponse = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/media/image?character_id=heroine1`, { headers: auth }));
-  assert.equal((await imageResponse.json()).data.image.image_url, 'https://approved.test/heroine1.jpg');
+  const imagePayload = (await imageResponse.json()).data;
+  assert.equal(imagePayload.image.image_url, 'https://approved.test/heroine1.jpg');
+  assert.deepEqual(imageQuery, ['heroine1', 'general', ['heroine1-main']]);
+  state.state.sexual = { active: true };
+  const sexResponse = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/media/image?character_id=heroine1&pool=sex`, { headers: auth }));
+  const sexPayload = (await sexResponse.json()).data;
+  assert.equal(sexPayload.image, null);
+  assert.equal(sexPayload.reason, 'media_index_missing');
+  assert.equal(imageQuery[1], 'sex');
+  assert.ok(imageQuery[2].every(imageId => imageId.startsWith('heroine1-adult-')));
+  store.listImageCandidates = async () => [];
+  const missingResponse = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/media/image?character_id=heroine1`, { headers: auth }));
+  assert.deepEqual((await missingResponse.json()).data.image, null);
   const ttsResponse = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/media/tts?speaker_id=heroine1&text=${encodeURIComponent('Exact line')}`, { headers: auth }));
   assert.equal((await ttsResponse.json()).data.url, 'https://audio.test/line.mp3');
   assert.equal(bindingCalls.length, 1); assert.deepEqual(JSON.parse(bindingCalls[0].init.body), { voice_id: heroine.voice_id, text: 'Exact line', direction: '' });

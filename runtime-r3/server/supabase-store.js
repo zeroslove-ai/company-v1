@@ -52,8 +52,10 @@ export class SupabaseR3Store {
     const job = jobs?.find(candidate => candidate.turn_number === state.committed_turn + 1) ?? null;
     return { game: clone(games[0]), state: clone(state), turns: clone(turns ?? []), job: job ? summarizeJob(job) : null };
   }
-  async listImageCandidates(characterId, pool = 'general') {
-    return this.db.select('image_library', { select: 'image_id,image_url,character_id,situation,tags,image_pool,active,curation_rank', edition_id: 'eq.company-v1', character_id: `eq.${characterId}`, image_pool: `eq.${pool}`, active: 'eq.true', order: 'curation_rank.asc.nullslast,image_id.asc', limit: '8' });
+  async listImageCandidates(characterId, pool = 'general', imageIds = []) {
+    const exactIds = [...new Set((Array.isArray(imageIds) ? imageIds : []).filter(imageId => typeof imageId === 'string' && imageId.trim()))];
+    if (!exactIds.length) return [];
+    return this.db.select('image_library', { select: 'image_id,image_url', edition_id: 'eq.company-v1', image_id: `in.(${exactIds.join(',')})`, order: 'image_id.asc', limit: String(exactIds.length) });
   }
   async getJob(gameId, turnNumber) { await this.expireStaleJob(gameId, turnNumber); const rows = await this.db.select('company_r3_turn_jobs', { game_id: `eq.${gameId}`, turn_number: `eq.${turnNumber}` }); return rows?.[0] ? summarizeJob(rows[0]) : null; }
   async reserveTurn({ gameId, turnNumber, actionId, literalAction, csaOperation = null, retryFailed = false }) { const result = await this.db.rpc('company_r3_reserve_turn', { p_game_id: gameId, p_turn_number: turnNumber, p_action_id: actionId, p_literal_action: literalAction, p_rule_change_event: csaOperation, p_retry_failed: retryFailed }); return { job: summarizeJob(result.job), created: result.created === true, retried: result.retried === true }; }

@@ -61,13 +61,37 @@ export function createProductionR3Worker({ env, fetchImpl = fetch, content = loa
   return createR3Worker({ store: resolvedStore, provider: resolvedProvider, content, gameAccessSecret: env?.R3_GAME_ACCESS_SECRET, env });
 }
 
+function exactManifestImageCandidates(content, projection, rows) {
+  const entries = Array.isArray(content?.mediaCatalog?.entries)
+    ? content.mediaCatalog.entries.filter(entry => entry?.active === true
+      && entry.character_id === projection.character_id
+      && entry.pool === projection.pool)
+    : [];
+  const byId = new Map();
+  const ambiguous = new Set();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const imageId = typeof row?.image_id === 'string' ? row.image_id : '';
+    if (!imageId || typeof row?.image_url !== 'string') continue;
+    if (byId.has(imageId)) ambiguous.add(imageId);
+    else byId.set(imageId, row);
+  }
+  return entries.flatMap(entry => {
+    const row = byId.get(entry.image_id);
+    if (!row || ambiguous.has(entry.image_id)) return [];
+    return [{ ...entry, image_url: row.image_url }];
+  });
+}
+
 async function imageMediaResponse({ url, store, content, gameId }) {
   const context = await (store.presentationContext?.(gameId) ?? store.context(gameId));
   const projection = projectCurrentMedia({ context, content, requestedCharacterId: url.searchParams.get('character_id') ?? '', requestedPool: url.searchParams.get('pool') ?? 'general' });
   if (!projection.character_id) return json({ character_id: null, image: null, pool: projection.pool, reason: projection.reason });
   try {
-    const candidates = await (store.listImageCandidates?.(projection.character_id, projection.pool) ?? []);
-    return json({ character_id: projection.character_id, pool: projection.pool, image: selectApprovedImage({ candidates, projection }) });
+    const manifestEntries = (content?.mediaCatalog?.entries ?? []).filter(entry => entry?.active === true && entry.character_id === projection.character_id && entry.pool === projection.pool);
+    const rows = await (store.listImageCandidates?.(projection.character_id, projection.pool, manifestEntries.map(entry => entry.image_id)) ?? []);
+    const candidates = exactManifestImageCandidates(content, projection, rows);
+    const image = selectApprovedImage({ candidates, projection });
+    return json({ character_id: projection.character_id, pool: projection.pool, image, ...(image ? {} : { reason: 'media_index_missing' }) });
   } catch {
     return json({ character_id: projection.character_id, pool: projection.pool, image: null, reason: 'media_fail_open' });
   }
