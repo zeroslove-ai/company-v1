@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-three-tier-remaining-live-acceptance-v1
 Mode: ACCEPTANCE-ONLY — CLOSE REMAINING THREE-TIER CSA LIVE LANES / NO SOURCE REPAIR
 Updated: 2026-08-25 01:51 KST
