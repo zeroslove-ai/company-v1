@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-canon-convergence-staged-repair-v4
 Mode: OWNER-ACCEPTED CANON — STAGE A NARRATIVE/P1 CLOSURE AFTER R3 TEST SCHEMA CONVERGENCE
-Updated: 2026-08-24 22:18 KST
+Updated: 2026-08-24 22:58 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `da0065742962f74c2a6b0679e740fe9e655a628c`
@@ -375,3 +375,66 @@ Blocked terminal:
 `CANON_CONVERGENCE_STAGE_A_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 STOP after terminal. Operator review will decide whether to register Stage B CSA lifecycle continuation.
+
+---
+
+# Stage-A terminal report
+
+Terminal: `CANON_CONVERGENCE_STAGE_A_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+## Landed source and validation
+
+- Work was performed on `main` only. Start/final main SHA: `15f7f3b5684d48bae6d10ea68b8ac50ca94c009a`.
+- `origin/main` equals the final local SHA; no unpushed commit remains.
+- Canon/source references were read before execution, including `docs/redesign/COMPANY_CANON.md` and `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md` at the accepted current-main baseline. This task preserves the accepted R3 schema and A-prime boundaries.
+- Source files changed in the landed repair commit:
+  - `frontend-r3/app.js`
+  - `frontend-r3/status.js`
+  - `frontend-r3/turn-transport.js`
+  - `runtime-r3/domain/observer-normalizer.js`
+  - `runtime-r3/server/worker.js`
+- Focused tests retained/updated:
+  - `test/r3-canon-convergence.test.mjs`
+  - `test/r3-feedback-revision.test.mjs`
+  - `test/r3-frontend-contract.test.mjs`
+  - `test/r3-source-correction.test.mjs`
+  - `test/r3-turn-transport.test.mjs`
+- Focused tests: 57 passed.
+- Full `npm.cmd test`: 554 passed, 0 failed.
+- Changed JavaScript/module syntax checks passed; `git diff --check` passed. No changed JSON content required a JSON parse check.
+- No provider/model/config/secret change, no new DSL/router/verifier/retry architecture, and no schema change.
+
+## TEST schema/deploy evidence
+
+- TEST project was read-only checked at Supabase project `fmcrspgxstsmxxsmkeee`.
+- R3 tables/functions remained materially equivalent to current main; migration history remained 36 rows and no migration repair, migration apply, `db push`, or history mutation was performed.
+- Deployed only changed R3 components from the final source SHA:
+  - API Worker `wrangler.r3.api.jsonc`: version `8e5e4a27-35e4-429a-9df8-c32ddc189657`.
+  - Frontend Worker `wrangler.r3.frontend.jsonc`: version `f8ea750a-aafb-4589-8e0e-e74479b4ab91`.
+- Production access/deploy: 0.
+
+## Fresh browser acceptance
+
+- Fresh disposable adult-profile game: `03f0e48b-466b-4f12-8b6a-50730efbe8f5`.
+- Continuous campaign: Opening plus committed Turns 1–12; no reset and no replay of preserved games.
+- Opening was a living first-day office scene centered on the elevator arrival, Park Jungwoo's greeting, and the first small interaction. It was not a roster/profile dump. Durable Opening scene state retained the canonical six present actor IDs while Story used a bounded focal presentation.
+- Four full choices were visible on every completed Story; separate free-input control remained available. A full-choice click and free input both reached the live path; the compact full-choice literal was preserved in the committed turn.
+- Decisive action traces (browser literal → stored `game_actions`/R3 `literal_action` → Story → observer raw/applied → state/UI) were read back from `company_r3_turns`. Korean literals were stored as intact UTF-8 text; no `??` corruption was observed.
+- Permanent Han Ribe lunch probe: Turn 2 literal asks `한리브` about a non-work lunch and proposes eating together; Story accepts a 12:30 conditional plan. Turns 3–4 continue the exact restaurant/menu thread.
+- Social/non-work and multi-NPC probes: Turn 5 asks Yoon Mina about her lunch; Story includes her independent plan and other employees' movement. Turn 9 asks Han Ribe about weekends, and Story follows her quiet walking/park preference rather than forcing work.
+- Movement/follow-up: Turn 6 approaches Han Ribe to confirm the meeting time; Turn 7 follows the literal plan to wait and go to the first-floor restaurant; Turn 10 returns with her to the office. The durable location remained canonical and present actor IDs changed only through accepted observer output.
+- Adult/boundary probe: Turn 11 explicitly asks whether a sexual approach is acceptable in the workplace and promises to stop if uncomfortable. Story gives a clear workplace/time boundary without inventing consent or escalating. Turn 12 is the explicit apology/stop/change response and commits normally.
+- Player-thought negative: raw observer projections that were not grounded in the literal action were dropped locally; no stale prior MM/thought was carried into the next committed UI. The Turn 11/12 boundary sequence retained the literal player's stated intention and subsequent change of intent.
+- MM identity: Turn 7–11 provided five consecutive committed turns with non-empty applied MM (`1, 1, 1, 3, 3` entries). Raw/applied keys matched the exact registered actor IDs and rendered names matched those IDs (including `heroine4` → `한리브`, `heroine2` → `윤민아`, `heroine5` → `이메이`). Turn 12's invalid scalar MM projection was dropped to empty applied MM while Story and state committed, with no prior MM reuse.
+- Refresh/re-entry: after Turn 3+, a fresh browser view and later an explicit reload returned the same game at Turn 12 with 12 Story paragraphs and no duplicate Story/Commit.
+
+## P1 classification and findings
+
+- P1-A: the first full-choice submission in the fresh campaign produced one non-durable transport failure visible as understandable Korean recovery text; read-only TEST showed no durable job/turn, no stale committed turn, and no duplicate. The next explicit free-input submission created Turn 1 with a fresh literal and normal Story→observer→commit. This was not a durable failed job, so no retry-until-pass or recovery retry was used.
+- P1-B: exact post-Story actor membership is now authoritative for MM grounding; the live campaign showed exact raw/applied/rendered parity and local fail-open behavior when an MM projection was invalid.
+- Opening, agency, player-thought, choice-count, social/non-work, refusal/boundary, and transport-presentation checks showed no reproducible new P0/P1 defect after the landed repair.
+- P2/P3: no new finding in Stage-A scope.
+- Preserved evidence games `3295849e-3734-4c96-90f7-8ea54042968c` and `17b85d0b-fc18-4a6f-9670-caab09cf09e8` were read-only and mutation count was 0.
+- Migration apply/db push/repair/history mutation: 0. Production mutation: 0.
+
+Operator review is required before any later Stage-B CSA continuation. Do not generate or start another task from this report.
