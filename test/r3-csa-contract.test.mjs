@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { loadCanonicalCompanyR3Content } from '../runtime-r3/domain/content-loader.js';
 import { canonicalActors } from '../runtime-r3/domain/content.js';
-import { applyR3Csa, buildActiveS1StoryBinding, buildRuleChangeStoryBinding, createR3CsaCatalog, R3_CSA_TEMPLATE_IDS } from '../runtime-r3/domain/csa.js';
+import { applyR3Csa, buildActiveS1StoryBinding, buildRuleChangeInstitutionalAnnouncement, buildRuleChangeStoryBinding, createR3CsaCatalog, R3_CSA_TEMPLATE_IDS } from '../runtime-r3/domain/csa.js';
 import { buildStoryContext } from '../runtime-r3/domain/memory.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
@@ -77,6 +77,7 @@ test('R3 CSA catalog is the bounded 21-slot canonical catalog with explicit line
   ]);
   assert.equal(catalog.items.find(item => item.slot === 'S2').id, 'player_dedicated_sexual_support_designation');
   assert.equal(catalog.items.find(item => item.slot === 'S7').selector_schema, 'actor_pair');
+  assert.deepEqual(catalog.compatibility_conflicts.map(item => [item.left_slot, item.right_slot]), [['W3', 'M1'], ['W3', 'M2'], ['W1', 'M1'], ['W2', 'M1']]);
   assert.ok(catalog.items.every(item => !/^(?:W|M|S)[1-7]$/.test(item.id)));
   assert.ok(catalog.retired_template_ids.includes('continue_until_recipient_orgasm'));
 });
@@ -111,6 +112,25 @@ test('rule-change Story binding preserves exact W5 actors and direction without 
   assert.match(binding.rule.rule_text, /가슴/);
 });
 
+test('finite clothing conflicts reject before a Story reservation and compatible rules remain active', () => {
+  const base = { scene: { present_actor_ids: ['heroine1'] }, csa_active: [], csa_rules: {}, clothing: {} };
+  const w3 = applyR3Csa({ state: base, content, rawOperations: [{ operation: 'activate', template_id: 'cleavage_exposed_work', subject_scope: 'female_employee' }] });
+  assert.throws(() => applyR3Csa({ state: w3, content, rawOperations: [{ operation: 'activate', template_id: 'work_in_underwear_only', subject_scope: 'female_employee' }] }), /r3_csa_compatibility_conflict:.*가슴골 노출 근무.*속옷 근무/);
+  const w1 = applyR3Csa({ state: base, content, rawOperations: [{ operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee' }] });
+  assert.throws(() => applyR3Csa({ state: w1, content, rawOperations: [{ operation: 'activate', template_id: 'work_in_underwear_only', subject_scope: 'female_employee' }] }), /r3_csa_compatibility_conflict/);
+  const compatible = applyR3Csa({ state: base, content, rawOperations: [{ operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee' }] });
+  const compatibleNext = applyR3Csa({ state: compatible, content, rawOperations: [{ operation: 'activate', template_id: 'no_panties_under_work_clothes', subject_scope: 'female_employee' }] });
+  assert.equal(compatibleNext.csa_active.length, 2);
+});
+
+test('server-owned institutional announcement carries exact S7 designation even when Story omits it', () => {
+  const state = { scene: { present_actor_ids: ['heroine1', 'heroine2'] }, csa_active: [], csa_rules: {}, clothing: {} };
+  const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'sexual_work_training_designation', subject_scope: 'female_employee', counterparty_scope: 'female_employee', subject_actor_id: 'heroine1', counterparty_actor_id: 'heroine2' }] });
+  const binding = buildRuleChangeStoryBinding({ event: next.last_rule_change, content });
+  const announcement = buildRuleChangeInstitutionalAnnouncement({ event: next.last_rule_change, binding });
+  assert.match(announcement, /공식 공지/); assert.match(announcement, /서원희/); assert.match(announcement, /윤민아/); assert.match(announcement, /공식 기관 채널/); assert.doesNotMatch(announcement, /앱|초자연/);
+});
+
 test('active S1 projection exposes player authority and exact finite pair binding', () => {
   const state = { profile, scene: { location_id: content.locations[0].location_id, present_actor_ids: ['heroine5', 'general_park_jungwoo'] }, csa_active: ['r3_csa_1'], csa_rules: {
     r3_csa_1: { id: 'r3_csa_1', active: true, slot: 'S1', template_id: 'sexual_work_instruction_authority', content: 'bounded S1', mode: 'on_player_request', trigger: 'on_player_request', subject_scope: 'female_employee', counterparty_scope: 'male_employee', selector: { subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' }, supported_action_families: ['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration'] }
@@ -132,6 +152,18 @@ test('active S1 projection exposes player authority and exact finite pair bindin
   assert.equal(context.active_rules[0].selector, undefined);
   assert.equal(binding.immutable, true);
   assert.equal(buildActiveS1StoryBinding({ rule: { ...state.csa_rules.r3_csa_1, active: false }, content }), null);
+});
+
+test('active CSA context preserves the exact ordinary literal instead of shadowing actor, target, or action', () => {
+  const literalAction = '서원희 차장님, 윤민아 대리에게 오늘 지정된 성적 업무 교육을 어떻게 시작할지 차분히 설명해 주세요.';
+  const state = { profile, scene: { location_id: content.locations[0].location_id, present_actor_ids: ['heroine1', 'heroine2'] }, csa_active: ['r3_csa_1'], csa_rules: {
+    r3_csa_1: { id: 'r3_csa_1', active: true, slot: 'S7', template_id: 'sexual_work_training_designation', content: 'bounded S7', mode: 'continuous', trigger: 'continuous', subject_scope: 'female_employee', counterparty_scope: 'female_employee', selector: { subject_actor_id: 'heroine1', counterparty_actor_id: 'heroine2' } }
+  } };
+  const context = buildStoryContext({ state: { state }, turns: [] }, literalAction, { content });
+  assert.equal(context.literal_action, literalAction);
+  assert.equal(context.active_csa_literal_contract.literal_action, literalAction);
+  assert.equal(context.active_csa_literal_contract.preserve_actor_target_action_topic, true);
+  assert.equal(context.active_csa_literal_contract.active_rules_may_not_erase_or_redirect_literal, true);
 });
 
 /* test('ordinary active S1 Story projection binds player issuer to exact selected pair and finite boundary', () => {
@@ -196,6 +228,7 @@ test('visible APPLY uses exactly one Story/Observer/commit and never the zero-tu
   const result = await postTurn(worker, gameId, auth, { action_id: 'apply-1', expected_turn: 1, literal_action: 'Apply the selected rule for female_employee', csa_operation: operation });
   assert.equal(result.at(-1).data.status, 'committed'); assert.equal(applyCsaCalls, 0);
   assert.equal(result.at(-1).data.context.state.committed_turn, 1); assert.equal(result.at(-1).data.context.turns.length, 2);
+  assert.match(result.at(-1).data.context.turns[1].story_text, /\[공식 공지\]/);
   assert.deepEqual(calls.filter(call => call.stage === 'story').at(-1).csaOperation, operation);
   assert.equal(result.at(-1).data.context.state.state.csa_active.length, 1);
 });

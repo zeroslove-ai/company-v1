@@ -309,5 +309,11 @@
     "S6": "sexual_work_performance_evaluation",
     "S7": "sexual_work_training_designation"
   },
-  "retired_template_ids": ["target_places_requester_hand_on_waist_or_thigh", "masturbate_for_recipient", "vaginal_sex_with_recipient", "player_request_executes_immediately", "continue_until_recipient_orgasm"]
+  "retired_template_ids": ["target_places_requester_hand_on_waist_or_thigh", "masturbate_for_recipient", "vaginal_sex_with_recipient", "player_request_executes_immediately", "continue_until_recipient_orgasm"],
+  "compatibility_conflicts": [
+    { "left_slot": "W3", "right_slot": "M1", "message": "가슴골 노출 근무와 속옷 근무는 같은 여성 직원 범위에서 동시에 적용할 수 없습니다." },
+    { "left_slot": "W3", "right_slot": "M2", "message": "가슴골 노출 근무와 나체 근무는 같은 여성 직원 범위에서 동시에 적용할 수 없습니다." },
+    { "left_slot": "W1", "right_slot": "M1", "message": "노브라 근무와 속옷 근무는 같은 여성 직원의 상의 상태가 서로 충돌합니다." },
+    { "left_slot": "W2", "right_slot": "M1", "message": "노팬티 근무와 속옷 근무는 같은 여성 직원의 하의 상태가 서로 충돌합니다." }
+  ]
 }

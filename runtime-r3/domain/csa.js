@@ -52,7 +52,10 @@ export function createR3CsaCatalog(raw = {}) {
     supported_action_families: Array.isArray(item.supported_action_families) ? [...item.supported_action_families] : [],
     execution: item.execution?.kind === 'clothing_state' ? { kind: 'clothing_state', required_state: boundedClothing(item.execution.required_state) } : null
   }));
-  return { version: raw.version ?? 'company-r3-csa-21-slot-v2', schema_version: 4, items, compatibility_lineage: { ...(raw.compatibility_lineage ?? {}) }, slot_aliases: { ...(raw.slot_aliases ?? {}) }, retired_template_ids: [...(raw.retired_template_ids ?? [])] };
+  const compatibilityConflicts = Array.isArray(raw.compatibility_conflicts)
+    ? raw.compatibility_conflicts.filter(item => item?.left_slot && item?.right_slot && item?.message).map(item => ({ left_slot: String(item.left_slot), right_slot: String(item.right_slot), message: String(item.message) }))
+    : [];
+  return { version: raw.version ?? 'company-r3-csa-21-slot-v2', schema_version: 4, items, compatibility_lineage: { ...(raw.compatibility_lineage ?? {}) }, slot_aliases: { ...(raw.slot_aliases ?? {}) }, retired_template_ids: [...(raw.retired_template_ids ?? [])], compatibility_conflicts: compatibilityConflicts };
 }
 
 function matchesScope(id, scope, content) {
@@ -95,6 +98,30 @@ function validateScope(item, raw, content) {
   if (item.selector_schema === 'named_actor' || item.selector_schema === 'actor_pair') selector.subject_actor_id = validateActor(raw.subject_actor_id, subject, content);
   if (item.selector_schema === 'actor_pair') selector.counterparty_actor_id = validateActor(raw.counterparty_actor_id, counterparty, content);
   return { subject, counterparty, selector };
+}
+
+function scopeOverlaps(left, right) {
+  const leftActor = left?.selector?.subject_actor_id;
+  const rightActor = right?.selector?.subject_actor_id;
+  if (leftActor && rightActor) return leftActor === rightActor;
+  if (left?.subject_scope === 'player' || right?.subject_scope === 'player') return left?.subject_scope === right?.subject_scope;
+  if (left?.subject_scope === right?.subject_scope) return true;
+  if (left?.subject_scope === 'company_employee' || right?.subject_scope === 'company_employee') return true;
+  return false;
+}
+
+function compatibilityConflict(candidate, activeRules, catalog, excludeId = null) {
+  const candidateItem = catalogItem(catalog, candidate.template_id);
+  for (const existing of Object.values(activeRules)) {
+    if (existing.active === false || existing.id === excludeId) continue;
+    const existingItem = catalogItem(catalog, existing.template_id);
+    const pair = catalog.compatibility_conflicts.find(conflict => {
+      const slots = new Set([candidateItem?.slot, existingItem?.slot]);
+      return slots.has(conflict.left_slot) && slots.has(conflict.right_slot) && conflict.left_slot !== conflict.right_slot;
+    });
+    if (pair && scopeOverlaps(candidate, existing)) return pair;
+  }
+  return null;
 }
 
 function applyClothing(state, activeRules, catalog, content) {
@@ -211,6 +238,19 @@ export function buildActiveS1StoryBinding({ rule, content, playerIdentity = null
   };
 }
 
+export function buildRuleChangeInstitutionalAnnouncement({ event, binding } = {}) {
+  if (!event || event.type !== 'rule_change_turn') return '';
+  const operation = event.operation === 'activate' ? '새 규정이 게시되어' : event.operation === 'update' ? '기존 규정이 변경되어' : '기존 규정의 효력이 종료되어';
+  const authority = event.authority_label || binding?.authority?.label || '회사 공식 기관';
+  const scope = event.subject_scope === 'female_employee' ? '여성 직원 범위' : event.subject_scope === 'male_employee' ? '남성 직원 범위' : event.subject_scope === 'company_employee' ? '회사 직원 범위' : event.subject_scope === 'player' ? '플레이어 범위' : event.subject_scope || '지정된 범위';
+  const selected = (binding?.selected_actors ?? []).map(actor => {
+    const role = actor.role === 'designated trainer' ? '교육 담당자' : actor.role === 'adult trainee receiving the training' ? '교육 대상' : actor.role;
+    return `${role}: ${actor.name ?? actor.actor_id}`;
+  }).join(', ');
+  const designation = selected ? ` 지정 대상은 ${selected}이다.` : '';
+  return `[공식 공지] 사내 공용 모니터와 회사 메신저의 공식 기관 채널에 ${authority} 기준으로 ${operation} 즉시 적용된다고 게시되었다. 적용 범위는 ${scope}이며, 규정 내용은 “${event.rule_text}”이다.${designation}`;
+}
+
 export function applyR3Csa({ state, content, rawOperations, catalog = createR3CsaCatalog(content?.csaPresets) } = {}) {
   if (!Array.isArray(rawOperations) || rawOperations.length !== 1) throw new Error('r3_csa_operations_invalid');
   const next = clone(state); const activeIds = Array.isArray(next.csa_active) ? [...next.csa_active] : []; const rules = { ...(next.csa_rules ?? {}) };
@@ -228,7 +268,13 @@ export function applyR3Csa({ state, content, rawOperations, catalog = createR3Cs
   let ruleId = null;
   if (operation === 'update') {
     ruleId = String(raw.id ?? ''); if (!rules[ruleId]) throw new Error('r3_csa_rule_not_found');
+    const conflict = compatibilityConflict({ ...normalized, id: ruleId, active: true }, rules, catalog, ruleId);
+    if (conflict) throw new Error(`r3_csa_compatibility_conflict:${conflict.message}`);
     rules[ruleId] = { ...rules[ruleId], ...normalized, active: true }; if (!activeIds.includes(ruleId)) activeIds.push(ruleId);
-  } else { ruleId = nextRuleId(rules); rules[ruleId] = { id: ruleId, ...normalized, active: true }; activeIds.push(ruleId); }
+  } else {
+    const conflict = compatibilityConflict({ ...normalized, active: true }, rules, catalog, null);
+    if (conflict) throw new Error(`r3_csa_compatibility_conflict:${conflict.message}`);
+    ruleId = nextRuleId(rules); rules[ruleId] = { id: ruleId, ...normalized, active: true }; activeIds.push(ruleId);
+  }
   next.csa_active = [...new Set(activeIds.filter(id => rules[id]?.active))]; next.csa_rules = rules; next.active_rules = next.csa_active.map(id => rules[id]).filter(Boolean); next.last_rule_change = ruleChangeRecord(raw, item, scope, ruleId); return applyClothing(next, rules, catalog, content);
 }

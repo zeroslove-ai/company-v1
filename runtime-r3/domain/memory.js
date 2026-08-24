@@ -98,7 +98,19 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     actors: canonicalActors(content, actorIds),
     clothing: state.clothing ?? {},
     active_rules: activeRules,
+    ...(activeRules.length ? { active_csa_literal_contract: {
+      literal_action: storyLiteralAction,
+      preserve_actor_target_action_topic: true,
+      active_rules_may_not_erase_or_redirect_literal: true
+    } } : {}),
     ...(activeS1StoryBinding ? { active_s1_story_binding: activeS1StoryBinding } : {}),
+    ...(activeS1StoryBinding ? { active_s1_literal_contract: {
+      literal_action: storyLiteralAction,
+      preserve_actor_target_action: true,
+      supported_families_are_mandatory_only: true,
+      unsupported_literal_remains_ordinary: true,
+      precedence: 'The submitted literal_action is the latest and highest-priority ordinary player intent; active CSA context may classify its finite authority but may not erase, replace, or redirect it.'
+    } } : {}),
     ...(ruleChangeEvent || csaOperation ? {
       pending_rule_change_turn: {
         type: 'rule_change_turn',

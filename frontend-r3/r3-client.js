@@ -29,7 +29,15 @@ export function createR3Client(base = '/api/r3', { storage = browserStorage(), f
     },
     context(gameId) { return request(`${root}/games/${encodeURIComponent(gameId)}/context`, { headers: authHeaders(gameId) }); },
     opening(gameId) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/opening`, { method: 'POST', headers: authHeaders(gameId) }); },
-    turn(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/turn`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); },
+    async turn(gameId, payload) {
+      const response = await fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/turn`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) });
+      if (!response.ok) {
+        let payloadBody = null; try { payloadBody = await response.clone().json(); } catch {}
+        const code = payloadBody?.data?.code ?? payloadBody?.data?.message ?? 'r3_turn_request_failed';
+        const error = new Error(code); error.code = code; throw error;
+      }
+      return response;
+    },
     feedback(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/feedback`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); },
     csa(gameId, payload) { return request(`${root}/games/${encodeURIComponent(gameId)}/csa`, { method: 'POST', headers: authHeaders(gameId), body: JSON.stringify(payload) }); },
     reset(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/reset`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); },

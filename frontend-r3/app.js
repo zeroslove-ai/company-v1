@@ -266,7 +266,10 @@ async function submit(value = null, { retryFailed = false, csaOperation = null }
     outcome = { kind: 'committed' };
     setStatus('저장되었습니다.');
   } catch (error) {
-    outcome = await reconcileTurnTransport({
+    if (String(error?.code ?? error?.message ?? '').startsWith('r3_csa_compatibility_conflict')) {
+      setStatus(playerFacingStatus(error), true);
+      outcome = { kind: 'failed' };
+    } else outcome = await reconcileTurnTransport({
       gameId: state.gameId,
       client,
       expectedTurn,

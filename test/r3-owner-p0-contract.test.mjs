@@ -58,7 +58,7 @@ test('exact canonical location navigation projects the destination before Story 
   const source = createInitialState({ name: 'Player' }, 'brand_strategy_office', ['general_park_jungwoo']);
   const literal = '\uC9C1\uC6D0 \uB77C\uC6B4\uC9C0\uB85C \uC774\uB3D9\uD55C\uB2E4';
   const intent = resolvePlayerNavigationIntent({ content, state: source, literalAction: literal });
-  assert.deepEqual(intent, { kind: 'player_navigation', destination_location_id: 'employee_lounge', source: 'explicit_location' });
+  assert.deepEqual(intent, { kind: 'player_navigation', destination_location_id: 'employee_lounge', source: 'explicit_player_binding' });
   const projected = projectNavigationContext({ state: { state: source }, turns: [] }, intent, content);
   assert.equal(projected.state.state.scene.location_id, 'employee_lounge');
   assert.deepEqual(projected.state.state.scene.present_actor_ids, []);
@@ -66,6 +66,19 @@ test('exact canonical location navigation projects the destination before Story 
   const after = applyNavigationPostcondition(source, staleObservation, intent, content);
   assert.equal(after.scene.location_id, 'employee_lounge');
   assert.deepEqual(after.scene.present_actor_ids, []);
+});
+
+test('NPC-only movement does not bind player navigation, while explicit player clauses still win', () => {
+  const state = createInitialState({ name: 'Player' }, 'brand_strategy_office', ['heroine1', 'heroine2']);
+  assert.equal(resolvePlayerNavigationIntent({ content, state, literalAction: '서원희 차장과 박정우 팀장이 회의실로 이동한 뒤에도 나는 윤민아 대리에게 업무를 묻는다.' }), null);
+  assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: '나는 회의실로 이동한다.' }), { kind: 'player_navigation', destination_location_id: 'meeting_room', source: 'explicit_player_binding' });
+  assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: '서원희 차장은 회의실로 이동한 뒤 나는 직원 라운지로 이동한다.' }), { kind: 'player_navigation', destination_location_id: 'employee_lounge', source: 'explicit_player_binding' });
+});
+
+test('registered heroine destination is explicit player navigation, not NPC motion', () => {
+  const state = createInitialState({ name: 'Player' }, 'employee_lounge', []);
+  assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: '나는 서원희에게 간다.' }), { kind: 'player_navigation', destination_location_id: 'brand_strategy_office', source: 'explicit_player_binding' });
+  assert.equal(resolvePlayerNavigationIntent({ content, state, literalAction: '서원희는 브랜드전략팀 사무실로 이동한다.' }), null);
 });
 
 test('R3 Worker carries exact navigation through Story/Observer/Commit and does not accept stale source presence', async () => {
