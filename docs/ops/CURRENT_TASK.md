@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-live-acceptance-browser-control-recovery-v1
 Mode: ACCEPTANCE-ONLY RECOVERY — FREEZE CSA PRESENTATION/RUNTIME / RE-ARM VISIBLE BROWSER CONTROL / RESUME REMAINING LIVE LANES
-Updated: 2026-08-25 02:30 KST
+Updated: 2026-08-25 02:40 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `fa29d44a1fdfbeb982e10f717a3a01fc9a30b03f`
@@ -386,3 +386,68 @@ Browser-control blocked terminal:
 `CSA_REMAINING_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same CURRENT_TASK lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+---
+
+# 15. Lifecycle — browser-control recovery execution
+
+Status transition: READY -> WAITING_REVIEW
+
+Task identity:
+- TASK_ID: `company-r3-csa-live-acceptance-browser-control-recovery-v1`
+- CURRENT_TASK_BLOB_SHA at lease: `229ed89a1534b45167505ea76db07350cf145f3d`
+- EXPECTED_BRANCH: `main`
+- REGISTRATION_MAIN_SHA / START_HEAD: `b06ea609c71a78ce0b74420c7b2765c0ff52af85`
+- STARTED lease comment: Issue #68 `5399029052`
+- FINAL_MAIN_SHA: recorded by the lifecycle update commit
+- terminal: `CSA_REMAINING_LIVE_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+Frozen implementation/deployment proof:
+- GitHub compare `206bb957abbcdf621c22a6355bf9576610416bdd` -> `b06ea609c71a78ce0b74420c7b2765c0ff52af85`: docs-only descendants; executable/runtime/frontend/content remained frozen.
+- TEST frontend: `gamebuilder-company-r3` deployment `9bb754d0-632c-42e5-83b1-441ce6079688`.
+- TEST API: `game-proxy-company-r3` deployment `cbfb8900-1ba9-4886-9405-452e7ae760db`.
+- Browser readiness barrier: PASS. Bare TEST frontend DOM snapshot and screenshot both succeeded before Setup/game creation.
+- Exactly one fresh disposable TEST game: `ab44e91c-5eaa-4fb1-9396-138073ec5257`. Preserved evidence games were not accessed or mutated.
+
+Live acceptance chronology:
+- Turn 0: Opening with four visible choices and free input.
+- Turn 1: Weak W1 `노브라 근무` APPLY; grounded institutional announcement.
+- Turn 2: ordinary non-work/free-input commute and coffee conversation; player intent remained primary.
+- Turn 3: compatible Weak rule `가슴골 노출 근무` APPLY; two-rule combination.
+- Turn 4: existing W1 -> `노팬티 근무` CHANGE; exact +1 Story turn and active-state replacement.
+- Turn 5: ordinary non-work lunch/social persistence turn.
+- Turn 6: `노팬티 근무` REMOVE; exact +1 removal Story; readback left `가슴골 노출 근무` active and removed rule absent.
+- Turn 7: Medium M1 `속옷 근무` APPLY.
+- Turn 8: Medium M3 direct actor-pair APPLY through visible selectors; exact direction `서원희` (지원자) -> `박정우` (수령자), with Story naming both identities.
+- Turn 9: ordinary non-work lunch/social turn while the Medium and Weak rules remained active.
+- Turn 10: Strong S1 `성적 업무지시권` with bounded scope; exact direction `윤민아` target in `박정우` context, supported Korean family labels visible.
+- Turn 11: Strong S2 `플레이어 전담 성적 업무지원 직원 지정권`; exact named assignee `한리브`.
+- Turn 12: Strong S3 `회사 공용 성적 업무지원 담당 지정권`; exact named assignee `이메이`.
+- Turn 13: Strong S5 `성적 업무 대상자 지정권`; exact named target `김제나`.
+- Final active-state readback showed 7 distinct rules: `가슴골 노출 근무`, `속옷 근무`, M3 `가슴으로 사정 지원`, S1, S2, S3, and S5. No stale removed W2 authority was present.
+
+Per-turn UI/commit invariants:
+- Every post-commit inspection through Turn 13 showed Story arrived, four choices, free input, connected status, and no blocking loader.
+- S1 presentation showed Korean supported-family labels: 키스, 성적 접촉, 성기 노출, 성기 접촉, 구강 자극, 삽입 행위; no raw internal enum/category/template metadata.
+- No dynamic arousal/erection gauge appeared.
+- Rule changes were grounded in institutional announcements and named actors; no private-app/supernatural narrator knowledge was observed.
+- S1 unsupported free-form action was not attempted because the bounded task permits omitting it; no generic sexual DSL was introduced.
+- M5, S4/S7, and optional S6 were not reached naturally; no actor seeding or pass-seeking was used. S6 remains bounded `COVERAGE_NOT_REACHED`, not a product failure.
+
+Refresh / History / mobile / private-state checks:
+- One intentional reload/re-entry of the same fresh game reconstructed Turn 13 with four choices, free input, and connected status; no duplicate commit or stale draft appeared.
+- Visible History opened successfully and listed Turn 0 through Turn 13 in chronological order; no raw r3/revision/Commit/template/category/action-family IDs were exposed.
+- At explicit viewport 390x844, Story remained first, compact four choices and free input/action controls were reachable, and no horizontal/overlay breakage or raw internal jargon was observed. Viewport was reset to default before finalization.
+- Mind Monitor was visible and reported no information for the current turn; NPC panel exposed registered names; no arousal/erection gauge or private-app awareness was observed.
+- One ordinary free-input turn deliberately switched away from CSA/work topic; player actor/target/topic/action intent remained primary.
+
+Safety / operation accounting:
+- source/test/content/prompt/provider/model/config/secret/timeout edits: 0
+- API/frontend redeploys: 0
+- DB/schema/migration/history repair writes: 0
+- Production access: 0
+- preserved evidence access/mutation/reset: 0
+- direct API gameplay substitution: 0
+- new game count: exactly 1
+- browser re-entry: one read-only reload; no gameplay action was resent
+- P0: 0; P1: 0; P2: 0; P3: 0
