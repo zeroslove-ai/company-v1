@@ -1,223 +1,256 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-deploy-target-contract-recovery-v1
-Mode: NARROW OPERATIONS REPAIR — DEPLOY TARGET IDENTITY GUARD / ACCIDENTAL TEST WORKER RECOVERY / EXACT R3 DEPLOY
-Updated: 2026-08-25 07:14 KST
+Status: READY
+Task ID: company-r3-image-media-live-acceptance-v2
+Mode: ACCEPTANCE-ONLY — IMAGE MEDIA ROUTING / ADULT POOL / REFUSAL / DE-ESCALATION / REFRESH
+Updated: 2026-08-25 07:24 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main before this overwrite: `611bf8adade1535a447a1174a195cbbf19a41b14`
-Previous task: `company-r3-media-catalog-authority-reconciliation-v1`
-Previous terminal: Issue #68 `5401918399`
-Operator review: Issue #68 `5401969795`
+Registration base main before this overwrite: `36ef8b5a5f7596d03c262f3deb2027ce8f03fb9c`
+Previous task: `company-r3-deploy-target-contract-recovery-v1`
+Previous terminal: Issue #68 `5402220722`
+Operator review: Issue #68 `5402267821`
 Accepted media implementation: `1055a7d34d5739f121b29af767cb5cd5a276ed04`
-Accepted TEST R3 API before this recovery: `game-proxy-company-r3` / `fc98e0c3-db75-4088-bc0c-eddf129af4b6`
-Accidentally deployed TEST Worker: `game-proxy-company-v1` / `8f418d6e-a552-4a9a-9c34-f8704d211f62`
+Accepted deploy-wrapper implementation: `d2a4aafc04cd2993b1dde2a8f50caa400dc19de1`
+Accepted TEST API: `game-proxy-company-r3` / `4f8e8697-7b9e-4d91-8a50-35463309ce4a`
 Frozen TEST frontend: `gamebuilder-company-r3` / `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
 Success terminal:
-`R3_DEPLOY_TARGET_CONTRACT_RECOVERED_AWAITING_OPERATOR_REVIEW`
+`IMAGE_MEDIA_LIVE_ACCEPTANCE_FUNCTIONAL_GREEN_AWAITING_OPERATOR_REVIEW`
 
-Operational blocked terminal:
-`R3_DEPLOY_TARGET_RECOVERY_OPERATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Product blocked terminal:
+`IMAGE_MEDIA_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-Product/deploy blocked terminal:
-`R3_DEPLOY_TARGET_RECOVERY_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Browser-control blocked terminal:
+`IMAGE_MEDIA_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
 - Work on `main` only.
-- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Never create another CURRENT_TASK file, ops branch, feature branch, or PR.
-- Mandatory read order: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, `docs/redesign/MEDIA_CATALOG_CONTRACT.md`, terminal `5401918399`, operator review `5401969795`, then this task.
-- Preserve A′/R3 architecture and all accepted CSA/product evidence.
-- Freeze media curation/runtime semantics at `1055a7d...`: 102-entry repository manifest (5 general + 97 sex), manifest-first exact-image-id authority, DB serving-index only. Do not recurate/reinspect media unless needed only to verify deployed catalog identity.
-- No Production access. No OWNER_READY claim.
+- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Never create another CURRENT_TASK file, branch, ops branch, implementation branch, or PR.
+- Mandatory read order: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, `docs/redesign/MEDIA_CATALOG_CONTRACT.md`, terminal `5402220722`, operator review `5402267821`, then this task.
+- Actual deployed browser play is the product gate.
+- This is acceptance-only. Source/content/test/config/provider/model/DB/storage changes are forbidden.
+- Freeze the 102-entry manifest (5 general + 97 sex), manifest-first exact-image-id authority, DB serving-index-only behavior, deploy-wrapper guard, CSA, Story/Observer architecture, MM, memory, TTS implementation, and frontend source.
+- No Production. No OWNER_READY claim.
 
-## 1. Exact blocker
+## 1. Exact goal
 
-`scripts/deploy-api-with-contract-gate.mjs` currently hard-codes `wrangler.api.jsonc`, whose Worker name is `game-proxy-company-v1`.
-The R3 task required `wrangler.r3.api.jsonc`, whose Worker name is `game-proxy-company-r3`.
-The previous task therefore deployed the wrong TEST Worker once and never deployed the accepted R3 media implementation.
+Close the functional image portion of `A-MEDIA-001` / `M-ACCEPT-001` on the currently deployed TEST build without mixing TTS into the run.
 
-This task owns only:
-1. deploy-wrapper target/config identity safety;
-2. safe recovery of the accidental TEST `game-proxy-company-v1` deployment if its exact previous version is unambiguously recoverable;
-3. exact deployment of accepted R3 source to `game-proxy-company-r3`.
+Prove in one fresh visible game:
 
-Do not change media semantics, Story, Observer, TTS, CSA, gameplay, scene, MM, memory, DB schema, or frontend.
+1. an ordinary committed heroine scene produces the correct heroine `general` media request/response and visible image;
+2. a requested-but-cancelled/refused/non-occurring adult act cannot switch to false `sex` media;
+3. a genuinely committed adult/sexual act reaches the correct heroine `sex` pool and a manifest-approved sex image;
+4. explicit stop/de-escalation removes stale sex media once the committed scene no longer establishes the act;
+5. refresh/re-entry preserves equivalent media meaning without duplicate Story/Commit;
+6. any natural image failure remains local and does not block Story/Commit.
 
-## 2. Preflight
+Known quality gap must be reported separately, not hidden: the current manifest has only one `general` image per heroine. Functional routing can be GREEN while `M-CATALOG-002` ordinary-image variety remains a P2/product-quality gap. Do not fabricate general variation from sex assets or external media.
 
-Verify before writes:
+## 2. Preflight — zero gameplay mutation until stable
 
-- current `main` executable/content/test is `1055a7d...` plus lifecycle docs only;
-- media deterministic results remain accepted: focused 12/12, full 567/567 from prior task; rerun only tests needed to guard deploy-wrapper changes plus full npm once before deploy;
-- `wrangler.api.jsonc` resolves to `game-proxy-company-v1`;
-- `wrangler.r3.api.jsonc` resolves to `game-proxy-company-r3`;
-- current TEST frontend remains `af6c13bf...` and is not redeployed;
-- current R3 API is still prior accepted `fc98e0c3...` unless read-only Cloudflare history proves otherwise;
-- inspect Cloudflare Worker/version history read-only for both relevant TEST Workers.
+Verify once, read-only:
 
-Unexpected source/deployment drift => STOP product/deploy blocked. Do not normalize unrelated components.
+- current executable/content is accepted source plus docs descendants only;
+- TEST API is exactly `4f8e8697-7b9e-4d91-8a50-35463309ce4a` or proven source-equivalent;
+- TEST frontend is exactly `af6c13bf-ef57-40cb-a4f0-e3569b301bc5` or proven source-equivalent;
+- `/api/r3/catalogs` reports 102 active media entries = 5 `general` + 97 `sex`;
+- bare public TEST frontend loads with usable DOM and screenshot;
+- browser/network observation can capture current-game `/media/image` request and response while also confirming the visible `<img>` state.
 
-## 3. Repair deploy target contract
+If DOM/screenshot/browser network observation is unavailable before game creation, STOP browser-control blocked with fresh games = 0. Do not create a game hoping tooling recovers.
 
-Repair the smallest owning boundary, expected files:
+No full npm test is required in this acceptance-only task.
 
-- `scripts/deploy-api-with-contract-gate.mjs`
-- one focused existing/new deploy-wrapper test under `test/` only if required
+## 3. Setup validity barrier / one game only
 
-Preferred contract:
+Create exactly one fresh TEST game through visible Setup.
 
-- wrapper accepts an explicit config target (for example `--config <path>` or an equally clear bounded option);
-- legacy no-argument behavior may remain `wrangler.api.jsonc` only for backward compatibility, but it must be deterministic and tested;
-- before Wrangler starts, parse/resolve the chosen config and establish its Worker `name`;
-- allow an explicit expected Worker identity guard (for example `--expect-worker game-proxy-company-r3`);
-- if chosen config Worker name != expected Worker, fail before Wrangler with zero deploy;
-- R3 deployment invocation must explicitly choose `wrangler.r3.api.jsonc` and expect `game-proxy-company-r3`;
-- legacy config must never satisfy an R3 expected-worker guard;
-- R3 config must never satisfy a legacy expected-worker guard;
-- preserve the existing DB contract gate; do not bypass it;
-- do not embed secrets or change provider/model/config values.
+Use a definitely valid adult profile:
+- name `김도현`
+- age `30`
+- height `180`
+- weight `75`
+- penis length `15`
+- department visible Brand Strategy / `brand_strategy`
+- position visible Intern / `intern`
+- body type = first currently valid visible catalog option
+- speech style = first currently valid visible catalog option
 
-Do not add separate R3 deployment scripts when the existing wrapper can be made target-safe cleanly.
+Before the single Setup submit prove client constraints are valid. Then click `설정 완료` once.
 
-## 4. Deterministic tests
+- no second Setup submit;
+- no second game;
+- no reset/regenerate/sample;
+- no direct gameplay API substitute;
+- no DB state seeding.
 
-At minimum prove:
+Record fresh game ID.
 
-- default legacy plan targets `wrangler.api.jsonc` / `game-proxy-company-v1` if backward compatibility is retained;
-- explicit R3 plan targets `wrangler.r3.api.jsonc` / `game-proxy-company-r3`;
-- mismatch expected-worker/config fails before Wrangler spawn;
-- dry-run emits/uses the selected config, not a hidden hard-coded config;
-- DB contract gate still executes before deployment;
-- no arbitrary config path/Worker identity silently bypasses the guard.
+## 4. Lane A — ordinary heroine / general image
 
-Run:
-- focused deploy-wrapper tests;
-- `node --check scripts/deploy-api-with-contract-gate.mjs`;
-- full `npm test`;
-- `git diff --check`.
+Use visible play to establish one exact registered heroine as current/focal/relevant, preferably `서원희` (`heroine1`) because both general and multiple sex assets are canonically present.
 
-If these fail, STOP before any Cloudflare mutation.
+A practical visible input may be a simple direct social approach such as going to 서원희 and speaking with her; do not require work-task framing.
 
-## 5. Accidental TEST worker recovery
+Only judge the image after the turn is committed and the UI has settled.
 
-The previous task accidentally deployed `game-proxy-company-v1` version `8f418d6e-a552-4a9a-9c34-f8704d211f62`.
+PASS requires:
+- committed Story actually establishes the chosen heroine as current/present/relevant;
+- actual `/media/image` request is observable;
+- request is for that exact heroine and `general`, not another heroine and not `sex`;
+- response image ID is manifest-approved for that heroine/general pool;
+- visible rendered image corresponds to the returned image URL/ID;
+- Story remains primary/readable and image loading does not cover/block arrived Story.
 
-Read-only first:
+For heroine1 the only current general entry is `heroine1-main`; seeing the same portrait across ordinary heroine1 contexts is not a routing P1, but must be recorded under the known M-CATALOG-002 P2 quality gap.
 
-- inspect Cloudflare deployment/version history for `game-proxy-company-v1`;
-- identify the deployment immediately active before `8f418d6...` by exact version/deployment history, not by an old Issue comment guess;
-- confirm that previous version belongs to the same TEST Worker and that restoring it does not touch Production.
+Wrong heroine or false sex pool on an ordinary committed scene = deterministic P1 STOP.
 
-If and only if the immediate previous version is unambiguous:
+## 5. Lane B — non-occurring adult intent must not create false sex media
 
-- restore/rollback `game-proxy-company-v1` exactly once using Cloudflare's version/deployment mechanism;
-- verify resulting active version/deployment and a safe read-only health check;
-- do not rebuild legacy source from a guessed Git SHA as a substitute for exact version rollback.
+While the same heroine is current, use exactly one visible input whose literal meaning explicitly cancels/stops before the adult contact occurs, for example:
 
-If the exact previous version cannot be established unambiguously, STOP `R3_DEPLOY_TARGET_RECOVERY_OPERATION_BLOCKED_AWAITING_OPERATOR_REVIEW` before any further deploy. Do not guess and do not deploy R3 while an unresolved accidental-worker mutation remains.
+`서원희에게 입맞춤하려다가 생각을 바꿔 멈추고, 아무 행동도 하지 않는다.`
 
-## 6. Exact R3 TEST deployment
+The Story must preserve the non-occurrence. If Story silently performs the act anyway, that is an agency/product P1 and STOP.
 
-Only after sections 3-5 are GREEN:
+If Story preserves non-occurrence:
+- no committed evidence may authorize a sex image merely because the request/intention contained adult wording;
+- any media request must remain semantically safe (`general` for the same heroine or no image, according to current projection); and
+- a sex-pool request/visible sex image is P1 STOP.
 
-- obtain/provide the same read-only TEST DB catalog input required by the contract gate; no DB writes;
-- invoke the repaired wrapper explicitly with `wrangler.r3.api.jsonc` and expected Worker `game-proxy-company-r3`;
-- contract gate must PASS before Wrangler;
-- deploy R3 exactly once;
-- record old R3 version `fc98e0c3-db75-4088-bc0c-eddf129af4b6` and exact new version;
-- verify deployed Worker identity is exactly `game-proxy-company-r3`;
-- verify `/api/r3/catalogs` is reachable and exposes source-equivalent 102-entry media manifest, including exactly 5 `general` + 97 `sex` active entries and no DB-only semantic additions;
-- no gameplay game creation, no media endpoint calls using preserved games;
-- frontend deploy count 0;
-- DB/storage writes 0;
-- Production 0.
+Do not retry with another refusal/cancellation sample.
 
-Never invoke `scripts/deploy-api-with-contract-gate.mjs` without explicit R3 target/identity for this deployment.
+## 6. Lane C — genuine adult act / sex pool
 
-## 7. Frozen/forbidden
+Reach one genuinely committed sexual act with the same heroine using visible gameplay only.
 
-- changes to `content/media_catalog.json` = 0 unless unexpected source corruption is proven, in which case STOP for operator review rather than recurate;
-- changes to `runtime-r3/domain/media.js`, `runtime-r3/server/worker.js`, `runtime-r3/server/supabase-store.js` = 0 unless a new deterministic deploy-only test proves the accepted `1055a7d` source is not actually present; otherwise STOP;
-- Story/Observer/provider/model/prompt changes = 0;
-- frontend source/deploy = 0;
-- TTS/CSA/scene/MM/memory changes = 0;
-- DB/schema/RPC/migration/ledger/history/backfill = 0;
-- Storage upload/delete/mutation = 0;
-- gameplay game creation/access/reset = 0;
-- preserved evidence game access/mutation = 0;
-- Production access/deploy = 0;
-- new branch/PR/CURRENT_TASK file = 0;
-- Media/TTS browser acceptance = 0 in this task;
-- OWNER_READY claim forbidden.
+Preferred bounded setup if needed for deterministic reachability:
+- use the already accepted visible S1 authority surface only as a setup mechanism, not as a new CSA acceptance campaign;
+- select exact valid subject/counterparty roles for the same heroine and player;
+- S1 APPLY announcement itself does **not** count as an adult act and must not independently justify sex media;
+- then issue one visible S1-supported `oral` instruction in the exact selected actor/direction, because heroine1 has approved oral/deepthroat/fellatio sex assets.
 
-## 8. Stop law
+Do not rerun S1 supported/unsupported boundary as a pass-seeking campaign. Use at most one S1 APPLY and one supported adult instruction if this route is used.
 
-STOP immediately when:
+The positive media lane is reached only if committed Story clearly states that the adult act actually begins/occurs. A request, discussion, announcement, refusal, or blocked attempt does not count.
 
-- accidental legacy previous version is ambiguous;
-- wrapper identity guard cannot deterministically distinguish legacy/R3 configs;
-- contract gate cannot be satisfied read-only;
-- any deployment targets a Worker other than the explicitly expected one;
-- a second R3 deploy would be required due a deployment error;
-- unexpected executable/config/deployment drift appears.
+If the supported instruction is silently substituted, wrong actor/target is used, or official supported S1 authority is ignored in a deterministic way, classify the actual owning product P1 and STOP; do not hunt another adult route.
 
-No retry-until-pass and no second corrective deploy within this task after a wrong target or failed mutation.
+Once a genuine adult act is committed, PASS requires:
+- actual `/media/image` request is observable;
+- exact heroine ID is preserved;
+- pool is `sex`;
+- returned image ID exists in the repository manifest for that exact heroine/sex pool;
+- selected situation/tags are not contradicted by the committed act;
+- DB-only image IDs never appear;
+- visible image matches returned media;
+- media remains presentation-only and Story/Commit already exists independently.
 
-## 9. Terminal report contract
+Wrong heroine, `general`-only despite clear eligible committed adult evidence, unrelated sex act, or DB-only row = P1 STOP.
+
+## 7. Lane D — de-escalation / stale sex removal
+
+After the genuine adult scene, use one visible literal stop/de-escalation input such as:
+
+`지금 하던 성적 행동을 즉시 멈추고 서원희와 평범한 대화로 돌아간다.`
+
+Pass requires the Story to preserve stop/change intent. Once the committed Story clearly ends the sexual act:
+- stale sex media must not remain as the authoritative current-scene image after projection/render settles;
+- subsequent media may be same-heroine `general` or no image;
+- another heroine or stale unrelated sex act is forbidden.
+
+If the Story refuses to stop without a concrete active physical/rule constraint, or silently continues the act against the literal stop, classify agency/product P1 and STOP.
+
+## 8. Refresh / re-entry
+
+Perform one deliberate read-only browser refresh/re-entry on the same fresh game after the de-escalated committed state.
+
+Pass:
+- no duplicate Story/Commit/action;
+- same committed turn reconstructs;
+- media reconstructs to equivalent **non-sex/de-escalated** meaning (`general` same heroine or no image);
+- stale sex image does not resurrect from browser cache;
+- free input/choices remain usable.
+
+Do not use refresh as a retry of a failed action.
+
+## 9. Browser-control recovery law
+
+If browser control times out after an action was submitted:
+
+1. do not click/resend/retype the action;
+2. inspect read-only request/job/context/history footprint for the fresh game only;
+3. allow at most one read-only reattach to that same game;
+4. continue only if exactly-one commit and coherent visible state are proven;
+5. otherwise STOP `IMAGE_MEDIA_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`.
+
+If media network observation itself cannot be recovered, do not infer request pool from DOM alone and do not call the product GREEN.
+
+## 10. TTS separation
+
+TTS is out of scope in this task.
+
+- Do not toggle TTS for acceptance.
+- Do not call/replay `/media/tts` intentionally.
+- Do not classify TTS based on this run.
+- A separate TTS-only live acceptance task follows after image routing review.
+
+## 11. Frozen / forbidden
+
+Counts must remain zero:
+- source/runtime/frontend/content/test/prompt/provider/model/config/secret edits;
+- API/frontend deploy;
+- DB/schema/RPC/migration/history repair/backfill;
+- Storage mutation/upload/delete;
+- Production access/deploy;
+- existing/preserved game access/reset/mutation;
+- direct API gameplay substitute;
+- retry/regeneration/sample-until-pass;
+- second fresh game;
+- new branch/PR/CURRENT_TASK file;
+- OWNER_READY claim.
+
+Normal visible commits in the single fresh game are the only allowed gameplay writes.
+
+## 12. Severity / stopping
+
+At first deterministic P0/P1, STOP and preserve the fresh game read-only. Do not patch product in the same task.
+
+Known general-image variety limitation is P2 unless it causes a concrete wrong-image/routing P1. Continue the mandatory functional lanes despite this known P2 so the routing boundary is actually tested.
+
+If no P0/P1 occurs and all mandatory functional lanes complete, success terminal may be GREEN while explicitly carrying the M-CATALOG-002 P2 gap.
+
+## 13. Terminal report contract
 
 Report exactly:
-
-- start/final main SHA;
-- deploy-wrapper implementation SHA;
-- final CURRENT_TASK blob;
-- exact changed files;
-- accepted media implementation SHA `1055a7d...` unchanged proof;
-- focused/full/syntax/diff test results;
-- legacy Worker read-only history: accidental version and exact immediate previous version evidence;
-- legacy rollback performed yes/no, old/new active version, rollback count;
-- R3 old/new Worker versions and deploy count;
-- exact wrapper invocation/config/expected-worker identity used, with secrets omitted;
-- contract-gate result;
-- `/api/r3/catalogs` manifest count/pool verification;
-- frontend version unchanged/deploy count 0;
-- DB/storage writes 0;
-- game creation/access 0;
-- preserved-game access/mutation 0;
-- Production 0;
-- P0/P1/P2/P3 findings and any remaining operational blocker.
+- start/final main SHA and proof no executable/content drift;
+- TEST API/frontend versions and deploy counts;
+- browser DOM/screenshot/network readiness;
+- exact valid Setup values and one-submit proof;
+- fresh game ID;
+- ordinary heroine turn: literal input, committed heroine, `/media/image` request pool/heroine, response image ID, visible image;
+- non-occurring adult lane: exact literal, Story non-occurrence proof, media request/result, false-sex result;
+- adult positive route: any S1 setup operation if used, exact supported literal, Story evidence the act actually occurred, sex request/response image ID and manifest membership;
+- de-escalation literal, Story stop proof, post-stop media result;
+- deliberate refresh/re-entry result and duplicate count;
+- any natural media failure and proof Story/Commit survived; if none occurred, say not naturally encountered and rely only on frozen deterministic fail-open tests as supporting evidence;
+- M-CATALOG-002 quality assessment, explicitly noting 1 general image per heroine;
+- browser timeout/reattach/resend counts;
+- all forbidden write/deploy/Production/preserved-game counts;
+- P0/P1/P2/P3 findings.
 
 Success:
-`R3_DEPLOY_TARGET_CONTRACT_RECOVERED_AWAITING_OPERATOR_REVIEW`
+`IMAGE_MEDIA_LIVE_ACCEPTANCE_FUNCTIONAL_GREEN_AWAITING_OPERATOR_REVIEW`
 
-Operational blocked:
-`R3_DEPLOY_TARGET_RECOVERY_OPERATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Product blocked:
+`IMAGE_MEDIA_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-Product/deploy blocked:
-`R3_DEPLOY_TARGET_RECOVERY_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Browser-control blocked:
+`IMAGE_MEDIA_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
-
-## 10. Terminal evidence
-
-`R3_DEPLOY_TARGET_CONTRACT_RECOVERED_AWAITING_OPERATOR_REVIEW`
-
-- Start main SHA: `4236f01342ae9c2cd00df4d6d8f4425045f77f65`.
-- Final implementation SHA: `d2a4aafc04cd2993b1dde2a8f50caa400dc19de1`.
-- Final CURRENT_TASK blob: recorded in the terminal Issue #68 report after this lifecycle edit.
-- Changed implementation files: `scripts/deploy-api-with-contract-gate.mjs`, `test/deploy-api-with-contract-gate.test.mjs`.
-- Lifecycle file: `docs/ops/CURRENT_TASK.md` only; no new task file, branch, or PR.
-- Accepted media implementation `1055a7d34d5739f121b29af767cb5cd5a276ed04` remains unchanged; diff inventory contains no media catalog/runtime media file.
-- Tests: focused deploy-wrapper `4/4 PASS`; full `npm test` `571/571 PASS`; `node --check scripts/deploy-api-with-contract-gate.mjs` PASS; `git diff --check` PASS.
-- Legacy Worker history read-only: accidental `game-proxy-company-v1` version `8f418d6e-a552-4a9a-9c34-f8704d211f62`; exact immediate previous version `a1b1fee4-f388-4fb3-86e6-ca7f0d7e5c8b` at `2026-08-24T16:00:08Z` was unambiguous.
-- Legacy rollback: yes, exactly once; active version changed from `8f418d6e-a552-4a9a-9c34-f8704d211f62` to `a1b1fee4-f388-4fb3-86e6-ca7f0d7e5c8b`; `/health` returned HTTP 200 with `ok:true`.
-- R3 Worker: old accepted version `fc98e0c3-db75-4088-bc0c-eddf129af4b6`; new active version `4f8e8697-7b9e-4d91-8a50-35463309ce4a`; deploy count `1`.
-- Wrapper invocation: `node scripts/deploy-api-with-contract-gate.mjs --config wrangler.r3.api.jsonc --expect-worker game-proxy-company-r3`; secrets omitted. Dry-run and actual invocation both selected the explicit R3 config; gate ran before Wrangler.
-- Contract gate: read-only TEST catalog, Stage A PASS (`company-v1-action-authority`, v2).
-- `/api/r3/catalogs`: HTTP 200; edition `company-v1`, version `1`, `102` entries total = `5` general + `97` sex.
-- Frontend version unchanged; frontend deploy count `0`.
-- DB/storage writes `0`; game creation/access/reset `0`; preserved-game access/mutation `0`; Production access/deploy `0`; Media/TTS browser acceptance `0`.
-- Findings: P0 none; P1 deploy target/config identity boundary repaired and accidental TEST deployment restored; P2 none; P3 none. Remaining blocker: operator review only.
