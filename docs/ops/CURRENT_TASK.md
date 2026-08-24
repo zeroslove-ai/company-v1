@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-catalog-actor-scope-projection-s7-closure-v1
 Mode: NARROW P1 REPAIR — R3 CATALOG ACTOR SCOPE METADATA / FREEZE FRONTEND SELECTOR / FINAL S7 CLOSURE
-Updated: 2026-08-25 05:36 KST
+Updated: 2026-08-25 06:02 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main before this overwrite: `c0f0ed109147a2d73ce7694734ce174714b1429d`
@@ -307,3 +307,24 @@ Blocked:
 `CSA_S7_CATALOG_SCOPE_PROJECTION_OR_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal Issue #68 report, then STOP. Do not self-register another task.
+
+---
+
+# 9. Execution result
+
+Terminal disposition: `CSA_S7_CATALOG_SCOPE_PROJECTION_FIXED_AND_MANDATORY_CSA_SEMANTICS_CLOSED_AWAITING_OPERATOR_REVIEW`
+
+- Start main SHA: `67de6cd6693c0185ae96a645f447ac84f7af92fc`
+- Implementation commit: `bcc06683c084537e67a013fbddb577964a372d77`
+- Final main SHA before this lifecycle overwrite: `bcc06683c084537e67a013fbddb577964a372d77`
+- Changed implementation files: `runtime-r3/domain/content.js`, `test/r3-csa-contract.test.mjs`.
+- Authority change: `canonicalActors()` now preserves canonical heroine `gender` while keeping general-NPC `sex`; no worker/catalog semantic fork was added.
+- Real projection proof: `canonicalActors()` and real `GET /api/r3/catalogs` returned heroine1/heroine2 `gender: female` and `general_park_jungwoo` `sex: male`; public JSON exposed no `private_info`, `body`, intimate, storage, or voice fields.
+- Deterministic validation: focused `test/r3-csa-contract.test.mjs` 22/22 PASS; full `npm test` 566/566 PASS; changed-file `node --check` PASS; catalog sanity 21 items with weak/medium/strong 7/7/7; `git diff --check` PASS.
+- TEST API: old `769cd525-7b56-40cf-ad0b-f6c2132b9802`; one deploy only; new `fc98e0c3-db75-4088-bc0c-eddf129af4b6`. TEST frontend remained `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`; frontend deploy count 0.
+- Browser readiness: visible DOM, screenshot, setup fields, and bounded repeat DOM read PASS.
+- Fresh visible game: exactly one new game `b91607f4-6945-44eb-87a3-6f2b2d6e1834`; preserved games untouched.
+- S7 visible acceptance: Strong `성적 업무 교육·훈련 지정권`; trainer `서원희`/`heroine1`, trainee `윤민아`/`heroine2`; visible female-employee to female-employee scopes; one APPLY produced Turn 1 (+1) with grounded institutional training designation, both actor names preserved, four choices and free input returned, and S7 active exactly once.
+- Ordinary follow-up: one free input asking 서원희 to explain how to begin the designated training for 윤민아; Turn 2 (+1) committed with direction preserved and four choices/free input returned.
+- Same-game refresh/re-entry: one intentional read-only refresh of the same game; no duplicate commit; Turn 2 reconstructed; S7 active exactly once; reconstructed active scopes were `female_employee` -> `female_employee`.
+- Read-only/browser safety: no previous evidence game was opened or mutated; no resend, reclick, retry, regeneration, or second game; DB/schema/migration/history writes 0; Production access/deploy 0; browser reattachment 0 after initial tab; P0/P1/P2/P3 findings 0.
