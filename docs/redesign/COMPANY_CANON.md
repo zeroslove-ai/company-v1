@@ -121,9 +121,9 @@ The completed Story itself contains the four full player-visible choices. Post-S
 The established UI deliberately uses **two layers**:
 
 1. the four full choices visible in/after the Story for comprehension; and
-2. a separate row of four compact **5-character action buttons** for quick selection.
+2. a separate row of four compact **roughly five-character, meaningfully distinguishable action labels/buttons** for quick selection.
 
-That two-layer presentation is intentional and is not “duplicate choice UI.” A compact label is presentation only; clicking it submits the full literal current-turn choice unchanged.
+That two-layer presentation is intentional and is not “duplicate choice UI.” Compact labels are presentation-only shorthand. They should be short, recognizable, mutually distinguishable, and clearly correspond to the full choice; they are **not required to be a blind prefix slice or exactly five characters**. Clicking one submits the full literal current-turn choice unchanged.
 
 Choices must be meaningfully different directions, not four paraphrases or four variants of the same escalation. In adult/intimate scenes the four choices should not all force continued escalation; scene-appropriate alternatives such as continue/change intensity/talk/stop-or-switch-direction should remain possible when coherent.
 
@@ -207,7 +207,7 @@ The canonical media catalog contract is `MEDIA_CATALOG_CONTRACT.md`.
 
 ## P-UI-001 — Story-first product surfaces
 
-Retain Story/current stream, History, full four choices + compact 5-character buttons, free input, current scene/character, Mind Monitor, player profile/state, company map, `상식개변` app, image/media, TTS, download, feedback, reset, and responsive/mobile access as applicable.
+Retain Story/current stream, History, full four choices + compact short action buttons, free input, current scene/character, Mind Monitor, player profile/state, company map, `상식개변` app, image/media, TTS, download, feedback, reset, and responsive/mobile access as applicable.
 
 Technical implementation vocabulary (`r3_*`, `revision`, `Commit`, internal retry jargon) should not appear as normal player-facing game language.
 
@@ -253,7 +253,7 @@ Character cards in `content/characters.json` must be enriched in-place (or throu
 
 Forward image catalog semantic source is governed by `MEDIA_CATALOG_CONTRACT.md`.
 
-The historical complete Company UI remains the high-parity presentation donor, but donor naming/implementation is not product authority. Full Story choices + compact 5-character buttons are explicitly retained.
+The historical complete Company UI remains the high-parity presentation donor, but donor naming/implementation is not product authority. Full Story choices + compact short action buttons are explicitly retained.
 
 ---
 
@@ -273,7 +273,17 @@ The historical complete Company UI remains the high-parity presentation donor, b
 
 Story receives exact literal action, relevant profile, current scene/time, relevant registered character canon, active CSA premises/scope, clothing where relevant, recent raw committed turns, older grounded chronological memory.
 
+Character context is a **bounded projection** of canonical content. Story receives only fields useful for acting the currently relevant characters; it does not receive whole `characters.json` records or unrelated private/body/catalog data merely because they exist.
+
+Opening context follows the same relevance principle. Physical co-location does not require every co-located heroine’s full prompt card to be focal in the first scene. Opening should project a small natural focal cast sufficient to create a living interaction while preserving broader world/presence truth separately.
+
 Story does not receive a precomputed success verdict, relationship stage, consent matrix, generic action taxonomy, physical execution plan, dynamic sexual meter, or historical non-MVP CSA semantics.
+
+## CSA zero-turn event bridge
+
+CSA APPLY/CHANGE/REMOVE remains a **zero-ordinary-turn system transaction**. It may create one bounded canonical system event describing that a rule was newly issued, changed, or removed, including its activation timing/scope. The next ordinary Story receives that event as context so it can naturally show first reaction or changed authority while still processing the player’s actual literal action. The app operation itself must not masquerade as an ordinary player Story turn.
+
+This bridge is not a second Story call, generic aftereffect engine, relation engine, or consent DSL. Once the next Story has incorporated the event as recent context, normal committed history/memory carries any meaningful consequences forward.
 
 ## One post-Story observer
 
