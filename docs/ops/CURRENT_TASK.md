@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-rule-change-live-recovery-v1
 Mode: ACCEPTANCE-ONLY RECOVERY — FREEZE ACTOR-GROUNDING SOURCE / ONE FRESH OPENING / RESUME CSA LIVE PROOFS
 Updated: 2026-08-25 01:06 KST
@@ -191,3 +191,22 @@ Success report must include:
 If blocked before W5 by a second Opening timeout, terminal must say explicitly that actor-grounding acceptance remains **not reached** and provide the provider/runtime evidence only.
 
 Finish by changing only this same CURRENT_TASK lifecycle to `WAITING_REVIEW`, post one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+---
+
+## Execution terminal — 2026-08-25 KST
+
+`CSA_RULE_CHANGE_LIVE_RECOVERY_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Execution identity: `company-r3-csa-rule-change-live-recovery-v1` / blob `137354c7b6da53e41088eb0ab899184b17ba606c` / expected branch `main`.
+- Start main SHA: `2736b73f03f93506cc03c5ace581f93ab7987396`. Reviewed executable source remained frozen at `60fe42f0b015dc0579888e96b98715b1ab5b5b7f`; current main was source-equivalent with only lifecycle/docs descendants. No source, test, content, prompt, provider, model, config, frontend, catalog, schema, or migration edits.
+- TEST versions verified read-only: API `game-proxy-company-r3` `cbfb8900-1ba9-4886-9405-452e7ae760db`; unchanged frontend `gamebuilder-company-r3` `7e3ae305-bec1-4fb9-9c4e-6e9d86448a9e`. No redeploy was needed.
+- Exactly one fresh disposable game was created through the product UI: `894868de-a2f3-493f-8d20-c9bcb1f38417`. Preserved evidence games `9b2443eb-0c4b-4d44-842f-9141d3255c7b` and `79d0e3b6-fabf-4f35-99d2-f20086a7b171` were not opened, reset, or mutated.
+- Opening PASS: committed Turn 0 visibly arrived; no blocking loader remained; four complete Story choices and free input were visible; no internal `r3_*`, Commit, revision, or retry text was visible. One ordinary product turn also committed successfully (Turn 1), introducing a scene with registered adult subject/counterparty candidates.
+- W5 pre-submission evidence: canonical catalog/source maps `heroine5` to `이메이` and `general_park_jungwoo` to `박정우`; the product UI showed both in the current scene/NPC list. In the W5 `가슴을 만진 상태로 대화` selector, subject `heroine5`/`이메이` and counterparty `general_park_jungwoo`/`박정우` were selected and recorded before one APPLY click.
+- W5 result: the single APPLY attempt did not create a committed rule-change turn. The product remained at Turn 1 and displayed `입력이 서버에 전송되거나 저장되지 않았습니다. 내용을 확인한 뒤 직접 다시 제출할 수 있습니다.` History remained exactly two committed turns (Opening + ordinary Turn 1), with no CSA duplicate. The app exposed no internal error code; browser console/dev diagnostics were empty. A supporting unauthenticated shell GET was rejected as `r3_game_access_denied`, so no unauthorized context read was used; the product UI History was the available read-only context/job evidence.
+- Actor-grounding acceptance is **not reached**: no structured `rule_change_event` -> binding -> Story -> Observer -> durable-state evidence exists, so no actor/direction/app-source pass or failure is claimed. Private-app announcement, CHANGE, REMOVE, Medium, S1, named Strong, multi-rule, later ordinary turn, refresh/History after CSA, and mobile checks were not reached. No retry, resubmit, second game, timeout change, provider change, or source patch was attempted.
+- Direct DB/schema/migration/ledger writes: `0`; no `supabase db push` or migration repair. Authorized disposable gameplay setup/opening/ordinary-turn/W5-attempt requests only. Production access: `0`. Preserved evidence-game mutation: `0`.
+- Findings: `P1` TEST product/API acceptance availability blocker at the first W5 APPLY attempt (`not_sent`, exact internal cause unavailable from UI); actor-grounding P0/P1 is unclassified and not disproven/proven. `P2/P3`: none assessed beyond scope.
+
+STOP. `CURRENT_TASK` is `WAITING_REVIEW`. Do not retry W5, create another game, redeploy, modify source, reset preserved evidence, or start another Cut.
