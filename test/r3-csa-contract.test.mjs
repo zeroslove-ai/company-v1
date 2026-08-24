@@ -8,7 +8,9 @@ import { buildStoryContext } from '../runtime-r3/domain/memory.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { createCsaDraft, csaDraftOperation, stageCsaOperation } from '../frontend-r3/csa-draft.js';
-import { csaSelectorOperation, isCsaSelectorOperationReady, mergeCsaSelectorActor, mergeCsaSelectorScope, playerFacingS1ActionLabels, playerFacingTierLabel } from '../frontend-r3/csa.js';
+import { csaConflictMessage, csaSelectorOperation, isCsaSelectorOperationReady, mergeCsaSelectorActor, mergeCsaSelectorScope, playerFacingS1ActionLabels, playerFacingTierLabel } from '../frontend-r3/csa.js';
+import { createR3Client } from '../frontend-r3/r3-client.js';
+import { isR3CsaCompatibilityConflict, playerFacingStatus } from '../frontend-r3/status.js';
 
 const content = loadCanonicalCompanyR3Content();
 const GAME_ACCESS_SECRET = 'r3-test-secret';
@@ -87,6 +89,32 @@ test('bounded clothing projection remains a pure state projection; active UI pat
   const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', subject_actor_id: 'heroine1' }] });
   assert.equal(next.committed_turn, 4);
   assert.equal(next.clothing.heroine1.underwear_top, 'removed');
+});
+
+test('worker.fetch returns the structured conflict before reserve, Story, Observer, or Commit', async () => {
+  const store = new RecordingStore(); const calls = [];
+  const worker = createR3Worker({ store, provider: providerFor({ calls }), content, gameAccessSecret: GAME_ACCESS_SECRET });
+  const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
+  await postTurn(worker, gameId, auth, { action_id: 'worker-w3', expected_turn: 1, literal_action: 'Apply W3', csa_operation: { operation: 'activate', template_id: 'cleavage_exposed_work', subject_scope: 'female_employee' } });
+  const before = await (await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`, { headers: auth }))).json();
+  const reservationsBefore = store.reservations.length; const callsBefore = calls.length;
+  const response = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/turn`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ action_id: 'worker-m1-conflict', expected_turn: 2, literal_action: 'Apply M1', csa_operation: { operation: 'activate', template_id: 'work_in_underwear_only', subject_scope: 'female_employee' } }) }));
+  const payload = await response.json();
+  assert.equal(response.status, 400); assert.equal(payload.ok, false); assert.match(payload.data.code, /^r3_csa_compatibility_conflict:/);
+  assert.equal(store.reservations.length, reservationsBefore); assert.equal(calls.length, callsBefore);
+  const after = (await (await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`, { headers: auth }))).json()).data;
+  assert.equal(after.state.revision, before.data.state.revision); assert.equal(after.state.committed_turn, before.data.state.committed_turn); assert.deepEqual(after.state.state.csa_active, before.data.state.state.csa_active);
+});
+
+test('conflict classification preserves exact player-facing copy through submit and CSA draft', async () => {
+  const error = { code: 'r3_csa_compatibility_conflict:가슴골 노출 근무와 속옷 근무는 같은 여성 직원 범위에서 동시에 적용할 수 없습니다.' };
+  assert.equal(isR3CsaCompatibilityConflict(error), true); assert.equal(isR3CsaCompatibilityConflict({ code: 'r3_stream_reconnect_required' }), false);
+  const message = playerFacingStatus(error); assert.match(message, /가슴골 노출 근무/); assert.match(message, /속옷 근무/); assert.doesNotMatch(message, /r3_/);
+  assert.equal(csaConflictMessage(error), message); assert.equal(csaConflictMessage({ code: 'r3_stream_reconnect_required' }), null);
+  const client = createR3Client('/api/r3', { storage: { getItem: () => 'cap' }, fetchImpl: async () => new Response(JSON.stringify({ ok: false, data: error }), { status: 400, headers: { 'content-type': 'application/json' } }) });
+  await assert.rejects(client.turn('game', { action_id: 'conflict' }), caught => caught.code === error.code);
+  const app = fs.readFileSync(new URL('../frontend-r3/app.js', import.meta.url), 'utf8'); const csa = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8');
+  assert.match(app, /isR3CsaCompatibilityConflict\(error\)/); assert.match(app, /conflictMessage/); assert.match(csa, /result\?\.conflictMessage/); assert.match(csa, /csaConflictMessage\(error\)/);
 });
 
 test('named strong selectors stay bounded and the server records one structured rule-change event', () => {

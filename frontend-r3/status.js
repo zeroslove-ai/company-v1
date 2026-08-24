@@ -20,3 +20,10 @@ export function playerFacingStatus(value, fallback = '요청을 처리하지 못
   }
   return PLAYER_MESSAGES[code] ?? PLAYER_MESSAGES[String(code).split(':', 1)[0]] ?? fallback;
 }
+
+export function isR3CsaCompatibilityConflict(value) {
+  const code = typeof value === 'string'
+    ? value
+    : value?.terminal?.error_code ?? value?.error_code ?? value?.code ?? value?.message ?? '';
+  return String(code).startsWith('r3_csa_compatibility_conflict:');
+}

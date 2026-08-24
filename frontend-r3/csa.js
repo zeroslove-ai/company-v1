@@ -5,6 +5,7 @@ import {
   isCsaDraftDirty,
   stageCsaOperation
 } from './csa-draft.js';
+import { isR3CsaCompatibilityConflict, playerFacingStatus } from './status.js';
 
 function el(documentRef, tag, text = '') {
   const node = documentRef.createElement(tag);
@@ -39,6 +40,10 @@ export function playerFacingS1ActionLabels(values) {
   return (Array.isArray(values) ? values : [])
     .map(value => PLAYER_FACING_S1_ACTION_LABELS[value])
     .filter(Boolean);
+}
+
+export function csaConflictMessage(value) {
+  return isR3CsaCompatibilityConflict(value) ? playerFacingStatus(value) : null;
 }
 
 function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
@@ -301,10 +306,16 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     render();
     try {
       const result = await Promise.resolve(onOperation?.({ ...operation, literal_action: operationLiteral(operation) }));
-      if (result?.kind === 'committed') draft = null;
+      if (result?.conflictMessage) draft = { ...draft, notice: result.conflictMessage };
+      else if (result?.kind === 'committed') draft = null;
       else draft = { ...draft, notice: '변경이 적용되지 않았습니다. 초안은 보존되어 있습니다.' };
-    } catch {
+    } catch (error) {
+      const conflictMessage = csaConflictMessage(error);
+      if (conflictMessage) {
+        draft = { ...draft, notice: conflictMessage };
+      } else {
       draft = { ...draft, notice: '변경이 전송되지 않았습니다. 초안은 보존되어 있습니다.' };
+      }
     } finally {
       applying = false;
       sync();

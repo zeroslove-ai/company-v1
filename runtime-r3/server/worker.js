@@ -45,7 +45,7 @@ export function createR3Worker({ store, provider, content, gameAccessSecret, env
         if (!(await verifyGameCapability(gameId, bearerCapability(request), gameAccessSecret))) return accessDeniedResponse();
         if (request.method === 'GET' && action === 'context') return json(await store.context(gameId));
         if (request.method === 'POST' && action === 'opening') return openingResponse(store, provider, content, gameId);
-        if (request.method === 'POST' && action === 'turn') return turnResponse(request, store, provider, content, gameId, executionCtx);
+        if (request.method === 'POST' && action === 'turn') return await turnResponse(request, store, provider, content, gameId, executionCtx);
         if (request.method === 'POST' && action === 'feedback') return feedbackResponse(request, store, provider, content, gameId);
         if (request.method === 'POST' && action === 'csa') return csaResponse(store, provider, content, gameId, await body(request));
         if (request.method === 'POST' && action === 'reset') return await resetResponse(request, store, provider, content, gameId);

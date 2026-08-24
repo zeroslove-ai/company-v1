@@ -8,7 +8,7 @@ import { reconcileTurnTransport } from './turn-transport.js';
 import { resolveR3ApiBase } from './r3-config.js';
 import { createR3MediaUi } from './media.js';
 import { createCompanyTts } from './tts.js';
-import { playerFacingStatus } from './status.js';
+import { isR3CsaCompatibilityConflict, playerFacingStatus } from './status.js';
 
 // R3 controller: one context load, one literal action, one server-owned SSE
 // turn. Product rendering lives in the transplanted donor-style modules above.
@@ -266,9 +266,10 @@ async function submit(value = null, { retryFailed = false, csaOperation = null }
     outcome = { kind: 'committed' };
     setStatus('저장되었습니다.');
   } catch (error) {
-    if (String(error?.code ?? error?.message ?? '').startsWith('r3_csa_compatibility_conflict')) {
-      setStatus(playerFacingStatus(error), true);
-      outcome = { kind: 'failed' };
+    if (isR3CsaCompatibilityConflict(error)) {
+      const conflictMessage = playerFacingStatus(error);
+      setStatus(conflictMessage, true);
+      outcome = { kind: 'failed', conflictMessage };
     } else outcome = await reconcileTurnTransport({
       gameId: state.gameId,
       client,
