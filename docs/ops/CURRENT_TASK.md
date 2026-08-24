@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-s1-active-authority-story-binding-v1
 Mode: NARROW P1 REPAIR — ACTIVE S1 STORY AUTHORITY BINDING / SUPPORTED-vs-UNSUPPORTED FINITE FAMILY / RESUME FINAL CSA LANES
 Updated: 2026-08-25 03:49 KST
@@ -39,6 +39,43 @@ Success terminal:
 
 Blocked terminal:
 `CSA_S1_ACTIVE_AUTHORITY_OR_FINAL_MANDATORY_LANES_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+## Execution lifecycle
+
+- TASK_ID: `company-r3-csa-s1-active-authority-story-binding-v1`
+- STATUS: `WAITING_REVIEW`
+- TERMINAL: `CSA_S1_ACTIVE_AUTHORITY_OR_FINAL_MANDATORY_LANES_BLOCKED_AWAITING_OPERATOR_REVIEW`
+- START_HEAD: `55570e738809ffaa265c4c8daabd6b58e88d5a44`
+- IMPLEMENTATION_SHA: `f607e4e868e18bde61ba8c46d508d3a502551c6f`
+- FINAL_MAIN_SHA: pending lifecycle commit
+- FINAL_CURRENT_TASK_BLOB_SHA: pending lifecycle commit
+- BRANCH: `main`
+- RUNNER: `company-v1-codex-watcher / WATCHER`
+
+### Deterministic implementation proof
+
+- Changed files: `runtime-r3/domain/csa.js`, `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-csa-contract.test.mjs`.
+- Focused CSA contract tests: 20/20 passed.
+- Full suite: `npm.cmd test`, 564/564 passed.
+- `node --check` passed for all four changed JS/MJS files.
+- S1 catalog sanity passed: JSON parse, 21 items, exact six-family order unchanged.
+- `git diff --check` passed.
+- No catalog semantic change, durable-state schema/reducer/store change, migration, or DB write.
+- Active S1 binding is immutable and Story-only: player issuer; exact selected subject/counterparty IDs, names, and scopes; direction remains player -> selected subject -> selected counterparty; exact families `['kiss','sexual_touch','genital_exposure','genital_touch','oral','penetration']`; outside-family actions are not mandatory under S1; literal agency is preserved.
+
+### TEST deployment and live evidence
+
+- TEST API before: `cbfb8900-1ba9-4886-9405-452e7ae760db`.
+- TEST API after: `game-proxy-company-r3` version `769cd525-7b56-40cf-ad0b-f6c2132b9802`.
+- TEST frontend unchanged: `9bb754d0-632c-42e5-83b1-441ce6079688`.
+- Fresh disposable game: `c04e91e5-e18f-492f-8b85-32104bb5c3b1`.
+- Setup and Opening were completed exactly once; Opening showed Turn 0, four choices, and free input.
+- S1 was selected once through the visible UI with subject `서원희` and counterparty `박정우`; the card showed selected and the single Apply action produced visible Story output while controls were disabled.
+- The final committed turn/active-state result could not be read: browser DOM snapshot, screenshot, and Windows visual recovery each timed out or were stopped before a terminal Turn result was available. This is a live-harness observability block, not a gameplay PASS or a gameplay P1 finding.
+- The supported literal was not submitted because the S1 activation commit result was not observable. Unsupported singing, S7, S4 fallback, refresh/re-entry, MM, and private-app checks were not run.
+- No duplicate gameplay submission, retry, resample, preserved-game access, reset, or mutation occurred.
+- Production deploys: 0. DB writes: 0. Migrations: 0. Preserved evidence mutation: 0.
+- Findings: deterministic P0/P1/P2/P3 = none; live acceptance = BLOCKED pending operator review/recoverable browser observation.
 
 ---
 
