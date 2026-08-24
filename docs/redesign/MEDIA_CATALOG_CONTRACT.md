@@ -11,7 +11,7 @@ Forward semantic/curation source shall be a repository manifest:
 
 `content/media_catalog.json`
 
-The manifest stores metadata and asset locators, not binary image files.
+The manifest stores metadata and stable asset locators, not binary image files and not temporary serving URLs.
 
 Required fields per active image entry:
 
@@ -22,7 +22,9 @@ Required fields per active image entry:
 - finite/freeform `tags` used only for presentation selection;
 - `active`;
 - `curation_rank`;
-- `asset_locator` / deployed URL mapping information.
+- stable logical `asset_locator` / deployed mapping information.
+
+`asset_locator` must resolve through stable identity such as bucket + object path, stable storage key, or another durable asset ID. Do **not** canonize expiring signed URLs, temporary CDN URLs, or session-specific serving URLs; runtime resolves those from the stable locator when needed.
 
 Supabase `image_library` is the deployed/query index. Once the manifest is introduced and reconciled, the DB must not become a separate semantic catalog whose labels/tags silently diverge from repository canon.
 
@@ -33,6 +35,8 @@ No arbitrary numeric quota is canonized, but media is not accepted when a heroin
 Each heroine’s catalog should cover enough distinct real gameplay situations to avoid systematic wrong/repetitive presentation. Adult pools should cover the actually supported adult/intimate scene families represented by available approved assets.
 
 Catalog quality is judged in real play, not by row count alone.
+
+Curation is evidence-based. If an asset’s meaning/situation cannot be established confidently from the asset itself or trusted existing metadata, do not guess a sexual act, pose, mood, or situation tag merely to fill the manifest. Leave it inactive/unclassified or mark it for explicit later manual curation. A smaller truthful curated set is preferred to a larger invented taxonomy.
 
 ## M-SELECT-001 — Grounded selection
 
