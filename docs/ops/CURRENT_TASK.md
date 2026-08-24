@@ -3,11 +3,12 @@
 Status: READY
 Task ID: company-r3-owner-style-browser-product-audit-v1
 Mode: EVIDENCE-ONLY DEEP BROWSER PRODUCT REVIEW
-Updated: 2026-08-24 18:54 KST
+Updated: 2026-08-24 19:20 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Owner request: user reported the OWNER_TEST_PLAY_READY build is still substantially wrong and requested an independent product review before supplying their own defect list.
-Previous accepted terminal: Issue #68 comment `5393222222`
-Previous owner-manual gate commit: `c37e5021fe9364cc2913e85676f89f23c94d3d97`
+Owner report: the OWNER_TEST_PLAY_READY build is still substantially wrong; first collect a complete browser-verified product defect map before repairs.
+Binding supporting comments:
+- direct-turn audit addendum: Issue #68 comment `5393779396`
+- owner CSA canon correction: Issue #68 comment `5393852242`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` path. Work on `main` only. Do not create another CURRENT_TASK path or branch.
 
@@ -15,9 +16,7 @@ Reuse this exact existing `docs/ops/CURRENT_TASK.md` path. Work on `main` only. 
 
 This is NOT another critical-only seal and NOT a repair task.
 
-The previous final smoke proved only that the build was playable at a narrow P0/P1 level. The owner has now reported that the actual product is still substantially wrong. The purpose of this task is to use the real deployed browser UI like a player, collect a broad product-defect corpus, and explain why the prior live QA did not expose it.
-
-Do not stop at the first defect. Do not patch anything. Complete the full review matrix first.
+Use the actual deployed browser like a real player, including the adult-oriented play style the product is designed for. Collect P0/P1/P2/P3 product defects, not only structural failures. Do not stop at the first defect and do not patch anything during this task.
 
 Target terminal:
 `PRODUCT_AUDIT_COMPLETE_AWAITING_OPERATOR_REVIEW`
@@ -46,19 +45,19 @@ Rules:
 
 The review MUST be driven through an actual browser against the bare public frontend.
 
-Required interaction rules:
-- create games through visible Setup;
-- type free input into the visible textarea and submit through the visible control;
-- activate Story choices through native visible clicks;
-- open/close History, CSA app, feedback, map, state panels, TTS/media controls through visible UI only;
-- refresh/re-enter through the browser normally;
-- use desktop plus approximately 390x844 mobile viewport;
-- capture screenshots at important states and defect moments;
-- collect console/network evidence while playing.
+Required:
+- visible Setup only;
+- visible textarea + visible submit for free input;
+- native visible Story-choice clicks;
+- visible History/CSA/feedback/map/state/TTS/media controls;
+- normal refresh/re-entry;
+- desktop plus approximately 390x844 mobile viewport;
+- screenshots at important states and defect moments;
+- console/network evidence while playing.
 
-Forbidden as a substitute for product interaction:
+Forbidden as substitutes for product interaction:
 - direct gameplay API calls;
-- DOM mutation to force state;
+- DOM mutation;
 - internal submit calls;
 - synthetic event dispatch;
 - storage preseed;
@@ -67,217 +66,294 @@ Forbidden as a substitute for product interaction:
 
 Read-only API/DB/context inspection AFTER a visible browser action is allowed only to locate the first broken boundary.
 
-## 3. Two independent owner-style campaigns
+## 3. Owner correction — play this as an adult-oriented game
 
-Create exactly TWO new disposable games. Do not reuse V5 or the previous 4-turn smoke as the active play surface.
+The previous campaigns were too polite, office-heavy, and QA-scripted. That is not representative of this product.
+
+Create exactly TWO new disposable games with clearly adult profiles (prefer age 25+ so there is no ambiguity).
 
 ### Campaign A — junior / ordinary employee
-- unique Korean name
-- normal department
-- intern/staff/assistant-level canonical rank
-- Opening + 15 ordinary turns
+- unique Korean name;
+- normal department;
+- intern/staff/assistant-level canonical rank;
+- Opening + 15 ordinary turns.
 
 ### Campaign B — experienced / authority profile
-- different unique Korean name
-- different department if practical
-- manager/executive-level canonical rank
-- Opening + 10 ordinary turns
+- different unique Korean name;
+- different department if practical;
+- manager/executive-level canonical rank;
+- Opening + 10 ordinary turns.
 
-The two campaigns must not be scripted as office-task checklists. Play them as an adult company-life character simulation.
+Both campaigns must behave like an actual adult player of an adult company-life character simulation, not a corporate task checklist.
 
-Across the two campaigns cover:
-- social small talk unrelated to work;
-- direct heroine conversation;
-- NPC-to-NPC multi-character scene;
-- work context without making work the mandatory objective;
-- movement between distinct locations;
-- being alone / asking to be left alone;
+Across the two campaigns, naturally include a meaningful mix of:
+- ordinary social small talk unrelated to work;
+- attraction/flirting or suggestive conversation with adult heroines;
+- private curiosity about the CSA app;
+- explicit adult/sexual requests or interactions when the scene and product permit them;
+- escalation and de-escalation;
 - refusal;
 - changing one's mind;
+- asking an ongoing conversation/contact/sexual interaction to stop or change;
+- awkward/unusual but physically plausible adult behavior;
+- direct heroine conversation;
+- NPC-to-NPC multi-character scenes;
+- movement between distinct locations;
+- being alone / asking to be left alone;
 - self-directed internal action;
-- topic switch away from the prior subject;
-- asking for an ongoing interaction to stop/change;
-- one awkward/unusual but physically plausible action;
-- one map-assisted movement attempt through visible UI;
-- refresh/re-entry after several turns;
+- topic switching away from work;
+- work context only as one part of life, not the mandatory objective;
+- one map-assisted movement attempt;
+- refresh/re-entry;
 - History inspection after 8+ turns.
 
-Do not retry a bad stochastic result. Preserve it.
+Do not make all adult turns identical escalation. Test both desire and boundaries. Do not retry a bad stochastic result; preserve it.
 
-## 4. Binding known-regression probes
+## 4. Owner correction — intended choice UI is NOT a defect
 
-Use these semantics in fresh context where they make sense. Do not merely paste them mechanically if an actor is absent; first navigate naturally to a plausible context.
+The following is intentional product behavior and MUST NOT be reported as a defect merely because it exists:
+- the Story body may show the four full next-action choices;
+- the bottom action bar separately shows compact 5-character choice buttons.
+
+This is a two-layer design: full text for comprehension + short buttons for fast selection.
+
+Only report a choice-UI defect if the intended design actually fails, for example:
+- full text and button literal do not correspond;
+- wrong action is sent;
+- buttons are visually unusable/reordered/ambiguous in a way that prevents the user from mapping them to the full choices;
+- mobile layout breaks the two-layer interaction.
+
+Do not file `duplicate choices` or `5-character buttons exist` as defects by themselves.
+
+## 5. Binding known-regression probes
+
+Use these in fresh plausible contexts.
 
 A. Target/topic fidelity:
 `한리브 대리와 점심 메뉴에 대해 가볍게 이야기한다.`
-Expected: interaction is actually with 한리브 and about lunch; Story must not silently continue a different NPC/work topic.
+Expected: actually interact with 한리브 about lunch; do not silently continue another NPC/work topic.
 
 B. Alone/self-state fidelity:
 `혼자 창가에 서서 오늘 아침의 낯선 앱에 대해 생각한다.`
-Expected: player is alone unless a concrete world constraint prevents it; no unrelated NPC should remain beside the player and continue speaking by inertia.
+Expected: player is alone unless a concrete world constraint prevents it; no unrelated NPC stays beside the player and speaks by inertia.
 
 C. Movement/identity fidelity:
-Choose a registered heroine destination through natural play, including 윤민아 when practical.
-Expected: movement actually occurs; no fabricated near-name NPC; no wrong speaker name/voice attribution.
+Navigate to a registered heroine, including 윤민아 when practical.
+Expected: actual movement; no fabricated near-name NPC; no wrong speaker/voice attribution.
 
 D. Refusal/change-of-mind:
-Explicitly refuse a proposed immediate action, then later choose a different action.
-Expected: refusal is not rewritten into compliance and the new action is respected.
+Explicitly refuse an immediate action, then later choose something different.
+Expected: refusal is not rewritten into compliance; later changed intent is respected.
 
 E. Ongoing interaction interruption:
-If the Story establishes an ongoing posture/contact/conversation, explicitly ask to stop/change it.
-Expected: it can end/change unless an actual active rule or physical condition prevents it; Story must not impose invisible rails.
+When Story establishes ongoing conversation/contact/sexual interaction, explicitly request it stop/change.
+Expected: it can end/change unless an actual active CSA rule or physical condition prevents it; no invisible rail.
 
-For every probe record literal input, full Story semantic outcome, structured observer outcome, durable next-state effect, and next-turn continuity.
+For each probe record literal input -> Story semantics -> observer raw/applied -> durable state -> next-turn continuity.
 
-## 5. Product-quality review — P0/P1/P2/P3 ALL count
+## 6. Binding CSA canon — institutional rule, not instant reality normalization
 
-Unlike the previous critical-only task, do NOT defer product-quality defects merely because the game still commits turns.
+Owner comment `5393852242` is authoritative.
 
-Classify and collect ALL of the following:
+When APPLYing a CSA rule:
+1. the private app causes the preset to become a newly issued official company rule/notice/policy (or the preset's defined institutional authority tier);
+2. NPCs do NOT know the private app exists and do not sense a supernatural activation aura;
+3. NPCs may notice the NEW rule and naturally react with surprise, confusion, embarrassment, disbelief, annoyance, awkwardness, questions, or resistance in attitude;
+4. because the rule is now institutionally authoritative, scoped NPCs ultimately comply when it applies;
+5. compliance does NOT automatically imply affection, comfort, sexual desire, consent-as-feeling, romance, trust, loyalty, or personality rewrite;
+6. over subsequent turns, NPCs may gradually adapt/practicalize while keeping their individual personalities and emotions; this adaptation arc is part of the game's core appeal.
 
-### A. Player agency / semantic fidelity
+Therefore:
+- `this has always been normal / nobody notices anything changed / memories were rewritten` is a canon violation unless a specific preset explicitly says so;
+- surprise at a newly issued rule is allowed and often desirable;
+- awareness of the private app or supernatural cause is wrong;
+- emotional reluctance can coexist with institutional compliance;
+- compliance must not be reinterpreted by Story/MM/player-thought as automatic desire or consent-as-feeling.
+
+### Required CSA probes
+
+1. Institutional-notice adaptation probe
+- APPLY a visibly disruptive rule such as `work_nude` or another appropriate preset.
+- On the application turn and following unrelated turns, inspect whether NPCs first recognize it as a new company rule/notice, react in-character, comply when applicable, and gradually adapt instead of instantly treating it as eternal common sense.
+
+2. Rule 9 semantic-boundary probe
+Preset meaning:
+`상대방이 요청하면 상대방이 절정에 이를 때까지 현재 성적 행동을 계속해야 한다.`
+
+Required distinction:
+- if no sexual action is currently underway, the rule must NOT become authority to start any new sexual act merely because the player requests it;
+- if a qualifying current sexual action is already underway and the request condition is met, the rule may require continuation according to the preset.
+
+Do not solve or recommend a generic sexual-action DSL. Audit this preset's actual semantics and first broken boundary only.
+
+3. Lifecycle probe
+Through visible CSA app:
+- APPLY naturally;
+- play at least two unrelated turns;
+- CHANGE;
+- play an unrelated turn;
+- REMOVE;
+- play another unrelated turn;
+- inspect stale effect residue and adaptation/withdrawal behavior.
+
+## 7. Product-quality review — all severities count
+
+### A. Player agency / player character authorship
+Collect:
 - actor/target/action/topic/refusal/self-state/movement/intent substitution;
-- intent treated as already-successful external fact;
-- prior scene inertia overriding the new literal;
-- invisible rails on ongoing interactions.
+- prior-scene inertia overriding the new literal;
+- intent treated as guaranteed external success;
+- invisible rails;
+- **player_inner_thought inventing attraction, desire, consent interpretation, decisions, moral judgement, or emotional state the player never supplied.**
 
-### B. Story quality / game feel
-- work-task dominance;
-- assistant/OOC/protocol language;
-- repetitive office briefing/report/checklist loops;
-- NPCs with no initiative/personality;
-- NPCs behaving as interchangeable exposition devices;
+Player inner thought is part of player agency. Story can describe consequences; Observer cannot define the player's mind on its own.
+
+### B. Story / character game feel
+Collect:
+- work-task dominance or meeting/report/checklist logic intruding into unrelated/social/sexual scenes;
+- NPCs solving adult/emotional situations primarily through office scheduling logic;
 - weak heroine differentiation;
+- interchangeable exposition NPCs;
+- assistant/OOC/protocol language;
 - repeated scene reset;
-- invented unsupported app/game mechanics;
-- unnatural dialogue, excessive exposition, or dead pacing;
-- choices that are dull, redundant, overcommitted, or unrelated to the Story.
+- unsupported game/app mechanics;
+- dead pacing, excessive exposition, unnatural dialogue;
+- character database/profile tags leaking directly into prose (`생활형 리더`, `행동형 신입`, ages/traits recited as a dossier instead of shown through behavior);
+- choices that are formally four but semantically all the same route/escalation.
 
 ### C. Continuity / world state
-- wrong location;
-- stale presence;
-- stale scene_note;
-- wrong speaker/identity;
-- current Story vs History disagreement;
-- refresh changing the perceived scene;
-- time progression that feels incoherent;
-- cross-game leakage.
+Collect wrong location, stale presence, stale scene_note, wrong speaker/identity, refresh disagreement, incoherent time, cross-game leakage.
 
-### D. Mind Monitor / character presentation
-- empty despite meaningful heroine interaction;
-- stale from a previous scene;
-- wrong target;
-- generic/unhelpful content;
-- visible panel occupying prime space while repeatedly empty;
-- mismatch with Story dialogue/behavior.
+### D. Mind Monitor
+Audit both reliability and semantics:
+- empty despite meaningful interaction;
+- raw monitor generated but dropped because values use wrong schema (e.g. string instead of `{surface, subconscious}`);
+- wrong target or too many irrelevant actors;
+- action narration instead of first-person thought;
+- generic/repetitive content;
+- Story/MM contradiction;
+- app/supernatural-cause awareness that violates CSA canon;
+- invented desire/consent/comfort/personality rewrite;
+- valid surprise/awkwardness at a new company rule must NOT be mislabeled as a defect by itself.
 
-### E. UI/UX / immersion
-Judge actual visual behavior, not only reachability.
-Specifically inspect:
-- whether full choices are visibly duplicated in narrative and action controls;
-- whether 5-character choice buttons are understandable in real play;
-- whether the right column is overloaded by media + Mind Monitor + character state + player state + map + CSA tools;
-- whether technical implementation wording leaks to players (`r3_*`, `revision`, `Commit`, retry/error jargon, etc.);
-- whether Story disappears/clears in a jarring way while the next Story begins streaming;
-- whether loading/status UI distracts from streamed narrative;
-- readability, spacing, hierarchy, scroll behavior, and action reachability;
-- desktop and 390x844 separately;
-- whether donor-shell/hospital-derived presentation leaves visible mismatched UX conventions.
+Record raw vs applied when MM is empty or suspicious.
 
-Do not assume any of these are defects from source alone. Prove or reject each in the browser and attach evidence.
+### E. Presentation/UI
+Judge real browser behavior:
+- right-column density and hierarchy;
+- technical wording leaking to players (`r3_*`, `revision`, `Commit`, retry jargon);
+- current Story clearing before new stream and resulting reading experience;
+- loading/status distraction;
+- scroll/readability/action reachability;
+- desktop vs 390x844;
+- hospital/donor-shell visible mismatch;
+- Story actual dialogue grammar vs donor dialogue-card parser: if Story uses ordinary novel lines such as narration followed by quoted speech instead of `화자명(지시): "대사"`, verify whether the intended dialogue cards/TTS projection fail in actual play.
 
-### F. CSA product behavior
-Through visible CSA app:
-- inspect discoverability and comprehension;
-- APPLY one rule naturally;
-- play at least two unrelated turns and judge whether Story actually reflects the active rule when relevant without making every turn about it;
-- CHANGE it;
-- play an unrelated turn;
-- REMOVE it;
-- play another unrelated turn;
-- check for stale effect residue;
-- judge whether the actual experience feels like a private reality-altering app rather than a debug form/quest mechanic.
+Remember section 4: full choices + compact buttons are intentional.
 
-### G. Media/TTS/feedback/history
-Use naturally rather than sampling until favorable:
-- if a registered heroine is grounded, inspect image authority and usefulness;
+## 8. Image catalog / media audit — newly mandatory
+
+Read-only live catalog inspection already established this baseline for `edition_id=company-v1`, active rows:
+- heroine1: general 1 / sex 13
+- heroine2: general 1 / sex 21
+- heroine3: general 1 / sex 20
+- heroine4: general 1 / sex 22
+- heroine5: general 1 / sex 21
+
+All five `general` pools currently have only one generic portrait/situation each. This means normal company-life visual variety is effectively absent unless another image source exists.
+
+Source-level wiring suspicion to verify in browser:
+- `frontend-r3/media.js::projectR3Media()` currently sets `image_pool: 'general'` unconditionally;
+- server `projectCurrentMedia()` accepts `sex` only when `sexualEvidence()` is true;
+- current R3 Observer normalizer does not project a sexual-state field used by that gate.
+
+Therefore the existing 97 active sex-pool rows may be unreachable from the actual current frontend/runtime path.
+
+Required browser evidence:
+1. ordinary heroine scenes: record which image changes, if any, across distinct situations;
+2. adult/sexual heroine scenes: inspect network `/media/image` request pool and returned image_pool/image id;
+3. verify whether a sex-pool image ever becomes visible through normal product interaction;
+4. if always general, identify first broken boundary: frontend request, server gate, state evidence, selector, or catalog;
+5. inspect whether wrong heroine, stale image, generic single portrait repetition, or missing image harms game feel.
+
+Do NOT patch media in this task.
+
+## 9. Media/TTS/feedback/history
+
+Use naturally, never sample-until-pass:
+- inspect image authority/usefulness per section 8;
 - enable TTS once on an actually eligible committed heroine line if one occurs, then replay visibly;
-- use feedback once on a clearly bad Story turn and inspect whether the revision UX is understandable to a player;
-- inspect History with a substantial session and judge chronology/readability, not merely correctness.
+- use feedback once on a clearly bad Story turn and judge the player-facing revision UX;
+- inspect History after substantial play for chronology/readability and technical jargon.
 
-## 6. Evidence standard per turn
+## 10. Evidence standard per turn
 
-For all 25 ordinary turns record at minimum:
+For all 25 ordinary turns record:
 - campaign/game id;
 - turn number;
-- exact visible literal and whether free/native/CSA/map/etc.;
+- exact visible literal and input type;
 - one visible action activation;
-- Story screenshot or captured rendered text;
-- short semantic judgement against literal intent;
-- selected location/presence/focal actor/Mind Monitor outcome;
-- relevant console/network warnings;
-- durable turn result;
-- defect IDs triggered on that turn.
+- rendered Story text/screenshot;
+- semantic judgement against literal intent;
+- location/presence/focal actor;
+- Mind Monitor visible result + raw/applied when needed;
+- media image character/pool/image id or absence when relevant;
+- console/network warnings;
+- durable result;
+- defect IDs.
 
-For every actual defect assign:
-- severity: P0/P1/P2/P3;
-- domain: agency/story/continuity/UI/MM/CSA/media/TTS/history/feedback/performance;
-- reproducibility: deterministic / repeated / single stochastic sample;
+For every defect record:
+- severity P0/P1/P2/P3;
+- domain;
+- deterministic/repeated/single stochastic sample;
 - first broken boundary: visible input -> Story -> observer -> reducer/durable state -> next Story/UI;
 - user-visible impact;
-- whether it was detectable by the previous V5/critical-smoke matrix and WHY it was missed.
+- why prior live QA missed it.
 
-## 7. Mandatory explanation of the previous false-green
+Do not count `turn committed`, `choices.length===4`, or DB readback alone as product green.
 
-The final report must explicitly answer:
-1. Which previous live tests were genuinely browser-driven?
-2. Which were merely structural/happy-path checks?
-3. Which defect classes were excluded by the critical-only P0/P1 severity policy?
-4. How much did the 4-turn junior smoke actually cover?
-5. Did scripted literals and office-heavy scenarios bias the campaign toward apparently coherent work narration?
-6. Did exact commit/network assertions create a false sense of product quality?
-7. Which defects require visual/browser judgement and cannot be validated from DB/tests alone?
-8. What permanent live-QA matrix should replace the prior green criterion?
+## 11. Mandatory false-green explanation
 
-Do not call the build owner-ready merely because turns commit.
+Final report must explicitly answer:
+1. which previous tests were truly browser-driven;
+2. which were structural/happy-path only;
+3. which defect classes the critical-only policy excluded;
+4. how little the final 4-turn smoke covered;
+5. how office-heavy scripted literals biased Story toward coherent-looking work narration;
+6. how commit/network assertions created false confidence;
+7. which defects need actual visual/adult-play judgement;
+8. why previous automation did not behave like an adult player;
+9. what permanent live-QA matrix should replace the old criterion.
 
-## 8. No repair in this task
+## 12. No repair
 
-This task is evidence collection and product review only.
+Do NOT edit runtime/frontend/content/prompt/tests, deploy, change provider/model/settings, change DB/schema/migrations, mutate preserved fixtures, or stop after the first severe issue.
 
-Do NOT:
-- edit runtime/frontend/content/prompt/tests;
-- deploy;
-- change provider/model/settings;
-- change DB/schema/migrations;
-- reset/mutate preserved fixtures;
-- fix defects during the campaign;
-- stop after finding the first severe defect.
+Collect the complete product-defect map first.
 
-The point is to obtain the complete defect picture before deciding repair order with the owner.
-
-## 9. Completion report / terminal
+## 13. Completion report / terminal
 
 Post a NEW Issue #68 terminal containing:
-- start/final main and CURRENT_TASK blob;
+- start/final main + CURRENT_TASK blob;
 - source/deploy identities;
-- two fresh game IDs and profiles;
-- 25-turn campaign matrix;
-- screenshots/evidence references;
-- full defect ledger sorted by severity and user impact;
-- explicit browser-verified results for all source-suspicion checks in section 5E;
-- known-regression probe results;
-- Story/game-feel findings;
-- CSA/media/TTS/feedback/history findings;
-- explanation of why previous live QA reached false-green;
-- recommended repair order, but NO implementation;
+- two fresh game IDs/profiles;
+- 25-turn matrix;
+- screenshots/evidence refs;
+- full defect ledger sorted by user impact;
+- adult-play coverage summary;
+- known-regression results;
+- CSA institutional-rule/adaptation results;
+- rule-9 semantic-boundary result;
+- player-inner-thought agency findings;
+- MM raw/applied reliability findings;
+- image catalog and general-vs-sex runtime wiring findings;
+- Story/character/work-bias findings;
+- UI/TTS/feedback/history findings;
+- false-green explanation;
+- smallest recommended repair order, but NO implementation;
 - source edits = 0; deploys = 0.
 
-Then overwrite this SAME file to:
-- `Status: WAITING_REVIEW`
+Then overwrite this SAME file to `Status: WAITING_REVIEW` and STOP.
 
 Terminal:
 `PRODUCT_AUDIT_COMPLETE_AWAITING_OPERATOR_REVIEW`
-
-STOP. Do not create a repair task yourself. The operator will review the evidence and compare it with the owner's own feedback before registering repairs.
