@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-player-facing-presentation-sanitization-v1
 Mode: NARROW P1 REPAIR — CSA PLAYER-FACING PRESENTATION SANITATION / STALE EXACT-NINE COPY REMOVAL / RESUME REMAINING LIVE ACCEPTANCE
-Updated: 2026-08-25 02:02 KST
+Updated: 2026-08-25 02:09 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `58862dec04e0ce6a6203197a10b5ade9fa623040`
@@ -375,3 +375,18 @@ Blocked terminal:
 `CSA_PLAYER_FACING_PRESENTATION_OR_REMAINING_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+---
+
+## Lifecycle terminal — 2026-08-25 02:09 KST
+
+Status: WAITING_REVIEW
+Terminal: CSA_PLAYER_FACING_PRESENTATION_OR_REMAINING_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW
+Implementation commit: 206bb957abbcdf621c22a6355bf9576610416bdd
+Final main SHA before this lifecycle commit: 206bb957abbcdf621c22a6355bf9576610416bdd
+
+Presentation gate: PASS on exactly one fresh disposable TEST game, 36ef2c76-e592-4a09-ab7e-2d89aab4394c. Desktop tabs 약함/중간/강함 each showed 7 cards; Korean S1 labels 키스, 성적 접촉, 성기 노출, 성기 접촉, 구강 자극, 삽입 행위 were visible, with no raw action-family token, world_behavior, stale 9개 copy, or technical catalog heading. Manual and bounded selector controls were visible.
+
+Live acceptance: first Weak APPLY reached Turn 1 (+1 from Opening Turn 0) and committed the grounded institutional announcement for 노브라 근무. One ordinary free-input social turn reached Turn 2 (+1) with the player's commute/coffee conversation remaining primary. The browser automation then became unavailable: the same tab URL remained present, but fresh visible DOM and screenshot reads both timed out, including a final browser cleanup attempt. No second game, no re-click of the second Weak change, no retry/sample-until-pass, and no preserved-game access occurred. Remaining Weak CHANGE/ordinary/REMOVE, Medium, Strong, combination/residue, refresh/History/mobile, and MM/private-app/agency lanes are unverified and therefore BLOCKED pending operator review.
+
+Scope/evidence: changed files are frontend-r3/csa.js and test/r3-csa-contract.test.mjs only. Focused CSA 19/19, full npm test 563/563, syntax check, and git diff --check passed before deployment. TEST frontend version 9bb754d0-632c-42e5-83b1-441ce6079688; TEST API remained cbfb8900-1ba9-4886-9405-452e7ae760db. DB/migration writes 0; Production access 0; preserved game ccd2ff92-1ca4-44cb-9155-6f05f8d2ef93 untouched; API redeploy 0; provider/model/config/timeout changes 0.
