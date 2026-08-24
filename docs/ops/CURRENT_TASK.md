@@ -1,212 +1,307 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-csa-rule-change-live-recovery-v1
-Mode: ACCEPTANCE-ONLY RECOVERY — FREEZE ACTOR-GROUNDING SOURCE / ONE FRESH OPENING / RESUME CSA LIVE PROOFS
-Updated: 2026-08-25 01:06 KST
+Status: READY
+Task ID: company-r3-csa-w5-turn-transport-diagnostic-repair-v1
+Mode: NARROW P1 DIAGNOSTIC/REPAIR — EXACT W5 UI PAYLOAD / TURN TRANSPORT / RESERVE BOUNDARY / RESUME ACTOR-GROUNDING ACCEPTANCE
+Updated: 2026-08-25 01:30 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `bc08403252d177d977b31f7d23460159bec69f25`
-Reviewed actor-grounding source: `60fe42f0b015dc0579888e96b98715b1ab5b5b7f`
+Registration base main: `9f9d853c979aa0199bc41d79ac2ee5fe12448e08`
+Reviewed actor-grounding executable source: `60fe42f0b015dc0579888e96b98715b1ab5b5b7f`
 Binding CSA canon commit: `8db9cc0cccde68fc66f973de19c28c13154d9960`
 Binding live acceptance commit: `81c8d7beca6bb29dd1c13ffa672e085616e8aed8`
-Previous task: `company-r3-csa-rule-change-actor-grounding-v1`
-Previous terminal: Issue #68 `5397923711`
-Operator review: Issue #68 `5397951824`
-Correct deployed TEST R3 API version: `cbfb8900-1ba9-4886-9405-452e7ae760db`
-Unchanged TEST R3 frontend baseline: `7e3ae305-bec1-4fb9-9c4e-6e9d86448a9e`
+Previous task: `company-r3-csa-rule-change-live-recovery-v1`
+Previous terminal: Issue #68 `5398196312`
+Operator review: Issue #68 `5398267569`
+TEST R3 API baseline: `game-proxy-company-r3` / `cbfb8900-1ba9-4886-9405-452e7ae760db`
+TEST R3 frontend baseline: `gamebuilder-company-r3` / `7e3ae305-bec1-4fb9-9c4e-6e9d86448a9e`
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
-## Authority / reuse law
+## Reuse / authority law
 
 - Work on `main` only.
-- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Do not create a new CURRENT_TASK file, branch, PR, or ops branch.
-- Read before execution: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, current CSA source, previous terminal `5397923711`, operator review `5397951824`, then this task.
-- Freeze reviewed executable source `60fe42f0b015dc0579888e96b98715b1ab5b5b7f`. This lease is acceptance-only.
-- Do NOT edit source, tests, content, prompts, provider/model/config, frontend, DB schema, migrations, or catalogs in this task.
-- Do NOT change timeout values, add retries, add regeneration, add semantic gates, or sample-until-pass.
-- No Production access.
-- No preserved evidence-game reset or mutation.
+- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Overwrite it in place for lifecycle state.
+- Do NOT create another CURRENT_TASK file, ops branch, feature branch, implementation PR, or report-only branch.
+- Read first: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, current frontend/runtime CSA transport source/tests, terminal `5398196312`, review `5398267569`, then this task.
+- Preserve the accepted 21-slot catalog, structured +1-turn CSA architecture, actor-grounding semantics from `60fe42f0...`, Stage-A agency/MM behavior, and current TEST schema.
+- Do not restore exact-nine or zero-turn CSA.
 - Never claim OWNER_READY.
 
 Target success terminal:
-`CSA_RULE_CHANGE_LIVE_RECOVERY_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CSA_W5_TURN_TRANSPORT_REPAIRED_AND_ACTOR_GROUNDING_PROVEN_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`CSA_RULE_CHANGE_LIVE_RECOVERY_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CSA_W5_TURN_TRANSPORT_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ---
 
-# 0. Accepted facts — do not reopen
+# 0. Accepted facts — do not reopen without deterministic evidence
 
-The previous source repair is accepted as the current actor-grounding candidate:
+The latest fresh game `894868de-a2f3-493f-8d20-c9bcb1f38417` proved:
 
-- deterministic `rule_change_story_binding` derives canonical template/slot/rule text, operation, exact selected actor IDs/names, immutable subject/counterparty/designation roles, action direction, authority framing, and unselected-participant boundary from the already validated structured rule event;
-- it is Story context/presentation guidance only, not a second gameplay writer or durable gameplay system;
-- ordinary non-CSA turns retain exact submitted literal-action fidelity;
-- rule-change Story no longer receives the audit/app-control literal as ordinary Story intent when a structured rule event exists;
-- focused CSA tests `15/15` PASS;
-- full `npm test` `559/559` PASS;
-- syntax/JSON/diff checks PASS;
-- correct TEST R3 API `game-proxy-company-r3` version `cbfb8900-1ba9-4886-9405-452e7ae760db` was deployed from source `60fe42f0...`;
-- frontend source did not change and was not redeployed;
-- failed fresh game `79d0e3b6-fabf-4f35-99d2-f20086a7b171` is evidence only and must not be reused or mutated.
+- Opening committed normally;
+- one ordinary Turn 1 committed normally through the same R3 product;
+- W5 UI pre-selection was exact: subject `heroine5` / 이메이, counterparty `general_park_jungwoo` / 박정우;
+- APPLY was clicked once;
+- no CSA job/turn committed or duplicated;
+- product recovery text was `입력이 서버에 전송되거나 저장되지 않았습니다. 내용을 확인한 뒤 직접 다시 제출할 수 있습니다.`;
+- actor-grounding Story acceptance was not reached because no rule-change turn existed.
 
-The previous terminal did **not** prove actor-grounding failure. It stopped before W5 because Opening/Turn 0 hit provider response timeout.
+Current frontend facts:
 
-Do not patch source from that single timeout.
+- CSA UI hands `{ literal_action, ...csaOperation }` to `submit()`;
+- ordinary and CSA turns both use `client.turn(... /turn ...)`;
+- `submit()` converts a non-OK/no-body turn response into `r3_stream_reconnect_required`, then `reconcileTurnTransport()` reads canonical context once;
+- if no processing/failed job or matching commit exists, the UI classifies it generically as `not_sent`;
+- therefore the previous terminal does **not** distinguish network failure, HTTP 4xx validation rejection, capability/auth failure, expected-turn conflict before reserve, or another pre-reserve source failure.
 
----
+Current test gap:
 
-# 1. Preflight — read only
+- focused tests prove W5 `applyR3Csa()` selector semantics and `rule_change_story_binding` direction;
+- they do not currently prove the exact browser-style W5 payload end-to-end through `/turn -> startTurn -> validation -> reserve -> stream -> commit` with `heroine5` + `general_park_jungwoo`.
 
-Before gameplay:
+Historical comparison:
 
-1. verify current `main` is only docs/lifecycle descendants of reviewed source or otherwise source-equivalent;
-2. verify current deployed TEST R3 API still corresponds to reviewed source `60fe42f0...` and correct worker `game-proxy-company-r3`;
-3. verify TEST frontend remains the accepted unchanged R3 frontend;
-4. verify current TEST R3 schema remains compatible read-only;
-5. do not redeploy if equivalence is already true.
+- the same W5 actor pair committed successfully in the earlier pre-grounding live run under the current 21-slot architecture;
+- actor-grounding commit `60fe42f0...` did not intentionally redesign selector validation or the turn reservation contract.
 
-If source/runtime drift is detected, STOP BLOCKED with exact evidence. Do not repair or redeploy a different lineage inside this acceptance lease.
-
-The accidental legacy TEST worker deployment recorded in the previous terminal is unrelated acceptance evidence. Do not use `game-proxy-company-v1` for this task.
+Do not assume either "transient network" or "bad selector". Prove the first broken boundary.
 
 ---
 
-# 2. One fresh Opening attempt only
+# 1. Exact source inventory and comparison
 
-Create exactly one fresh disposable adult TEST game through the actual deployed browser product surface.
+Trace the current path:
 
-Run Setup and Opening once.
+`frontend-r3/csa.js draft -> onOperation -> frontend-r3/app.js submit -> frontend-r3/r3-client.js turn -> runtime-r3/server/worker.js startTurn -> applyR3Csa prevalidation -> assertExpectedTurn -> store.reserveTurn -> streamTurn -> provider -> observer -> commit`
 
-Required Opening pass:
+Also inspect:
 
-- browser reaches committed Opening/Turn 0;
-- Story visibly streams;
-- no blocking loader covers arrived Story;
-- exactly four full Story choices are available;
-- free input remains available;
-- no internal `r3_*`, Commit, revision, retry internals are exposed;
-- no duplicate Opening/Commit appears after context readback.
+- `frontend-r3/turn-transport.js` reconciliation;
+- `runtime-r3/server/http.js` error envelope;
+- in-memory and Supabase store reserve-turn validation;
+- the additive `rule_change_event` reserve contract already present on TEST;
+- exact diffs `bef87b18656f5f2e009d106a2436c7ee558101b9 -> 60fe42f0b015dc0579888e96b98715b1ab5b5b7f` for any accidental pre-reserve behavior change.
 
-If Opening/provider response times out or fails again:
+Classify relevant paths:
 
+- `KEEP`
+- `MISSING_INTEGRATION_TEST`
+- `PRE_RESERVE_REJECTION_OWNER`
+- `TRANSPORT_ERROR_CLASSIFICATION_ONLY`
+- `DEPLOYMENT_DRIFT`
+- `UNRELATED_DO_NOT_TOUCH`
+
+Do not change source until the first broken boundary is identified.
+
+---
+
+# 2. Deterministic exact-W5 integration reproduction first
+
+Before any live retry, add a focused deterministic test using current canonical content and the real `createR3Worker` request boundary.
+
+Use the exact operation shape expected from the browser:
+
+```json
+{
+  "operation": "activate",
+  "template_id": "breast_touch_conversation",
+  "subject_scope": "female_employee",
+  "counterparty_scope": "male_employee",
+  "subject_actor_id": "heroine5",
+  "counterparty_actor_id": "general_park_jungwoo"
+}
+```
+
+The test must:
+
+1. create a valid R3 game with capability;
+2. commit Opening;
+3. submit `/turn` with a non-empty audit `literal_action`, `expected_turn=1`, `action_id`, and the exact `csa_operation` above;
+4. assert the HTTP/SSE boundary actually reaches a reserved and committed rule-change turn;
+5. assert the committed structured event contains exact subject/counterparty IDs;
+6. assert `rule_change_story_binding` carries 이메이/박정우 with W5 direction;
+7. prove exactly +1 committed gameplay turn and no duplicate.
+
+Also add a frontend-shape regression proving the CSA draft/selector handoff preserves both actor IDs in the operation passed to `submit()` and does not silently clear one during render/sync.
+
+If the exact deterministic `/turn` request fails:
+
+- capture the exact error code and owning function;
+- patch only that owning boundary;
+- do not continue to live acceptance until focused regression is green.
+
+If deterministic `/turn` passes:
+
+- do not invent a source fix;
+- proceed to live HTTP/network evidence to determine deployment/transport cause.
+
+---
+
+# 3. Preserve server error identity without exposing internals to normal players
+
+Current product recovery collapses several pre-reserve failures into `not_sent`. This is acceptable player-facing wording but insufficient operator evidence.
+
+During this task, ensure the diagnostic path can capture the exact HTTP status/error code for a failed `/turn` request without exposing raw `r3_*`, stack traces, capability tokens, secrets, or JSON internals in normal player UI.
+
+Preferred minimal approach:
+
+- test/browser Network or safe internal error object preserves the server error identity for evidence;
+- player UI continues to show understandable generic recovery wording;
+- do not add a permanent developer console panel or raw-code player surface.
+
+Only patch client/transport classification if current code is proven to destroy information needed for correct recovery behavior, not merely to make debugging convenient.
+
+---
+
+# 4. Source repair boundary
+
+If deterministic evidence identifies a source regression, make the smallest repair.
+
+Allowed examples:
+
+- exact browser CSA operation serialization loses actor selector fields;
+- worker prevalidation rejects a valid canonical W5 pair due to a current source mismatch;
+- expected-turn/revision handling incorrectly treats a dedicated structured rule-change turn differently from an ordinary turn before reserve;
+- reserve payload fails to carry the valid `rule_change_event` expected by the current additive TEST schema;
+- client incorrectly routes the dedicated structured operation to a stale endpoint/path.
+
+Not allowed:
+
+- actor fuzzy matching;
+- automatic substitution of player/another NPC;
+- generic sexual action DSL;
+- second writer/kernel;
+- retries/regeneration/sample-until-pass;
+- model/provider/secret/timeout changes;
+- weakening capability/auth or turn fencing;
+- bypassing server validation;
+- DB schema redesign to hide a frontend/runtime bug.
+
+Preserve `rule_change_story_binding` and its exact direction semantics from `60fe42f0...` unless deterministic evidence shows that code itself causes the pre-reserve rejection.
+
+---
+
+# 5. Validation before TEST deployment
+
+Required minimum:
+
+- exact W5 full `/turn` integration regression;
+- frontend actor-pair operation-shape regression;
+- existing CSA focused suite;
+- Stage-A agency/MM regressions touched by changed files;
+- one full `npm test`;
+- JS syntax;
+- catalog JSON parse if relevant;
+- `git diff --check`.
+
+If source changes:
+
+- deploy exact reviewed API source to TEST only if runtime/API changed;
+- deploy frontend only if frontend source changed;
+- record exact Worker version IDs;
+- do not redeploy unchanged workers.
+
+Expected DB/schema change: **none**.
+
+- no `supabase db push`;
+- no migration repair;
+- no migration-ledger write;
+- no gameplay-row backfill;
+- if a genuinely new schema prerequisite appears, STOP BLOCKED before mutation with exact evidence.
+
+No Production access.
+
+---
+
+# 6. Fresh live proof after deterministic closure
+
+Never reuse or mutate previous evidence games.
+Create one fresh disposable adult TEST browser game only after deterministic tests are green and exact TEST deployment is verified.
+
+Run:
+
+1. Setup + Opening once;
+2. one ordinary turn if necessary to establish scene reality with exact registered actors;
+3. configure W5 with subject `heroine5`/이메이 and counterparty `general_park_jungwoo`/박정우 when both are valid/selectable;
+4. record the exact outgoing operation shape and HTTP result without recording bearer capability;
+5. click APPLY exactly once.
+
+If `/turn` still fails before reserve:
+
+- capture exact HTTP status/error code and canonical context/job evidence;
 - STOP immediately;
-- classify `REPRODUCIBLE_TEST_PROVIDER_OR_RUNTIME_AVAILABILITY_BLOCKER`;
-- record exact browser state, timing/error code, worker version, game ID, and read-only context/job evidence;
-- do not retry Opening;
-- do not create a second game;
-- do not increase timeouts or change model/provider/config;
-- do not patch source.
+- no resubmit, no second game, no alternate pair, no sample-until-pass.
 
-A second reproducible Opening timeout is not evidence against the actor-grounding source; it becomes its own provider/runtime-availability blocker for operator review.
+If W5 commits:
 
----
+PASS requires:
 
-# 3. Mandatory first product probe — W5 exact actor direction
+- exact structured subject/counterparty IDs;
+- exact rule-change binding IDs/names/roles/direction;
+- Story uses 박정우 -> 이메이 W5 direction, with no player substitution;
+- grounded institutional announcement;
+- private app not narrated as institutional source;
+- same-turn MM consistent with Story;
+- active rule atomically committed exactly once;
+- four Story choices/free input available;
+- refresh/context/History no duplicate.
 
-Only if Opening succeeds, use the same fresh game and reach a scene where a non-player registered adult counterparty can be selected for W5 `breast_touch_conversation` without fabricating scene reality.
+Only after this W5 PASS, resume the previously unreached bounded CSA lanes from the prior task:
 
-Submit exactly one W5 APPLY rule-change turn with:
+- CHANGE;
+- unrelated ordinary turn;
+- REMOVE + residue check;
+- one Medium actor-pair rule;
+- S1 finite action-family rule;
+- one named Strong designation;
+- one compatible two-rule combination;
+- later unrelated turn;
+- refresh/History;
+- desktop + ~390x844 mobile CSA usability.
 
-- a registered heroine as subject;
-- a registered non-player adult employee as counterparty;
-- both exact IDs/names recorded before submission.
-
-PASS requires all of the following from the one committed rule-change turn:
-
-- structured `rule_change_event` preserves the exact selected subject/counterparty IDs;
-- `rule_change_story_binding` readback/prompt evidence preserves the same IDs/names/roles and direction;
-- Story uses the exact selected actors and correct W5 direction;
-- player is not substituted when not selected;
-- no other NPC is substituted or auto-added;
-- grounded institutional announcement appears through company/public channel;
-- private app screen/control is not narrated as the institutional source;
-- NPC reactions may show surprise/embarrassment/reluctance while rule compliance remains distinct from affection/desire;
-- same-turn MM actor IDs/names and reality agree with the Story;
-- active rule commits atomically exactly once;
-- four Story choices remain available;
-- refresh/context/History show one committed rule-change turn, not duplicate Story/Commit.
-
-If any exact actor/direction/app-source P0/P1 recurs, STOP immediately. No retry/sample-until-pass.
+Stop at first deterministic P0/P1. Do not expand into final 20+ turn owner-ready/media/TTS acceptance.
 
 ---
 
-# 4. Resume previously unreached CSA acceptance only after W5 PASS
+# 7. Safety / evidence rules
 
-Continue on the same fresh game, stopping at first deterministic P0/P1.
-
-Cover in this order where scene reality permits:
-
-1. CHANGE the active W5 rule to another compatible canonical rule; verify one Story turn and exact new scope/state.
-2. Ordinary unrelated social/non-work turn; verify active rule premise does not replace the literal action.
-3. REMOVE; verify one Story turn and no future authority residue.
-4. One Medium actor-pair preset, with exact subject/counterparty direction.
-5. S1 `sexual_work_instruction_authority` using one supported finite action family only; prove no generic unsupported-command DSL/executor appears.
-6. One named-designation Strong preset (S2/S3/S5/S6 as scene/product semantics permit); exact registered adult identity must be preserved.
-7. One compatible two-rule combination; both active premises persist into a later relevant Story without collapsing into affection/obedience/personality rewrite.
-8. One later unrelated ordinary turn; active rules remain background authority only.
-9. Refresh/re-entry and History; no duplicate turn/Commit, no stale rule residue.
-10. Desktop and approximately `390x844` mobile CSA surface: tabs `약함 | 중간 | 강함`, seven rules per tier, bounded selectors, active rule `변경/해제`, Story-first reading priority, no raw IDs/JSON/revision/internal codes.
-
-Do not expand into final 20+ memory/media/TTS owner-ready acceptance in this task.
+- Production access = 0.
+- Preserved evidence-game mutation/reset = 0.
+- Previous disposable games are read-only evidence; do not reuse them.
+- Never post bearer capability tokens, secrets, private environment values, or full auth headers to Issue #68.
+- Direct API use is allowed for deterministic local tests and read-only supporting TEST evidence; actual product acceptance remains browser UI.
+- No migration/history repair.
+- No new branch/PR/CURRENT_TASK file.
 
 ---
 
-# 5. Data / deployment / safety boundary
+# 8. Terminal report contract
 
-- Source/test/content writes: `0`.
-- DB schema/migration writes: `0`.
-- `supabase db push`: forbidden.
-- migration repair/history mutation: forbidden.
-- provider/model/config/secret change: forbidden.
-- automatic retry/regeneration: forbidden.
-- Production access: `0` required.
-- preserved failed games `9b2443eb-0c4b-4d44-842f-9141d3255c7b` and `79d0e3b6-fabf-4f35-99d2-f20086a7b171`: read-only forever for this task.
-- Do not mutate other QA/sentinel/preserved games.
-- Use actual deployed browser UI for product acceptance; direct API may be used only for read-only supporting evidence where needed, not as a substitute for the product interaction.
-
----
-
-# 6. Terminal report
-
-Success report must include:
+Report:
 
 - start/final main SHA;
-- proof executable source remained `60fe42f0...`;
-- exact deployed TEST R3 API/frontend versions used;
-- fresh game ID;
-- Opening result;
-- W5 structured event -> binding -> Story -> observer raw/applied -> durable state -> UI evidence;
-- exact subject/counterparty IDs/names and correct direction;
-- private-app announcement-source result;
-- CHANGE/REMOVE/Medium/S1/named-Strong/multi-rule/ordinary-turn/refresh/History/mobile results actually reached;
-- source/test/content writes = 0;
+- exact changed files;
+- deterministic exact-W5 `/turn` result before and after repair;
+- exact first broken boundary and error code;
+- whether frontend payload preserved both actor IDs;
+- whether source repair was required;
+- focused/full test counts;
 - DB/migration writes = 0;
+- exact TEST API/frontend versions used;
+- fresh game ID;
+- exact W5 outgoing operation fields excluding secrets;
+- live HTTP result;
+- structured event -> binding -> Story -> Observer -> durable state evidence if reached;
+- resumed CHANGE/REMOVE/Medium/Strong/multi-rule/mobile lanes actually reached;
 - Production access = 0;
-- preserved evidence-game mutation = 0;
+- preserved evidence mutation = 0;
 - P0/P1/P2/P3 findings.
 
-If blocked before W5 by a second Opening timeout, terminal must say explicitly that actor-grounding acceptance remains **not reached** and provide the provider/runtime evidence only.
+Success terminal:
+`CSA_W5_TURN_TRANSPORT_REPAIRED_AND_ACTOR_GROUNDING_PROVEN_AWAITING_OPERATOR_REVIEW`
 
-Finish by changing only this same CURRENT_TASK lifecycle to `WAITING_REVIEW`, post one terminal report to Issue #68, then STOP. Do not self-register another task.
+Blocked terminal:
+`CSA_W5_TURN_TRANSPORT_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
----
-
-## Execution terminal — 2026-08-25 KST
-
-`CSA_RULE_CHANGE_LIVE_RECOVERY_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-- Execution identity: `company-r3-csa-rule-change-live-recovery-v1` / blob `137354c7b6da53e41088eb0ab899184b17ba606c` / expected branch `main`.
-- Start main SHA: `2736b73f03f93506cc03c5ace581f93ab7987396`. Reviewed executable source remained frozen at `60fe42f0b015dc0579888e96b98715b1ab5b5b7f`; current main was source-equivalent with only lifecycle/docs descendants. No source, test, content, prompt, provider, model, config, frontend, catalog, schema, or migration edits.
-- TEST versions verified read-only: API `game-proxy-company-r3` `cbfb8900-1ba9-4886-9405-452e7ae760db`; unchanged frontend `gamebuilder-company-r3` `7e3ae305-bec1-4fb9-9c4e-6e9d86448a9e`. No redeploy was needed.
-- Exactly one fresh disposable game was created through the product UI: `894868de-a2f3-493f-8d20-c9bcb1f38417`. Preserved evidence games `9b2443eb-0c4b-4d44-842f-9141d3255c7b` and `79d0e3b6-fabf-4f35-99d2-f20086a7b171` were not opened, reset, or mutated.
-- Opening PASS: committed Turn 0 visibly arrived; no blocking loader remained; four complete Story choices and free input were visible; no internal `r3_*`, Commit, revision, or retry text was visible. One ordinary product turn also committed successfully (Turn 1), introducing a scene with registered adult subject/counterparty candidates.
-- W5 pre-submission evidence: canonical catalog/source maps `heroine5` to `이메이` and `general_park_jungwoo` to `박정우`; the product UI showed both in the current scene/NPC list. In the W5 `가슴을 만진 상태로 대화` selector, subject `heroine5`/`이메이` and counterparty `general_park_jungwoo`/`박정우` were selected and recorded before one APPLY click.
-- W5 result: the single APPLY attempt did not create a committed rule-change turn. The product remained at Turn 1 and displayed `입력이 서버에 전송되거나 저장되지 않았습니다. 내용을 확인한 뒤 직접 다시 제출할 수 있습니다.` History remained exactly two committed turns (Opening + ordinary Turn 1), with no CSA duplicate. The app exposed no internal error code; browser console/dev diagnostics were empty. A supporting unauthenticated shell GET was rejected as `r3_game_access_denied`, so no unauthorized context read was used; the product UI History was the available read-only context/job evidence.
-- Actor-grounding acceptance is **not reached**: no structured `rule_change_event` -> binding -> Story -> Observer -> durable-state evidence exists, so no actor/direction/app-source pass or failure is claimed. Private-app announcement, CHANGE, REMOVE, Medium, S1, named Strong, multi-rule, later ordinary turn, refresh/History after CSA, and mobile checks were not reached. No retry, resubmit, second game, timeout change, provider change, or source patch was attempted.
-- Direct DB/schema/migration/ledger writes: `0`; no `supabase db push` or migration repair. Authorized disposable gameplay setup/opening/ordinary-turn/W5-attempt requests only. Production access: `0`. Preserved evidence-game mutation: `0`.
-- Findings: `P1` TEST product/API acceptance availability blocker at the first W5 APPLY attempt (`not_sent`, exact internal cause unavailable from UI); actor-grounding P0/P1 is unclassified and not disproven/proven. `P2/P3`: none assessed beyond scope.
-
-STOP. `CURRENT_TASK` is `WAITING_REVIEW`. Do not retry W5, create another game, redeploy, modify source, reset preserved evidence, or start another Cut.
+Finish by changing only this existing CURRENT_TASK lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
