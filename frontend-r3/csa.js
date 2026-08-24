@@ -32,6 +32,14 @@ function validScope(options, preferred) {
   return values.includes(preferred) ? preferred : (values[0] ?? null);
 }
 
+function defaultCounterpartyScope(item) {
+  const preferred = item?.default_counterparty_scope;
+  if (item?.selector_schema === 'actor_pair' && preferred === 'player') {
+    return validScope(item.counterparty_scopes, item.counterparty_scopes.find(scope => scope !== 'player'));
+  }
+  return validScope(item?.counterparty_scopes, preferred);
+}
+
 export function replacementPresetItems({ activeRules = [], catalogItems = [], rule } = {}) {
   const activeTemplates = new Set(activeRules
     .filter(activeRule => activeRule?.id !== rule?.id)
@@ -293,7 +301,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     const card = el(documentRef, 'article'); card.className = 'csa-app-card';
     card.append(el(documentRef, 'strong', `${item.strength ?? '규칙'} · ${item.label}`), el(documentRef, 'p', item.content_template ?? ''));
     const subject = pending?.subject_scope ?? item.default_subject_scope;
-    const counterparty = pending?.counterparty_scope ?? item.default_counterparty_scope;
+    const counterparty = pending?.counterparty_scope ?? defaultCounterpartyScope(item);
     if (item.supported_action_families?.length) card.append(el(documentRef, 'small', `지원 행동군: ${item.supported_action_families.join(', ')}`));
     if (item.selector_schema === 'named_actor' || item.selector_schema === 'actor_pair') card.append(actorField('지정 직원', pending?.subject_actor_id ?? '', value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: value })));
     if (item.selector_schema === 'actor_pair') card.append(actorField('상대 직원', pending?.counterparty_actor_id ?? '', value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: pending?.subject_actor_id, counterparty_actor_id: value })));
