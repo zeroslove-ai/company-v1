@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-bounded-selector-coherence-s7-transport-v1
 Mode: NARROW P1 REPAIR — FRONTEND BOUNDED SELECTOR COHERENCE / S7 TRANSPORT / FINAL MANDATORY CSA SEMANTIC CLOSURE
-Updated: 2026-08-25 05:11 KST
+Updated: 2026-08-25 05:18 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main before this overwrite: `587bdd014950fe1ef6e6773665a013bcd7c7e6a8`
@@ -320,3 +320,19 @@ Blocked:
 `CSA_S7_SELECTOR_TRANSPORT_OR_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+---
+
+# 9. Lifecycle: blocked at first P1 live selector-coherence defect
+
+- Implementation commit: `79fbfd6013c2db54d4e6a68af6dc92123e292abb`.
+- Changed files: `frontend-r3/csa.js`, `test/r3-csa-contract.test.mjs`, and this lifecycle overwrite only.
+- Deterministic validation before deploy: focused `node --test test/r3-csa-contract.test.mjs` 21/21 PASS; `npm.cmd test` 565/565 PASS; syntax checks for both changed source/test files PASS; canonical catalog parse 21 items / weak 7 / medium 7 / strong 7; `git diff --check` PASS.
+- TEST API remained `769cd525-7b56-40cf-ad0b-f6c2132b9802`; no API redeploy.
+- TEST frontend deploy count for this task: exactly 1; old version `9bb754d0-632c-42e5-83b1-441ce6079688`; new version `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`.
+- Browser readiness: visible TEST frontend loaded Setup and Opening exactly once; fresh game `bbd1431a-f09f-40f4-82fa-c8827de84693` preserved for operator review.
+- S7 stopped before Apply at the first P1: selecting trainer `서원희` and trainee `윤민아` did not retain a coherent exact pair while editing scopes. The staged UI first resolved to broad/company scopes; when the already-compatible trainer scope was explicitly set to `여성 직원`, the trainer selection cleared while the trainee remained. The final visible state was trainer `대상 선택`, trainee `윤민아`, trainer scope `여성 직원`, counterparty scope `회사 직원 전체`. Exact female/female S7 operation was therefore not reached; no Apply, Network operation, Story, Observer, commit, ordinary follow-up, or refresh/re-entry was attempted.
+- Observed selector-coherence defect: the scope-edit path still drops a compatible selected actor instead of preserving the sibling actor and producing the exact required `female_employee`/`female_employee` pair. This is the first P1 boundary and requires operator review before any further live action.
+- Browser reattachment count: 0. Gameplay resend/reclick count after the P1: 0. Preserved evidence access/mutation: 0. DB/schema/migration/history writes: 0. Production: 0.
+- Findings: P0 0; P1 1 (S7 selector coherence); P2/P3 not evaluated after the mandatory stop.
+- Terminal: `CSA_S7_SELECTOR_TRANSPORT_OR_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`.
