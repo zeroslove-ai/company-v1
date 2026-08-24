@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-rule-change-actor-grounding-v1
 Mode: NARROW P1 REPAIR — EXACT RULE-CHANGE ACTOR/DIRECTION GROUNDING / PRIVATE-APP INPUT SEPARATION / RESUME CSA LIVE ACCEPTANCE
 Updated: 2026-08-25 00:45 KST
@@ -299,3 +299,23 @@ Blocked terminal:
 `CSA_RULE_CHANGE_ACTOR_GROUNDING_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this existing CURRENT_TASK lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+---
+
+# Execution terminal — 2026-08-25 KST
+
+`CSA_RULE_CHANGE_ACTOR_GROUNDING_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Execution identity: `company-r3-csa-rule-change-actor-grounding-v1` / START blob `30cd8bebc41225c65f778e4bc8cecc37d0ab4c17` / expected branch `main`.
+- Source start: `d8f9cefbed11afeae78facd7e3ae7e362682d6fe`; executable final before this lifecycle-only update: `60fe42f0b015dc0579888e96b98715b1ab5b5b7f`; `HEAD == origin/main` at the source terminal point.
+- Source commit pushed: `60fe42f0b015dc0579888e96b98715b1ab5b5b7f` (`fix: bind CSA rule-change story actors and direction`).
+- Changed source/test files: `runtime-r3/domain/csa.js`, `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `runtime-r3/server/worker.js`, `test/r3-csa-contract.test.mjs`.
+- Design: deterministic `rule_change_story_binding` derives canonical template/slot/rule text, operation, exact selected IDs/names, subject/counterparty roles, direction, authority framing, and unselected-participant boundary from the already validated event/catalog/directory. It is context guidance, not a second writer or durable gameplay system.
+- Ordinary literal proof: ordinary turns still pass the exact submitted literal; rule-change Story context is forced to an empty ordinary `literal_action` when a structured event exists, while the persisted audit literal remains in the turn/Observer path.
+- Deterministic validation: focused CSA contract `15/15`; full `npm test` `559/559`; changed-file Node syntax checks PASS; repository content JSON parse PASS; `git diff --check` PASS.
+- TEST API deployment: correct R3 Worker `game-proxy-company-r3`, version `cbfb8900-1ba9-4886-9405-452e7ae760db`, deployed from source `60fe42f0b015dc0579888e96b98715b1ab5b5b7f`. Existing R3 frontend was unchanged and not redeployed. A wrong legacy config was invoked once before the R3 config was rechecked: `game-proxy-company-v1` version `a1b1fee4-f388-4fb3-86e6-ca7f0d7e5c8b`; it was not used for acceptance.
+- Fresh disposable TEST game: `79d0e3b6-fabf-4f35-99d2-f20086a7b171` (not the preserved failed evidence game `9b2443eb-0c4b-4d44-842f-9141d3255c7b`). Browser setup completed and reached TEST `연결 완료`, but Opening/Turn 0 remained at `장면 응답이 늦어지고 있습니다. 잠시 후 다시 확인해 주세요.` until the provider response timeout. No W5 operation was submitted; exact actor/direction live acceptance, Story/Observer/Commit, and subsequent CSA lanes were not claimed.
+- First mandatory W5 probe: **BLOCKED before probe** by the TEST Opening/Story response timeout. No retry, sampling, refresh-based replay, or second gameplay attempt was made.
+- Direct DB/SQL/migration writes: `0`; no migration push/repair/ledger write; only the authorized disposable-game setup request was attempted. Preserved game mutation/reset: `0`. Production access: `0`. Provider/model/config change: `0`.
+
+STOP. `CURRENT_TASK` is `WAITING_REVIEW`. Do not generate another task, merge, redeploy, reset preserved evidence, or start another Cut.
