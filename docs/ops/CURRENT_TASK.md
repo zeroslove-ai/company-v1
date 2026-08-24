@@ -47,8 +47,8 @@ Blocked terminal:
 - TERMINAL: `CSA_S1_ACTIVE_AUTHORITY_OR_FINAL_MANDATORY_LANES_BLOCKED_AWAITING_OPERATOR_REVIEW`
 - START_HEAD: `55570e738809ffaa265c4c8daabd6b58e88d5a44`
 - IMPLEMENTATION_SHA: `f607e4e868e18bde61ba8c46d508d3a502551c6f`
-- FINAL_MAIN_SHA: pending lifecycle commit
-- FINAL_CURRENT_TASK_BLOB_SHA: pending lifecycle commit
+- FINAL_MAIN_SHA: recorded in the terminal report on Issue #68 after the lifecycle commit
+- FINAL_CURRENT_TASK_BLOB_SHA: recorded in the terminal report on Issue #68 after the lifecycle commit
 - BRANCH: `main`
 - RUNNER: `company-v1-codex-watcher / WATCHER`
 
