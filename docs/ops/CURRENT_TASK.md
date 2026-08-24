@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-final-critical-only-seal-for-owner-playtest-v1
 Mode: CRITICAL-ONLY FINAL SEAL -> OWNER TEST PLAY
-Updated: 2026-08-24 17:36 KST
+Updated: 2026-08-24 18:26 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5389136550`
 Previous operator review: Issue #68 comment `5389172783`
@@ -326,3 +326,31 @@ Post a NEW Issue #68 terminal comment recording:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal, and STOP.
 
 Do not create the next task yourself. Do not continue autonomous QA after an `OWNER_TEST_PLAY_READY*` terminal.
+
+## 12. Execution record — owner smoke complete
+
+Execution identity:
+- task: `company-r3-final-critical-only-seal-for-owner-playtest-v1`
+- start main: `99debe1ffb21cc5d44cbe9107495fc158d3279b1`
+- accepted/source: `5709c4a894430b74cf5a985da57747c1cafcfd15`
+- API: `bee01bf9-b79f-433e-9cfb-6fc09a2379cc`
+- frontend: `71416b75-9cca-45ee-9b32-7cf209f16395`
+- legacy worker: `7ea46aaf-493f-4323-bc1f-f5ab8d47477d`
+- source edits: `0`; TEST deploys: `0`
+
+Preflight remained green: `npm.cmd test` `547/547 PASS`; `git diff --check` PASS; main remained a docs-only descendant of the accepted source.
+
+Fresh disposable bare-public game: `d69dfccd-9276-4787-b90a-f8260d869b35`
+- Profile: `윤하준`, `브랜드전략팀`, `인턴`, age `28`, 175 cm / 70 kg. Opening showed Day 1, exact selected identity, ordinary junior scope, unfamiliar/private CSA app law, no executive leakage, four playable native choices, and free input. The CSA app was not opened.
+- Turn 1 — native choice: `인사하며 자신을 소개하고 오늘 첫 출근이라고 말한다.`; `expected_turn=1`; one `/turn` POST; `x-r3-request-id=r3-2ea17086-98b3-4829-8bc5-288fac933b9d`; SSE 200 and UI `저장되었습니다.`; committed Turn 1 / Day 1 09:10. Agency was the explicit greeting; office/team introduction and team presence were coherent.
+- Turn 2 — free input: `옆자리의 김제나에게 점심에 뭐가 맛있는지 물으며 가볍게 대화를 나눈다.`; `expected_turn=2`; one `/turn` POST; `x-r3-request-id=r3-ecf913e8-dd4e-499d-b612-477f5d677256`; SSE 200 and UI `저장되었습니다.`; committed Turn 2 / Day 1 09:15. Social/non-work agency and 김제나/윤민아 presence were coherent. A normal refresh immediately after this turn returned the same game URL and reconstructed committed Turn 2 without duplication.
+- Turn 3 — native choice: `자리에 앉아 컴퓨터를 켜고 팀 소개 자료부터 천천히 읽어본다.`; `expected_turn=3`; one `/turn` POST; `x-r3-request-id=r3-c4393714-4a4e-4118-9678-e64777353d8e`; SSE 200 and UI `저장되었습니다.`; committed Turn 3 / Day 1 09:27. Work/context agency, desk location, and 김제나 presence were coherent.
+- Turn 4 — native choice: `자리에서 일어나 사무실 한쪽에 마련된 팀 자료실이나 게시판을 둘러보며 공간을 파악한다.`; `expected_turn=4`; one `/turn` POST; `x-r3-request-id=r3-d4d48e8a-7dd0-4fe9-b23f-c37974290c00`; SSE 200 and UI `저장되었습니다.`; committed Turn 4 / Day 1 09:32. Movement to the bulletin board/team archive, current scene, and 김제나 presence were coherent.
+
+Turn 0 Opening plus Turns 1–4 produced five chronological History commits in this game only. Current Story after Turn 4 was latest-only; direct input and four choices remained reachable. Desktop and explicit `390x844` mobile inspection showed readable current Story, reachable choices/input, and no blocking overlay or horizontal-use failure. No Campaign A profile/rank/scene/CSA/image/audio/current-state leakage was observed.
+
+Observer provenance: no NEW `r3_observer_finish_stop`, `r3_observer_finish_length`, or other primary Observer warning was visible in the fresh smoke; browser warning/error log was empty. The previously accepted V5 `finish_stop` exception was not replayed. TTS/image evidence was reused as required; TTS was not re-enabled or resampled. Any voice-unavailable presentation was out of scope and deferred to owner playtest, not treated as a critical blocker.
+
+P0/P1 findings: none. Deferred debt: `DEFERRED_OWNER_PLAYTEST_DEBT` only for optional voice presentation while TTS was intentionally not re-exercised. Preserved V5/TTS/image fixtures were not modified.
+
+Terminal disposition: `OWNER_TEST_PLAY_READY`.
