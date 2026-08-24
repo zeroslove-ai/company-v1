@@ -56,14 +56,25 @@ test('R3 CSA catalog is the bounded 21-slot canonical catalog with explicit line
   assert.deepEqual(catalog.items.slice(0, 7).map(item => item.tier), Array(7).fill('weak'));
   assert.deepEqual(catalog.items.slice(7, 14).map(item => item.tier), Array(7).fill('medium'));
   assert.deepEqual(catalog.items.slice(14).map(item => item.tier), Array(7).fill('strong'));
-  assert.equal(catalog.compatibility_lineage.no_bra_under_work_clothes, 'W1');
-  assert.equal(catalog.compatibility_lineage.work_nude, 'M2');
+  assert.equal(catalog.compatibility_lineage.no_bra_under_work_clothes, 'no_bra_under_work_clothes');
+  assert.equal(catalog.compatibility_lineage.work_nude, 'work_nude');
+  assert.deepEqual(catalog.items.map(item => item.selector_schema), [
+    'named_actor', 'named_actor', 'named_actor', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair',
+    'named_actor', 'named_actor', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair', 'actor_pair',
+    'actor_pair', 'named_actor', 'named_actor', 'actor_pair', 'named_actor', 'named_actor', 'actor_pair'
+  ]);
+  assert.deepEqual(catalog.items.slice(9, 14).map(item => item.counterparty_scopes), [
+    ['male_employee'], ['male_employee'], ['male_employee'], ['female_employee', 'male_employee'], ['male_employee', 'female_employee']
+  ]);
+  assert.equal(catalog.items.find(item => item.slot === 'S2').id, 'player_dedicated_sexual_support_designation');
+  assert.equal(catalog.items.find(item => item.slot === 'S7').selector_schema, 'actor_pair');
+  assert.ok(catalog.items.every(item => !/^(?:W|M|S)[1-7]$/.test(item.id)));
   assert.ok(catalog.retired_template_ids.includes('continue_until_recipient_orgasm'));
 });
 
 test('bounded clothing projection remains a pure state projection; active UI path is a turn', () => {
   const state = { revision: 2, committed_turn: 4, scene: { present_actor_ids: ['heroine1', 'general_park_jungwoo'] }, csa_active: [], csa_rules: {}, clothing: {} };
-  const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee' }] });
+  const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', subject_actor_id: 'heroine1' }] });
   assert.equal(next.committed_turn, 4);
   assert.equal(next.clothing.heroine1.underwear_top, 'removed');
 });
@@ -72,7 +83,7 @@ test('named strong selectors stay bounded and the server records one structured 
   const state = { revision: 0, committed_turn: 0, scene: { present_actor_ids: ['heroine1'] }, csa_active: [], csa_rules: {}, clothing: {} };
   const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'S2', subject_scope: 'female_employee', counterparty_scope: 'player', subject_actor_id: 'heroine1' }] });
   const rule = next.csa_rules[next.csa_active[0]];
-  assert.equal(rule.template_id, 'S2');
+  assert.equal(rule.template_id, 'player_dedicated_sexual_support_designation');
   assert.deepEqual(rule.selector, { subject_actor_id: 'heroine1' });
   assert.equal(next.last_rule_change.type, 'rule_change_turn');
   assert.equal(next.last_rule_change.slot, 'S2');
@@ -82,7 +93,7 @@ test('named strong selectors stay bounded and the server records one structured 
 test('visible APPLY uses exactly one Story/Observer/commit and never the zero-turn writer', async () => {
   const store = new InMemoryR3Store(); let applyCsaCalls = 0; store.applyCsa = () => { applyCsaCalls += 1; throw new Error('zero_turn_writer_must_not_run'); };
   const calls = []; const worker = createR3Worker({ store, provider: providerFor({ calls }), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
-  const operation = { operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee' };
+  const operation = { operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', subject_actor_id: 'heroine1' };
   const result = await postTurn(worker, gameId, auth, { action_id: 'apply-1', expected_turn: 1, literal_action: 'Apply the selected rule for female_employee', csa_operation: operation });
   assert.equal(result.at(-1).data.status, 'committed'); assert.equal(applyCsaCalls, 0);
   assert.equal(result.at(-1).data.context.state.committed_turn, 1); assert.equal(result.at(-1).data.context.turns.length, 2);
@@ -93,29 +104,29 @@ test('visible APPLY uses exactly one Story/Observer/commit and never the zero-tu
 test('legacy /csa endpoint delegates to the same chronological turn stream', async () => {
   const store = new InMemoryR3Store(); let applyCsaCalls = 0; store.applyCsa = () => { applyCsaCalls += 1; throw new Error('zero_turn_writer_must_not_run'); };
   const worker = createR3Worker({ store, provider: providerFor(), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
-  const response = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/csa`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ expected_revision: 0, operations: [{ operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' }] }) }));
+  const response = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/csa`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ expected_revision: 0, operations: [{ operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee', subject_actor_id: 'heroine1' }] }) }));
   const result = await events(response); assert.equal(result.at(-1).data.status, 'committed'); assert.equal(applyCsaCalls, 0); assert.equal(result.at(-1).data.context.state.committed_turn, 1);
 });
 
 test('CHANGE then REMOVE each consume one turn and preserve historical Story chronology', async () => {
   const worker = createR3Worker({ store: new InMemoryR3Store(), provider: providerFor(), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
-  const apply = await postTurn(worker, gameId, auth, { action_id: 'apply-2', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' } });
+  const apply = await postTurn(worker, gameId, auth, { action_id: 'apply-2', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee', subject_actor_id: 'heroine1' } });
   const ruleId = apply.at(-1).data.context.state.state.csa_active[0];
-  const change = await postTurn(worker, gameId, auth, { action_id: 'change-2', expected_turn: 2, literal_action: 'Change the selected rule', csa_operation: { operation: 'update', id: ruleId, template_id: 'work_in_underwear_only', subject_scope: 'female_employee' } });
-  assert.equal(change.at(-1).data.status, 'committed'); assert.equal(change.at(-1).data.context.state.state.csa_rules[ruleId].template_id, 'M1');
+  const change = await postTurn(worker, gameId, auth, { action_id: 'change-2', expected_turn: 2, literal_action: 'Change the selected rule', csa_operation: { operation: 'update', id: ruleId, template_id: 'work_in_underwear_only', subject_scope: 'female_employee', subject_actor_id: 'heroine1' } });
+  assert.equal(change.at(-1).data.status, 'committed'); assert.equal(change.at(-1).data.context.state.state.csa_rules[ruleId].template_id, 'work_in_underwear_only');
   const remove = await postTurn(worker, gameId, auth, { action_id: 'remove-2', expected_turn: 3, literal_action: 'Remove the selected rule', csa_operation: { operation: 'deactivate', id: ruleId } });
   const final = remove.at(-1).data.context; assert.equal(final.state.committed_turn, 3); assert.equal(final.state.state.csa_active.length, 0); assert.equal(final.turns.length, 4); assert.match(final.turns[1].story_text, /Apply/); assert.match(final.turns[2].story_text, /Change/); assert.match(final.turns[3].story_text, /Remove/);
 });
 
 test('failed CSA Story leaves the previous active-rule state authoritative', async () => {
   const store = new InMemoryR3Store(); const worker = createR3Worker({ store, provider: providerFor({ failCsa: true }), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
-  const failed = await postTurn(worker, gameId, auth, { action_id: 'failed-csa', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' } });
+  const failed = await postTurn(worker, gameId, auth, { action_id: 'failed-csa', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee', subject_actor_id: 'heroine1' } });
   const context = failed.at(-1).data.context; assert.equal(failed.at(-1).data.status, 'failed'); assert.equal(context.state.committed_turn, 0); assert.deepEqual(context.state.state.csa_active, []); assert.equal(context.turns.length, 1); assert.equal(context.job.status, 'failed');
 });
 
 test('duplicate operation requests remain fenced to one job and one committed turn', async () => {
   const worker = createR3Worker({ store: new InMemoryR3Store(), provider: providerFor(), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
-  const payload = { action_id: 'duplicate-csa', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' } };
+  const payload = { action_id: 'duplicate-csa', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee', subject_actor_id: 'heroine1' } };
   const first = await postTurn(worker, gameId, auth, payload); const second = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/turn`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify(payload) })); const secondPayload = await second.json();
   assert.equal(first.at(-1).data.status, 'committed'); assert.equal(secondPayload.data.reconnect, true); assert.equal((await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`, { headers: auth }))).status, 200);
   assert.equal((await secondPayload.data.context).state?.committed_turn ?? 1, 1);
@@ -123,7 +134,7 @@ test('duplicate operation requests remain fenced to one job and one committed tu
 
 test('ordinary free input stays Story-first after a CSA operation', async () => {
   const calls = []; const worker = createR3Worker({ store: new InMemoryR3Store(), provider: providerFor({ calls }), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
-  await postTurn(worker, gameId, auth, { action_id: 'apply-ordinary', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' } });
+  await postTurn(worker, gameId, auth, { action_id: 'apply-ordinary', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee', subject_actor_id: 'heroine1' } });
   const ordinary = await postTurn(worker, gameId, auth, { action_id: 'ordinary-after-csa', expected_turn: 2, literal_action: 'I walk to the lounge and greet my colleague.' });
   assert.equal(ordinary.at(-1).data.status, 'committed'); assert.equal(calls.at(-2).csaOperation, null); assert.equal(ordinary.at(-1).data.context.turns.at(-1).literal_action, 'I walk to the lounge and greet my colleague.');
 });

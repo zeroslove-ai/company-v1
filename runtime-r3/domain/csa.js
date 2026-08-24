@@ -1,9 +1,12 @@
 import { clone } from './contracts.js';
 
 export const R3_CSA_TEMPLATE_IDS = Object.freeze([
-  'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7',
-  'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7',
-  'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'
+  'no_bra_under_work_clothes', 'no_panties_under_work_clothes', 'cleavage_exposed_work',
+  'lap_facing_conversation', 'breast_touch_conversation', 'buttock_touch_conversation', 'recurring_light_kiss_conversation',
+  'work_in_underwear_only', 'work_nude', 'breast_stimulation_ejaculation_support', 'manual_stimulation_ejaculation_support',
+  'semen_fatigue_recovery_practice', 'direct_genital_exam', 'direct_breast_nipple_exam',
+  'sexual_work_instruction_authority', 'player_dedicated_sexual_support_designation', 'company_sexual_support_designation',
+  'joint_participation_approval', 'sexual_work_assignee_designation', 'sexual_work_performance_evaluation', 'sexual_work_training_designation'
 ]);
 
 const SCOPES = new Set(['player', 'female_employee', 'male_employee', 'company_employee']);
@@ -11,10 +14,16 @@ const STRENGTHS = new Set(['weak', 'medium', 'strong']);
 const CLOTHING_SLOTS = new Set(['uniform_top', 'uniform_bottom', 'underwear_top', 'underwear_bottom']);
 const CLOTHING_VALUES = new Set(['worn', 'removed', 'unknown']);
 const LEGACY_TEMPLATE_IDS = Object.freeze({
-  no_bra_under_work_clothes: 'W1',
-  no_panties_under_work_clothes: 'W2',
-  work_in_underwear_only: 'M1',
-  work_nude: 'M2'
+  W1: 'no_bra_under_work_clothes', W2: 'no_panties_under_work_clothes', W3: 'cleavage_exposed_work',
+  W4: 'lap_facing_conversation', W5: 'breast_touch_conversation', W6: 'buttock_touch_conversation', W7: 'recurring_light_kiss_conversation',
+  M1: 'work_in_underwear_only', M2: 'work_nude', M3: 'breast_stimulation_ejaculation_support', M4: 'manual_stimulation_ejaculation_support',
+  M5: 'semen_fatigue_recovery_practice', M6: 'direct_genital_exam', M7: 'direct_breast_nipple_exam',
+  S1: 'sexual_work_instruction_authority', S2: 'player_dedicated_sexual_support_designation', S3: 'company_sexual_support_designation',
+  S4: 'joint_participation_approval', S5: 'sexual_work_assignee_designation', S6: 'sexual_work_performance_evaluation', S7: 'sexual_work_training_designation',
+  no_bra_under_work_clothes: 'no_bra_under_work_clothes',
+  no_panties_under_work_clothes: 'no_panties_under_work_clothes',
+  work_in_underwear_only: 'work_in_underwear_only',
+  work_nude: 'work_nude'
 });
 
 function boundedClothing(value) {
@@ -42,7 +51,7 @@ export function createR3CsaCatalog(raw = {}) {
     supported_action_families: Array.isArray(item.supported_action_families) ? [...item.supported_action_families] : [],
     execution: item.execution?.kind === 'clothing_state' ? { kind: 'clothing_state', required_state: boundedClothing(item.execution.required_state) } : null
   }));
-  return { version: raw.version ?? 'company-r3-csa-21-slot-v1', schema_version: 3, items, compatibility_lineage: { ...(raw.compatibility_lineage ?? {}) }, retired_template_ids: [...(raw.retired_template_ids ?? [])] };
+  return { version: raw.version ?? 'company-r3-csa-21-slot-v2', schema_version: 4, items, compatibility_lineage: { ...(raw.compatibility_lineage ?? {}) }, slot_aliases: { ...(raw.slot_aliases ?? {}) }, retired_template_ids: [...(raw.retired_template_ids ?? [])] };
 }
 
 function actorDirectory(content) {
