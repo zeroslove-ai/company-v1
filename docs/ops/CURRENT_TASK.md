@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-media-catalog-authority-reconciliation-v1
 Mode: NARROW P1 REPAIR — REPOSITORY MEDIA MANIFEST SOLE SEMANTIC AUTHORITY / READ-ONLY ASSET CURATION / DB INDEX ONLY
 Updated: 2026-08-25 06:28 KST
@@ -337,3 +337,9 @@ If implementation/deterministic product repair is blocked:
 `MEDIA_CATALOG_AUTHORITY_REPAIR_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+## Terminal outcome
+
+`MEDIA_CATALOG_AUTHORITY_REPAIR_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+Implementation and deterministic tests are green at implementation commit `1055a7d`. The required contract-gated deployment path was invoked once, but its existing script hard-codes `wrangler.api.jsonc` (`game-proxy-company-v1`) while this R3 task requires `wrangler.r3.api.jsonc` (`game-proxy-company-r3`). The command therefore deployed the wrong Worker (`game-proxy-company-v1` version `8f418d6e-a552-4a9a-9c34-f8704d211f62`) and did not deploy the R3 implementation. No second deployment or rollback is authorized by this task; operator review is required before any further deployment.
