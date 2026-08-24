@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-deploy-target-contract-recovery-v1
 Mode: NARROW OPERATIONS REPAIR — DEPLOY TARGET IDENTITY GUARD / ACCIDENTAL TEST WORKER RECOVERY / EXACT R3 DEPLOY
-Updated: 2026-08-25 07:03 KST
+Updated: 2026-08-25 07:14 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main before this overwrite: `611bf8adade1535a447a1174a195cbbf19a41b14`
@@ -200,3 +200,24 @@ Product/deploy blocked:
 `R3_DEPLOY_TARGET_RECOVERY_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+## 10. Terminal evidence
+
+`R3_DEPLOY_TARGET_CONTRACT_RECOVERED_AWAITING_OPERATOR_REVIEW`
+
+- Start main SHA: `4236f01342ae9c2cd00df4d6d8f4425045f77f65`.
+- Final implementation SHA: `d2a4aafc04cd2993b1dde2a8f50caa400dc19de1`.
+- Final CURRENT_TASK blob: recorded in the terminal Issue #68 report after this lifecycle edit.
+- Changed implementation files: `scripts/deploy-api-with-contract-gate.mjs`, `test/deploy-api-with-contract-gate.test.mjs`.
+- Lifecycle file: `docs/ops/CURRENT_TASK.md` only; no new task file, branch, or PR.
+- Accepted media implementation `1055a7d34d5739f121b29af767cb5cd5a276ed04` remains unchanged; diff inventory contains no media catalog/runtime media file.
+- Tests: focused deploy-wrapper `4/4 PASS`; full `npm test` `571/571 PASS`; `node --check scripts/deploy-api-with-contract-gate.mjs` PASS; `git diff --check` PASS.
+- Legacy Worker history read-only: accidental `game-proxy-company-v1` version `8f418d6e-a552-4a9a-9c34-f8704d211f62`; exact immediate previous version `a1b1fee4-f388-4fb3-86e6-ca7f0d7e5c8b` at `2026-08-24T16:00:08Z` was unambiguous.
+- Legacy rollback: yes, exactly once; active version changed from `8f418d6e-a552-4a9a-9c34-f8704d211f62` to `a1b1fee4-f388-4fb3-86e6-ca7f0d7e5c8b`; `/health` returned HTTP 200 with `ok:true`.
+- R3 Worker: old accepted version `fc98e0c3-db75-4088-bc0c-eddf129af4b6`; new active version `4f8e8697-7b9e-4d91-8a50-35463309ce4a`; deploy count `1`.
+- Wrapper invocation: `node scripts/deploy-api-with-contract-gate.mjs --config wrangler.r3.api.jsonc --expect-worker game-proxy-company-r3`; secrets omitted. Dry-run and actual invocation both selected the explicit R3 config; gate ran before Wrangler.
+- Contract gate: read-only TEST catalog, Stage A PASS (`company-v1-action-authority`, v2).
+- `/api/r3/catalogs`: HTTP 200; edition `company-v1`, version `1`, `102` entries total = `5` general + `97` sex.
+- Frontend version unchanged; frontend deploy count `0`.
+- DB/storage writes `0`; game creation/access/reset `0`; preserved-game access/mutation `0`; Production access/deploy `0`; Media/TTS browser acceptance `0`.
+- Findings: P0 none; P1 deploy target/config identity boundary repaired and accidental TEST deployment restored; P2 none; P3 none. Remaining blocker: operator review only.
