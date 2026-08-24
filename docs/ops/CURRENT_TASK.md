@@ -1,529 +1,381 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-canon-convergence-p1-repair-and-acceptance-v2
-Mode: OWNER-ACCEPTED CANON — P1 ROOT-CAUSE REPAIR + LIVE ACCEPTANCE CONTINUATION
-Updated: 2026-08-24 20:43 KST
+Task ID: company-r3-canon-convergence-staged-repair-v3
+Mode: OWNER-ACCEPTED CANON — STAGED REPAIR / TEST DEPLOY / REAL BROWSER ACCEPTANCE
+Updated: 2026-08-24 21:17 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Owner-accepted canon SHA: `b6af51cbcf7d1d870ae48de012d5da42de161019`
+
+Canon revision before this task: `32c5568b8b692e0e126bfb4e546bcd5d09fe93ec`
+Original consolidated canon provenance: `b6af51cbcf7d1d870ae48de012d5da42de161019`
 Accepted implementation baseline: `c166eee1ccbca23227a7b8f6fd30800c4ba392bb`
-Failed terminal: Issue #68 comment `5394670021`
-Previous product-audit terminal: Issue #68 comment `5394232327`
+Previous failed terminal: Issue #68 comment `5394670021`
+Previous broad product audit: Issue #68 comment `5394232327`
+Superseded unstarted READY task: `company-r3-canon-convergence-p1-repair-and-acceptance-v2` / comment `5394762066`
 
-IMPORTANT REUSE LAW:
-- overwrite this SAME `docs/ops/CURRENT_TASK.md` path only;
-- work on `main` only;
-- do NOT create a new CURRENT_TASK file;
-- do NOT create an ops branch;
-- do NOT revert or redo already accepted `c166eee...` work unless evidence proves that exact landed behavior is wrong.
+## Reuse / authority law
 
-## 0. Mandatory authority read before edits
-
-Read in this exact order:
-
-1. `AGENTS.md`
-2. `CURRENT_TRUTH.md`
-3. `docs/redesign/COMPANY_CANON.md`
-4. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
-5. `docs/redesign/MEDIA_CATALOG_CONTRACT.md`
-6. this CURRENT_TASK
-
-Historical PR #95/#96, Issue #102, old tasks/tests, and old v1/v2 behavior are evidence/provenance only. They cannot override main canon.
+- Work on `main` only.
+- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Overwrite it in place for lifecycle state; do NOT create another CURRENT_TASK file.
+- Do NOT create an ops branch.
+- Read before edit, in order:
+  1. `AGENTS.md`
+  2. `CURRENT_TRUTH.md`
+  3. `docs/redesign/COMPANY_CANON.md`
+  4. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
+  5. `docs/redesign/MEDIA_CATALOG_CONTRACT.md`
+  6. this CURRENT_TASK
+- Latest explicit owner decision and main canon outrank old PRs/issues/tests/current behavior.
+- PR #95/#96 and Issue #102 are provenance/reference only.
+- Preserve A′. Do not redesign the engine.
+- Do not redo accepted `c166eee...` work unless evidence proves that landed behavior wrong.
 
 Target terminal:
-`CANON_CONVERGENCE_P1_REPAIR_AND_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CANON_CONVERGENCE_STAGED_REPAIR_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
-Do NOT claim OWNER_READY.
-
----
-
-# 1. Operator review of failed v1 task — what is ACCEPTED vs what failed
-
-Treat source SHA `c166eee1ccbca23227a7b8f6fd30800c4ba392bb` as the accepted baseline, not a failed implementation to discard.
-
-The previous execution successfully landed and validated:
-
-- all-five-heroine dramatization cards and bounded character projection;
-- repository media manifest + loading/validation/catalog exposure;
-- player-inner-thought grounding gate;
-- malformed MM fail-open handling;
-- exact `media_hint` routing and committed-media presentation path;
-- CSA subject scoping to current scene and clothing activation/deactivation residue correction;
-- grounded continuity-memory contracts;
-- focused canon-convergence regressions;
-- focused tests `5/5 PASS`;
-- full npm test `552/552 PASS`;
-- syntax/JSON/diff checks PASS;
-- TEST API deployment `game-proxy-company-r3@177d74ba-485b-4ed3-b589-fd4027a2e6c1`;
-- TEST frontend deployment `gamebuilder-company-r3@6bdac269-8073-41ec-8305-1008aa02f6cd`.
-
-The failed terminal is accepted because real browser play exposed two unresolved P1 defects:
-
-### P1-A — deployed browser turn stalls
-
-Fresh Campaign A:
-- game `3295849e-3734-4c96-90f7-8ea54042968c`;
-- junior/intern adult profile;
-- Opening + ordinary Turns 1–10 committed through visible deployed UI;
-- Turn 11 browser action stalled;
-- UI remained at Turn 10 with `company_r3_stale_turn_timeout` / `Retry failed action`;
-- no retry-until-pass was used.
-
-This is a P1 product/reliability defect until its first broken boundary is identified and repaired.
-
-### P1-B — Story / Mind Monitor actor identity mismatch
-
-Fresh Campaign B:
-- game `17b85d0b-fc18-4a6f-9670-caab09cf09e8`;
-- executive/audit adult profile;
-- Opening + ordinary Turns 1–10 committed through visible deployed UI;
-- at least one turn had Story addressing/using a different active participant while Mind Monitor presented `김제나` as the active heroine/internal target.
-
-This violates `P-MIND-001`: MM must deepen the SAME committed reality and must not switch actor identity.
-
-### Remaining acceptance debt, not yet disproven implementation
-
-Because the P1 blocker interrupted the campaign, the previous run did NOT complete acceptance for:
-
-- 15+ turn Campaign A;
-- complete desktop + 390x844 matrix;
-- CSA new-notice reaction -> compliance -> later adaptation;
-- CSA CHANGE/REMOVE live residue;
-- Rule 9 negative + positive live cases;
-- memory beyond recent raw window;
-- History + refresh/re-entry completion;
-- adult/sex media reachability;
-- full catalog reconciliation/curation.
-
-Do not misclassify those as already-failed features. They are unaccepted debt until this task proves them.
-
-Preserve both failed browser game IDs above READ ONLY. Never reset, continue, or mutate them.
+Never claim OWNER_READY in this task.
 
 ---
 
-# 2. First phase — P1-A stale-turn forensic and smallest owning fix
+# 0. Why this task is staged
 
-Before modifying source, perform read-only forensics on Campaign A Turn 11 and capture the exact evidence chain:
+The previous convergence cut successfully landed character dramatization, bounded content projection, player-thought/MM guards, media manifest plumbing, media hints, CSA scope/residue work and memory contracts; focused tests and full tests passed and exact TEST API/frontend were deployed. Real browser play then found two P1 failures and stopped before the full acceptance matrix.
 
-`visible literal -> browser POST/request id -> action_id/attempt -> R3 job -> Story provider lifecycle -> observer lifecycle -> commit/result -> reconnect/poll/recovery -> UI timeout state`
+Do not repeat the old pattern of changing every subsystem at once and judging quality only at the end. Execute the following stages IN ORDER. A stage must close all newly proven P0/P1 defects in its own scope before large source changes for the next stage begin.
 
-Record at minimum:
+Per-stage loop:
+`inspect evidence -> smallest owning-boundary fix -> focused tests/syntax/diff -> exact TEST deploy if source changed -> bounded real-browser acceptance -> classify`
 
-- exact Turn 11 visible player literal and input type;
-- request id / action id / attempt id if present;
-- job timestamps/status transitions;
-- whether Story request began and whether it completed;
-- whether observer began/completed/failed;
-- whether durable turn 11 exists;
-- whether a terminal response was generated but lost to the browser;
-- whether frontend declared stale while server was still legally processing;
-- whether server job became orphaned/stale;
-- whether recovery/reconnect had enough information to recover the same job;
-- first exact boundary where progress diverged.
+If a stage still has a reproducible P0/P1 after its bounded repair/replay, STOP at WAITING_REVIEW with evidence. Do not compensate by modifying later stages.
 
-Then fix the smallest owning cause.
-
-### Forbidden false fixes
-
-Do NOT fix by:
-
-- increasing global timeout merely to hide the stall;
-- automatic hidden retry/regeneration;
-- submitting a second Story request for the same logical turn;
-- provider/model/temperature/token changes;
-- swallowing an unresolved job and pretending the turn succeeded;
-- adding a parallel turn coordinator;
-- weakening action/attempt fencing or atomic Commit.
-
-A′ remains binding: one server-owned turn lifecycle, one logical `(game,turn)` job, fencing, bounded reconnect/recovery, atomic Commit.
-
-### Required focused regressions
-
-Protect whichever root cause is proven. At minimum include:
-
-- a legal slow in-flight job must not be falsely abandoned by UI;
-- an actually stale/orphaned job reaches an explicit recoverable terminal state;
-- reconnect/refresh cannot create duplicate Story generation or duplicate committed turn;
-- a failed action does not permanently block the next explicit player action;
-- normal fast path remains one visible action -> one logical turn -> one commit.
-
-Player-facing copy must not expose `company_r3_stale_turn_timeout`, `r3_*`, or `Retry failed action` as normal game language. Technical codes may remain in diagnostics/logs.
+Do NOT run the entire suite after every stage. Run focused deterministic contracts per stage. Run the full suite once at the final convergence checkpoint in Stage D, unless a particular source change has an established mandatory predeploy gate that itself requires more.
 
 ---
 
-# 3. Second phase — P1-B Mind Monitor same-reality / actor identity repair
+# Stage A — Narrative core + the two proven P1s
 
-Use Campaign B read-only evidence to identify the exact mismatch turn.
+Canon: `P-AGENCY-001`, `P-PLAYER-THOUGHT-001`, `P-STORY-001`, `P-CHARACTER-001`, `P-OPENING-001`, `P-MEMORY-001`, `P-MIND-001`.
 
-Capture:
+## A1. P1 stale-turn timeout forensic and root fix
 
-`Story rendered actors/dialogue -> committed present/focal actor ids -> observer raw mind_monitor actor ids -> normalizer/applied ids -> frontend rendered MM name`
+Preserve/read-only prior evidence game:
+`3295849e-3734-4c96-90f7-8ea54042968c`
 
-Determine whether the first broken boundary is:
+Its Turn 11 action left committed_turn at 10 and the deployed UI showed `company_r3_stale_turn_timeout` / `Retry failed action`.
 
-- Story actor identity;
-- observer raw actor_id selection;
-- evidence grounding;
-- normalizer target mapping;
-- stale previous-turn MM reuse;
-- frontend projection/render mapping.
+Before editing, reconstruct the exact boundary for that action using available request/job/system-event/read-only DB evidence:
 
-Fix only the owning boundary.
+`browser request -> R3 route -> job/lease -> Story -> observer -> commit/reconnect -> UI timeout classification`.
 
-Binding behavior:
+Classify the first broken boundary. Fix that boundary only.
 
-- MM actor IDs must be exact registered canonical IDs;
-- normally MM may only include relevant/current-scene actors supported by current committed evidence;
-- no fuzzy name matching, near-name inference, pronoun speaker guessing, or cross-turn stale carry-forward;
-- if actor identity is ambiguous, drop that MM entry locally with a warning rather than assigning it to a different heroine;
-- MM failure never destroys valid Story;
-- Story and MM must describe the same event/reality;
-- player-inner-thought remains grounded-only and must not regress.
+Forbidden shortcuts:
+- blind timeout inflation;
+- hidden retry/regeneration;
+- provider/model/temperature/token change;
+- automatic sample-until-pass;
+- client-side fake commit;
+- a second turn writer.
 
-Add focused regression using the exact failure shape plus a multi-NPC case where the correct heroine remains distinguishable.
+A failed action must remain explicit/recoverable, but normal one-shot actions must not become permanently stale due to a broken lease/reconnect/terminal-state path.
 
----
+## A2. P1 Story <-> Mind Monitor identity coherence
 
-# 4. Preserve all already-landed canon convergence behavior
+Preserve/read-only prior evidence game:
+`17b85d0b-fc18-4a6f-9670-caab09cf09e8`
 
-While fixing P1-A/P1-B, explicitly regression-check and DO NOT casually redesign:
+The Story participant and Mind Monitor heroine identity disagreed. Trace:
+`Story registered actor identity -> observer raw mind_monitor key -> normalizer/applied projection -> frontend label`.
 
-- five heroine dramatization content;
-- profile-tag prose leakage protections;
-- work-as-context Story instruction;
-- literal player agency;
-- grounded player-inner-thought;
-- MM `{surface, subconscious}` schema + fail-open;
-- CSA institutional-new-rule semantics;
-- CSA scope/current-state projection;
-- existing CHANGE/REMOVE residue fix;
-- simple grounded memory architecture;
-- media manifest + media_hint architecture;
-- two-layer full choices + compact 5-character buttons;
-- TTS sidecar / TTS OFF=zero;
-- A′ one-Story + one-observer architecture.
+Fix the earliest broken boundary. MM may include only registered relevant/current-scene actors and must describe the same committed reality as Story.
 
-Do not introduce generic relationship/consent/emotion state, generic physical ontology, generic sexual-action DSL, second choice/MM/media LLM, or a third parser generation.
+Do NOT add fuzzy/near-name speaker inference or a second MM LLM. Invalid identity projection should drop/warn locally; valid Story must still commit.
 
----
+## A3. Opening focal cast/context — inspect source, not prompt only
 
-# 5. Media catalog continuation — actual assets only
+Inspect the current Opening actor/context collection including `relevantActorIds(opening)` or equivalent logic. Determine whether all heroines sharing the starting/default location are automatically receiving full character prompt cards and creating roster-dump pressure.
 
-The previous task correctly refused to invent adult image entries. Now finish the factual inventory work required by `MEDIA_CATALOG_CONTRACT.md`.
+Preserve world/presence truth, but narrow **focal Story character projection** where appropriate. Opening should normally dramatize a small natural focal interaction rather than hand Story all co-located heroine cards merely because their default location matches.
 
-Read only first:
+Do not hide/remove physically present registered people from canonical world state just to simplify prose. Distinguish `present` from `focal prompt context`.
 
-- current `content/media_catalog.json`;
-- live TEST `image_library` rows for `edition_id=company-v1`;
-- actual referenced Storage/public asset objects where safely inspectable.
+## A4. Character projection remains bounded
 
-Known prior read-only live baseline was:
+`content/characters.json` is canonical content, but Story must NOT receive whole character records.
 
-- heroine1: general 1 / sex 13
-- heroine2: general 1 / sex 21
-- heroine3: general 1 / sex 20
-- heroine4: general 1 / sex 22
-- heroine5: general 1 / sex 21
+Inspect the current `heroineCard()` / active-character projection. Keep an explicit whitelist of acting-useful fields. Include newly added dramatization fields selectively (initiative, speech/social distance, conflict/embarrassment, private-life behavior, hierarchy, intimacy/boundary, CSA first reaction/adaptation, continuity, a few dialogue examples) while excluding unrelated private/body/catalog data unless a separate canon rule makes it relevant to that scene.
 
-For every adult/sex row, determine whether the asset and its semantic metadata are actually verifiable.
+The solution to thin characters is richer **bounded projection**, not dumping the entire JSON into the prompt.
 
-### If verified real asset + sufficient metadata exists
+## A5. Narrative behavior already landed — verify before re-editing
 
-Promote it into repository `content/media_catalog.json` using the contract fields without inventing semantics:
+Verify the `c166eee...` character/Story/player-thought/MM/memory changes in source and focused tests. Only patch proven gaps. Preserve:
+- dossier labels are acted, not recited;
+- work is context, not universal solution;
+- literal player actor/target/topic/refusal/self-state/intent;
+- player_inner_thought grounded-only;
+- MM `{surface, subconscious}` and same-reality semantics;
+- recent raw + older grounded chronological memory;
+- four semantically different Story choices.
 
-- stable image_id;
-- character_id;
-- pool;
-- situation;
-- tags;
-- active;
-- curation_rank;
-- asset locator/deployed mapping.
+## A6. Stage-A validation gate
 
-### If asset exists but semantic metadata is insufficient
+Focused deterministic tests for the changed boundaries only, plus syntax/JSON/diff checks.
 
-Do NOT fabricate a sexual situation/tag from filename guesswork. Record it as a curation gap and keep it inactive/unclassified until visually/metadata grounded.
+Deploy exact changed TEST API/frontend as required.
 
-### If DB row points to missing/unusable asset
+Then run one fresh adult-profile real-browser session of **8–10 ordinary turns**, no retry/sample-until-pass, covering:
+- Opening living-scene focal interaction;
+- social/non-work small talk;
+- movement;
+- one free input not suggested by choices;
+- one refusal/change-of-mind/self-directed action;
+- heroine conversation;
+- multi-NPC when natural;
+- player-thought negative case;
+- MM identity and same-reality check;
+- at least one adult/flirt/intimate request with de-escalation.
 
-Record and reconcile it as stale deployment-index debt; do not pretend it is catalog coverage.
-
-Repository manifest remains semantic/curation authority; DB remains deployed/query index.
-
-No image LLM, no sexual-event ledger, no gameplay-state expansion solely for media.
+Stage A PASS requires no reproducible P0/P1 in narrative transport/agency/identity/MM/Opening scope. If not, STOP.
 
 ---
 
-# 6. Focused source validation before deploy
+# Stage B — CSA zero-turn lifecycle + notice/reaction/adaptation + Rule 9
 
-Run focused tests for P1-A and P1-B first, then relevant canon-convergence/media/frontend tests, then full npm suite as regression signal.
+Begin Stage B only after Stage A passes.
 
-Required checks:
+Canon: `P-PREMISE-001`, `P-CSA-001`, L3 `CSA zero-turn event bridge`.
 
-- changed JS/MJS syntax;
-- JSON parse;
-- `git diff --check`;
-- focused P1 tests;
-- canon convergence tests;
-- media/frontend turn contract tests;
-- full suite triaged against current canon.
+## B1. Prove current CSA UI/API transaction shape first
 
-Raw test count is not product acceptance. Do not restore stale semantics to satisfy obsolete tests.
+Do not assume current frontend is correct because the canon says zero-turn. Trace actual visible UI operation:
+`CSA APPLY/CHANGE/REMOVE click -> frontend route -> server transaction -> durable state/system event -> committed_turn`.
 
-Land fixes normally on `main` only.
+Required behavior:
+- APPLY/CHANGE/REMOVE consumes **zero ordinary gameplay turns**;
+- no Story LLM call merely because the app button was pressed;
+- committed ordinary turn number is unchanged;
+- active rule/revision/system state changes atomically.
+
+If current implementation routes CSA through ordinary `submit()`/turn flow, converge it to the existing non-Story transaction boundary rather than masking it.
+
+## B2. Zero-turn event -> next Story bridge
+
+A successful APPLY/CHANGE/REMOVE must leave one bounded canonical recent system event sufficient for the **next ordinary Story** to know that an official company rule was just issued/changed/removed.
+
+The next Story must process the player’s actual literal action normally while also being able to dramatize first reaction/newness when relevant.
+
+Required semantics:
+- new official company/institution rule, not retroactive memory rewrite;
+- NPC may be shocked/embarrassed/annoyed/questioning;
+- applicable rule is authoritative and ultimately followed;
+- compliance does not create affection/desire/arousal/romance/private consent-as-feeling;
+- NPC cannot sense/know the private app;
+- subsequent turns can show character-specific adaptation;
+- CHANGE/REMOVE affects future authority and leaves committed history intact.
+
+Do not add a second Story call or generic aftereffect engine.
+
+## B3. Rule 9
+
+`continue_until_recipient_orgasm` applies only if the qualifying current sexual action is already underway.
+
+First try to solve/prove this by giving Story exact rule semantics plus current `scene_note`/recent committed Story. Do not create:
+- sexual keyword regex authority;
+- generic sexual-action enum;
+- `current_sex_action` engine solely for this rule;
+- sexual event ledger;
+- generic execution/consent DSL.
+
+Required live pair:
+1. **negative:** no current qualifying action -> request for a new act must NOT become mandatory Rule-9 execution;
+2. **positive:** qualifying action already underway -> request condition can require continuation to the rule endpoint.
+
+## B4. Stage-B validation gate
+
+Focused CSA lifecycle/system-event/Rule-9 tests only, plus syntax/diff.
+Deploy exact TEST source if changed.
+
+Real browser, adult user behavior, visible CSA UI:
+- APPLY -> ordinary unrelated/social turn -> relevant reaction;
+- at least one additional turn showing adaptation rather than instant memory rewrite;
+- CHANGE -> ordinary turn -> changed authority only;
+- REMOVE -> ordinary turn -> no stale enforcement;
+- committed_turn unchanged by all app operations;
+- Rule-9 negative and positive pair;
+- MM may show surprise about the **new rule**, never private-app awareness.
+
+No P0/P1 may remain in CSA scope before Stage C.
 
 ---
 
-# 7. TEST deployment
+# Stage C — Media / dialogue-TTS / compact choice labels / reading UI / mobile
 
-Deploy only changed R3 TEST components after source/tests are clean.
+Begin Stage C only after Stage B passes.
 
-- R3 API if backend changed;
-- R3 frontend if frontend changed;
-- no Production;
-- no destructive DB work;
-- no historical migration rewrite;
-- no preserved/evidence-game mutation.
+Canon: `P-MEDIA-001`, `P-UI-001`, `P-INPUT-001`, `MEDIA_CATALOG_CONTRACT.md`.
 
-Record exact accepted source SHA and Worker version IDs.
+## C1. Media catalog curation and stable locator
+
+Repository semantic source remains `content/media_catalog.json`; Supabase `image_library` is deployed/query index.
+
+`asset_locator` must be stable logical identity (for example bucket + object path / stable storage key / stable asset ID). Do NOT write signed URLs, temporary CDN URLs, or session URLs into canon/manifest. Runtime resolves serving URLs.
+
+Read-only inventory actual existing Company `image_library` rows and, where safely inspectable, registered Storage objects. Do not invent assets.
+
+For adult-pool assets, **do not guess situation/tags** from filenames or row count. Only mark active/curated metadata when the image or trusted existing metadata establishes the meaning. Ambiguous assets remain inactive/unclassified/manual-curation debt.
+
+Preserve truthful known baseline rather than fabricating coverage.
+
+## C2. General/sex reachability
+
+Use the existing minimal presentation-only `media_hint` path. Prove/fix:
+- correct registered heroine;
+- ordinary scene -> appropriate general;
+- genuinely committed adult/intimate scene -> appropriate curated sex asset when one is truly available;
+- requested-but-refused/non-occurring act -> no false sex image;
+- de-escalation/end/leave -> stale sex image cleared;
+- media failure never blocks Story/Commit.
+
+No media LLM, sexual ledger, generic physical ontology.
+
+## C3. Compact choice label policy
+
+Preserve the two-layer UI:
+- full four Story choices;
+- four compact quick-action buttons;
+- click submits the **full literal** choice.
+
+Update compact-label derivation only as needed so labels are roughly five characters/very short **and meaningfully distinguishable**. They are not required to be exactly five characters or a blind prefix slice. Four buttons should be recognizable and correspond clearly to their full choices.
+
+Do not remove the two-layer UI.
+
+## C4. Dialogue/TTS + Story reading UX
+
+Verify/fix only proven boundaries:
+- registered dialogue can reach dialogue-card/TTS projection;
+- TTS OFF = zero synthesis calls; ON/replay works without resynthesis on replay when existing contract says so;
+- no fuzzy speaker repair;
+- next Story streaming does not unnecessarily blank/cover the reading surface;
+- normal player UI does not expose `r3_*`, `revision`, `Commit`, `Retry failed action` or equivalent internal wording as game language; diagnostics may retain codes;
+- feedback unavailable/disabled state is understandable rather than fake-success.
+
+## C5. Mobile
+
+Actual browser at desktop and ~390x844.
+Priority must remain:
+`Story -> full choices/compact actions/free input -> secondary MM/media/state/map/CSA tools`.
+
+Fix proven horizontal overflow, action reachability, reading-order or panel domination. Do not redesign for aesthetics unrelated to evidence.
+
+## C6. Stage-C validation gate
+
+Focused media/frontend/dialogue/TTS/choice tests only, plus syntax/JSON/diff.
+Deploy exact changed TEST source.
+
+Run a bounded real-browser presentation session proving the above. No P0/P1 in presentation/media scope before Stage D.
 
 ---
 
-# 8. Mandatory focused browser proof after P1 repair
+# Stage D — Final holistic live acceptance
 
-Before the full campaign, create fresh disposable adult-profile browser fixtures through the bare public TEST UI.
+Only after A/B/C pass.
 
-### P1-A focused proof
+## D1. Final deterministic convergence checkpoint
 
-Run one fresh continuous 12-turn browser session with no retry/sample-until-pass.
+Run focused invariant groups as appropriate, then **one full suite** as regression signal. Triage failures against canon; do not restore superseded behavior to make stale tests green.
 
-Requirements:
+No numeric pass count substitutes for browser acceptance.
 
-- at least one free input and one native choice;
-- normal social and adult-oriented interaction mix;
-- refresh after Turn 3+;
-- every turn must either commit or fail with a real explicit recoverable terminal;
-- no stale timeout leaving the UI/action/job permanently ambiguous;
-- no duplicate POST/Story/Commit from reconnect.
+## D2. Fresh real-browser campaigns
 
-If the same stale-turn class recurs, preserve the fresh failed fixture and perform at most TWO evidence-driven source repair cycles for this proven P1. Each repair cycle requires a concrete new root-cause finding; no blind retries or provider sampling.
+Use the deployed bare public TEST frontend and actual browser UI. Do not reuse prior failed campaigns as pass evidence; preserve them read-only.
 
-### P1-B focused proof
+Campaign A:
+- fresh adult junior/ordinary profile;
+- Opening + **15+ ordinary turns**.
 
-In the same or a second fresh fixture, create a multi-NPC scene and inspect at least five consecutive MM-bearing turns.
+Campaign B:
+- fresh adult authority/experienced profile;
+- Opening + **10+ ordinary turns**.
 
-Pass requires:
+Extend at least one campaign to **20+ ordinary turns** if needed to prove memory beyond the recent raw window.
 
-- every visible MM name maps to its exact observer-applied actor ID;
-- actor is current/relevant and grounded in the same committed scene;
-- Story/MM identity does not cross;
-- ambiguous entries are dropped, not reassigned;
-- player-thought remains empty unless literally grounded.
+No direct gameplay API substitute, DOM mutation, storage preseed, hidden retry, regeneration, or sample-until-pass.
 
-Do not move to full acceptance with either P1 still unresolved.
-
----
-
-# 9. Full real-browser canon acceptance continuation
-
-After both P1s are green, run a NEW clean acceptance campaign set. Do not continue the old failed games.
-
-Create exactly TWO new disposable adult profiles through visible Setup.
-
-## Campaign A — junior/ordinary adult
-
-- age 25+ preferred;
-- normal department;
-- intern/staff/assistant-level rank;
-- Opening + at least 15 ordinary turns.
-
-## Campaign B — experienced/authority adult
-
-- age 30+;
-- different department where practical;
-- manager/executive rank;
-- Opening + at least 10 ordinary turns.
-
-Play as an actual adult user of an adult company-life character simulation, not as a corporate QA checklist.
-
-Across the two campaigns naturally cover:
-
+Across final campaigns cover the full `LIVE_ACCEPTANCE_MATRIX.md`, including:
 - non-work small talk;
-- heroine-specific conversation and follow-up;
-- attraction/flirting/suggestive adult interaction;
-- explicit adult request when context permits;
-- escalation and de-escalation;
-- refusal;
-- changing mind;
-- stopping/changing ongoing romantic/intimate/sexual interaction;
-- being alone / asking to be left alone;
-- self-directed action;
-- multi-NPC interaction;
-- location movement;
-- work as one life context, not universal goal;
-- permanent agency probes including 한리브 lunch, alone-at-window, 윤민아 movement when context permits;
-- character differentiation and no dossier-label prose leakage;
-- four semantically different Story choices;
+- heroine differentiation;
+- adult/flirt/intimate play as a real adult user, not only polite office play;
+- refusal/change-of-mind/stop/de-escalation;
+- interrupt ongoing interaction;
+- alone/self-directed action;
+- movement and registered heroine identity;
+- multi-NPC scene;
+- work as context, not task funnel;
+- permanent agency probes (Han Ribe lunch, alone-at-window, Mina movement when context permits);
 - player-inner-thought negative cases;
-- MM raw/applied spot checks;
-- History;
-- refresh/re-entry;
-- desktop + 390x844 mobile.
+- MM raw/applied identity and same-reality;
+- CSA zero-turn issue/change/remove + reaction/compliance/adaptation;
+- Rule-9 negative/positive;
+- long-memory relational context;
+- general/adult media evidence according to truthful curated catalog;
+- History and refresh/re-entry;
+- dialogue/TTS;
+- desktop + 390x844.
 
-No retry/regeneration/sample-until-pass.
+Record important boundaries as:
+`literal/visible action -> Story/system event -> observer raw -> observer applied -> durable state -> next Story/UI`.
 
----
-
-# 10. Mandatory CSA live acceptance
-
-Through visible CSA product UI, prove the current owner canon in live Story.
-
-### A. New institutional notice -> reaction -> adaptation
-
-APPLY a visibly disruptive accepted preset.
-
-Required live sequence:
-
-1. rule becomes a NEW official company rule/notice;
-2. relevant NPCs may react with surprise/embarrassment/annoyance/questions in character;
-3. they do not know/sense the private app;
-4. when applicable they follow the authoritative rule;
-5. compliance does not become automatic desire/affection/private consent/romance;
-6. after later turns they show character-specific adaptation/practicalization rather than instant eternal normality.
-
-### B. CHANGE / REMOVE
-
-- play unrelated turns after APPLY;
-- CHANGE same rule or scope where product allows;
-- play an unrelated turn;
-- REMOVE;
-- play another unrelated turn;
-- prove future Story uses only current rule authority and no stale enforcement remains.
-
-### C. Rule 9 exact semantic boundary
-
-Preset `continue_until_recipient_orgasm`:
-
-Negative case:
-- no qualifying current sexual action underway;
-- player requests a new sexual act;
-- rule MUST NOT create authority to start the new act merely because of the request.
-
-Positive case:
-- a qualifying current sexual action is genuinely already underway through prior committed Story;
-- request condition is met;
-- rule may require continuation according to preset semantics.
-
-Do not create or test a generic sexual action DSL.
+Structural green does not excuse product defects.
 
 ---
 
-# 11. Mandatory long-memory acceptance
+# Global prohibitions
 
-Extend at least one new campaign far enough that a meaningful event leaves the recent raw-turn window.
+Unless a new owner decision explicitly changes canon, do NOT add:
+- generic relation/consent/emotion engine;
+- generic physical/posture/contact ontology;
+- generic sexual-action/CSA execution DSL;
+- sexual event ledger/dynamic sexual gauges;
+- second Story/choice/MM/media LLM;
+- semantic/fuzzy speaker or actor repair;
+- automatic retry/regeneration-until-lucky;
+- provider/model/config/secret changes as quality fixes;
+- Production access/deploy;
+- destructive DB/migration-history changes;
+- a new CURRENT_TASK file or ops branch.
 
-Use a concrete earlier event such as:
-
-- refusal/boundary;
-- conflict/pressure;
-- help/care;
-- promise;
-- intimate event;
-- meaningful CSA first reaction/adaptation.
-
-Later return to the same character/topic.
-
-Pass requires the later Story to preserve the grounded significance without introducing a numeric relation/consent/emotion engine and without resetting tension merely because of one later polite sentence.
-
-Inspect the actual committed summary/memory payload to prove source-turn grounding and chronology.
+Historical/evidence games remain READ ONLY unless a task explicitly names a disposable game for mutation/reset.
 
 ---
 
-# 12. Mandatory media live acceptance
+# Completion
 
-Using only actually verified catalog entries:
-
-1. ordinary heroine scene -> correct same-character general image;
-2. if multiple verified general situations exist, observe meaningful variation rather than a systematic wrong portrait;
-3. genuinely committed adult/intimate scene -> appropriate sex-pool image when a verified matching asset exists;
-4. requested-but-refused/non-occurring act -> must NOT switch to false sex image;
-5. de-escalation/end/leave -> stale sex media clears;
-6. refresh/replay -> equivalent media meaning;
-7. image failure -> Story/Commit unaffected.
-
-Record `/media/image` request pool, selected image id, character id, and reason/hint for the adult proof.
-
-If no sex asset can be semantically verified from the existing 97 DB rows, do not fabricate success. Report a precise remaining **content curation gap** with counts and evidence.
-
----
-
-# 13. Presentation acceptance
-
-Verify in real browser:
-
-- no player-facing `r3_*`, `company_r3_*`, `revision`, `Commit`, or developer retry jargon in normal failure/recovery UI;
-- Story reading surface is not jarringly blanked/covered during next stream;
-- full four choices + separate compact five-character buttons remain intentionally present and correspond exactly;
-- compact click submits the full current literal;
-- dialogue-card/TTS projection works once for a real registered heroine line;
-- TTS OFF makes zero TTS requests;
-- mobile 390x844 keeps Story/choices/input primary over secondary panels.
-
-Do not report the intentional two-layer choice UI as duplication.
-
----
-
-# 14. Evidence and severity rules
-
-For every live defect record:
-
-`literal -> Story -> observer raw -> observer applied -> durable state -> next Story/UI`
-
-Classify P0/P1/P2/P3 by user-visible impact.
-
-Do not stop merely because a P2/P3 exists; collect it and finish the matrix when core play can continue.
-
-Stop/repair immediately for a proven P0/P1 that invalidates subsequent evidence, including:
-
-- stuck/duplicate turn lifecycle;
-- direct player-agency substitution;
-- actor identity crossing;
-- wrong active CSA authority;
-- persistent state corruption.
-
-Up to TWO evidence-driven repair cycles are authorized for the two known P1 classes only. New unrelated P1 requires preservation + terminal/operator review unless the fix is obviously within the same owning boundary and does not broaden architecture.
-
----
-
-# 15. Completion report
-
-Post one NEW Issue #68 terminal containing:
-
-- task id and starting/current task blob;
-- owner canon SHA;
-- accepted baseline `c166eee...` confirmation;
-- exact source/final main SHA;
-- changed files grouped by P1-A / P1-B / media curation / presentation;
-- Campaign A Turn 11 forensic root cause;
-- Campaign B MM mismatch forensic root cause;
-- tests and stale-test triage;
-- exact TEST Worker versions;
-- focused P1 fresh fixture IDs/results;
-- two final fresh full-campaign IDs/profiles;
-- per-lane LIVE_ACCEPTANCE_MATRIX result;
-- CSA reaction/adaptation + CHANGE/REMOVE + Rule 9 evidence;
+Post one terminal report to Issue #68 containing:
+- start/final main and accepted source SHA(s);
+- confirmation current main canon was read before each stage;
+- Stage A/B/C/D PASS/FAIL and exact browser game IDs;
+- exact first broken boundary for every repaired P0/P1;
+- changed files grouped by canon owner;
+- focused test/deploy evidence per stage;
+- final full-suite result and stale-test triage;
+- exact TEST API/frontend Worker versions;
+- CSA zero-turn proof with committed_turn before/after app operations;
+- Opening focal-cast/context proof;
+- bounded heroineCard projection proof;
+- MM identity proof;
+- Rule-9 negative/positive proof;
+- media manifest counts, stable locator form, curated vs unclassified adult assets, general/sex browser reachability;
+- compact-label/full-literal proof;
 - long-memory evidence;
-- media manifest counts by heroine/pool and verified-vs-gap counts;
-- actual general/sex browser reachability evidence;
-- desktop/mobile/TTS/History/refresh results;
+- desktop/mobile evidence;
 - remaining defects P0/P1/P2/P3;
-- source edits / deploys / DB operations listed explicitly.
+- explicit source/deploy/DB operations.
 
-Then overwrite this SAME file to:
-
-`Status: WAITING_REVIEW`
+Then overwrite this SAME file in place to `Status: WAITING_REVIEW` and STOP.
 
 Terminal:
-`CANON_CONVERGENCE_P1_REPAIR_AND_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CANON_CONVERGENCE_STAGED_REPAIR_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
-STOP. Do not create the next CURRENT_TASK yourself.
+Do not register a next task yourself.
