@@ -5,6 +5,7 @@ import { loadCanonicalCompanyR3Content } from '../runtime-r3/domain/content-load
 import { applyR3Csa, buildRuleChangeStoryBinding, createR3CsaCatalog, R3_CSA_TEMPLATE_IDS } from '../runtime-r3/domain/csa.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
+import { createCsaDraft, csaDraftOperation, stageCsaOperation } from '../frontend-r3/csa-draft.js';
 
 const content = loadCanonicalCompanyR3Content();
 const GAME_ACCESS_SECRET = 'r3-test-secret';
@@ -42,6 +43,11 @@ function providerFor({ failCsa = false, calls = [] } = {}) {
       return { choices: ['Continue naturally', 'Move to the next scene', 'Speak with the colleague', 'Write a free action'], turn_summary: storyText.slice(0, 80), mind_monitor: {} };
     }
   };
+}
+
+class RecordingStore extends InMemoryR3Store {
+  constructor() { super(); this.reservations = []; }
+  reserveTurn(input) { this.reservations.push(input); return super.reserveTurn(input); }
 }
 
 async function openGame(worker, gameId, auth) {
@@ -146,6 +152,22 @@ test('visible APPLY uses exactly one Story/Observer/commit and never the zero-tu
   assert.equal(result.at(-1).data.context.state.state.csa_active.length, 1);
 });
 
+test('exact W5 browser payload crosses /turn, reserve, Story binding, Observer, and one commit', async () => {
+  const store = new RecordingStore(); const calls = [];
+  const worker = createR3Worker({ store, provider: providerFor({ calls }), content, gameAccessSecret: GAME_ACCESS_SECRET });
+  const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
+  const literalAction = 'CSA W5 APPLY audit: breast_touch_conversation heroine5 general_park_jungwoo';
+  const csaOperation = { operation: 'activate', template_id: 'breast_touch_conversation', subject_scope: 'female_employee', counterparty_scope: 'male_employee', subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' };
+  const result = await postTurn(worker, gameId, auth, { action_id: 'browser-w5-transport', expected_turn: 1, literal_action: literalAction, csa_operation: csaOperation });
+  const terminal = result.at(-1).data; assert.equal(terminal.status, 'committed');
+  assert.equal(store.reservations.length, 1); assert.equal(store.reservations[0].turnNumber, 1); assert.equal(store.reservations[0].literalAction, literalAction); assert.deepEqual(store.reservations[0].csaOperation, csaOperation);
+  const story = calls.find(call => call.stage === 'story' && call.csaOperation); const observer = calls.find(call => call.stage === 'observer' && call.csaOperation);
+  assert.deepEqual(story.csaOperation, csaOperation); assert.equal(story.literalAction, ''); assert.deepEqual(story.ruleChangeBinding.selected_actor_ids, ['heroine5', 'general_park_jungwoo']); assert.equal(story.ruleChangeBinding.subject.actor_id, 'heroine5'); assert.equal(story.ruleChangeBinding.counterparty.actor_id, 'general_park_jungwoo');
+  assert.equal(observer.literalAction, literalAction); assert.deepEqual(observer.csaOperation, csaOperation);
+  assert.equal(terminal.context.state.committed_turn, 1); assert.equal(terminal.context.turns.length, 2); assert.equal(terminal.context.job, null); assert.deepEqual(terminal.context.state.state.last_rule_change.selector, { subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' }); assert.equal(terminal.context.state.state.last_rule_change.template_id, 'breast_touch_conversation');
+  assert.equal(terminal.context.turns[1].literal_action, literalAction);
+});
+
 test('legacy /csa endpoint delegates to the same chronological turn stream', async () => {
   const store = new InMemoryR3Store(); let applyCsaCalls = 0; store.applyCsa = () => { applyCsaCalls += 1; throw new Error('zero_turn_writer_must_not_run'); };
   const worker = createR3Worker({ store, provider: providerFor(), content, gameAccessSecret: GAME_ACCESS_SECRET }); const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
@@ -189,6 +211,16 @@ test('frontend CSA draft UI uses one existing turn handoff and no legacy app wri
   const html = fs.readFileSync(new URL('../frontend-r3/index.html', import.meta.url), 'utf8');
   assert.match(source, /stageCsaOperation/); assert.match(source, /미적용 변경 1건/); assert.match(source, /onOperation/); assert.match(source, /overlay\.hidden = true/); assert.match(source, /상식개변 적용/); assert.doesNotMatch(source, /client\.csa|\/api\/app-state|\/api\/app-validate|batch/i);
   assert.match(html, /data-tab="home"/); assert.match(html, /data-tab="player"/); assert.match(html, /data-tab="npc"/); assert.match(html, /data-tab="csa"/); assert.match(html, /data-tab="manual"/); assert.match(app, /csa_operation/); assert.match(app, /client\.turn/); assert.match(app, /return submit\(literalAction/);
+});
+
+test('frontend W5 selector handoff preserves both actor ids through draft and turn payload split', () => {
+  const operation = { operation: 'activate', template_id: 'breast_touch_conversation', subject_scope: 'female_employee', counterparty_scope: 'male_employee', subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' };
+  const staged = stageCsaOperation(createCsaDraft({ state: { revision: 7 } }), operation);
+  assert.equal(staged.blocked, false); assert.deepEqual(csaDraftOperation(staged.draft), operation);
+  const submitted = { literal_action: 'W5 audit', ...csaDraftOperation(staged.draft) }; const { literal_action, ...csaOperation } = submitted;
+  assert.equal(literal_action, 'W5 audit'); assert.deepEqual(csaOperation, operation);
+  const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8'); const app = fs.readFileSync(new URL('../frontend-r3/app.js', import.meta.url), 'utf8');
+  assert.match(source, /const operation = clone\(csaDraftOperation\(draft\)\)/); assert.match(source, /onOperation\?\.\(\{ \.\.\.operation, literal_action/); assert.match(app, /const \{ literal_action: literalAction, \.\.\.csaOperation \} = operation/); assert.match(app, /payload\.csa_operation = pendingOperation/);
 });
 
 test('frontend CSA exposes the three canonical tiers and no exact-nine label', () => {
