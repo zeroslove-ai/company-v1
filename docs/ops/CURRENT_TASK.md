@@ -1,278 +1,348 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-image-media-live-acceptance-v2
-Mode: ACCEPTANCE-ONLY — IMAGE MEDIA ROUTING / ADULT POOL / REFUSAL / DE-ESCALATION / REFRESH
-Updated: 2026-08-25 07:24 KST
+Status: READY
+Task ID: company-r3-cross-boundary-core-p1-correction-v1
+Mode: OWNER-PRIORITY CORE PRODUCT CORRECTION — NAVIGATION / RULE-CHANGE ANNOUNCEMENT / CSA LITERAL AGENCY / FINITE COMPATIBILITY
+Updated: 2026-08-25 07:47 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main before this overwrite: `36ef8b5a5f7596d03c262f3deb2027ce8f03fb9c`
-Previous task: `company-r3-deploy-target-contract-recovery-v1`
-Previous terminal: Issue #68 `5402220722`
-Operator review: Issue #68 `5402267821`
-Accepted media implementation: `1055a7d34d5739f121b29af767cb5cd5a276ed04`
-Accepted deploy-wrapper implementation: `d2a4aafc04cd2993b1dde2a8f50caa400dc19de1`
-Accepted TEST API: `game-proxy-company-r3` / `4f8e8697-7b9e-4d91-8a50-35463309ce4a`
-Frozen TEST frontend: `gamebuilder-company-r3` / `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`
+Registration base main: `ca943a418cab10b8af89720450be53f2736c2a18`
+Previous task: `company-r3-image-media-live-acceptance-v2`
+Previous terminal: Issue #68 `5402499548`
+Operator review: Issue #68 `5402535927`
+Owner intervention: Issue #68 `5402446281`
+Persistent correction spec: Issue #68 `5402491879`
+Canonization note: Issue #68 `5402495785`
+Binding specialized contract: `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
+Binding specialized contract commit: `14167976a00500a42a1eb591c76471a7d1ce477d`
+Binding specialized contract blob: `8c13e52f01e6f5d1682648d977a67bcd89e5c130`
+Current-truth routing commit: `ca943a418cab10b8af89720450be53f2736c2a18`
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
-Success terminal:
-`IMAGE_MEDIA_LIVE_ACCEPTANCE_FUNCTIONAL_GREEN_AWAITING_OPERATOR_REVIEW`
+Target success terminal:
+`CROSS_BOUNDARY_CORE_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
-Product blocked terminal:
-`IMAGE_MEDIA_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-Browser-control blocked terminal:
-`IMAGE_MEDIA_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Blocked terminal:
+`CROSS_BOUNDARY_CORE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
 - Work on `main` only.
-- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Never create another CURRENT_TASK file, branch, ops branch, implementation branch, or PR.
-- Mandatory read order: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, `docs/redesign/MEDIA_CATALOG_CONTRACT.md`, terminal `5402220722`, operator review `5402267821`, then this task.
-- Actual deployed browser play is the product gate.
-- This is acceptance-only. Source/content/test/config/provider/model/DB/storage changes are forbidden.
-- Freeze the 102-entry manifest (5 general + 97 sex), manifest-first exact-image-id authority, DB serving-index-only behavior, deploy-wrapper guard, CSA, Story/Observer architecture, MM, memory, TTS implementation, and frontend source.
-- No Production. No OWNER_READY claim.
+- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Overwrite it in place for lifecycle state.
+- Do NOT create a new CURRENT_TASK file, branch, ops branch, feature branch, or implementation PR.
+- Mandatory read order before edit:
+  1. `AGENTS.md`
+  2. `CURRENT_TRUTH.md`
+  3. `docs/redesign/COMPANY_CANON.md`
+  4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
+  5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
+  6. current `content/csa_catalog.json`
+  7. Issue #68 owner intervention `5402446281`
+  8. Issue #68 correction spec `5402491879`
+  9. previous terminal `5402499548`
+  10. operator review `5402535927`
+  11. this CURRENT_TASK
+- Current binding canon/specialized contract outrank old accepted tests, prior green terminals, live DB state, and old implementation.
+- Preserve A′/R3: server-owned turn kernel + Story LLM + one post-Story observer + atomic Commit + optional sidecars.
+- This is not a redesign task. Fix the earliest broken existing boundary for each proven defect.
 
-## 1. Exact goal
+### Preserved evidence — READ ONLY, never reset/retry/mutate
 
-Close the functional image portion of `A-MEDIA-001` / `M-ACCEPT-001` on the currently deployed TEST build without mixing TTS into the run.
+- `ab44e91c-5eaa-4fb1-9396-138073ec5257` — navigation false-positive and rule lifecycle residue evidence.
+- `b91607f4-6945-44eb-87a3-6f2b2d6e1834` — S7 trainer/trainee + ordinary literal agency + rule-change announcement evidence.
+- `babfa5a6-719b-4dbe-a392-cb2c62cc1faa` — S1 announcement and unsupported-action agency evidence.
+- `ebc440ea-5f2e-41dc-8333-12cedc1ad772` — superseded media task fresh game; preserve read only.
+- Any other game already marked preserved in Issue #68 remains read only.
 
-Prove in one fresh visible game:
+## 1. Why this task exists
 
-1. an ordinary committed heroine scene produces the correct heroine `general` media request/response and visible image;
-2. a requested-but-cancelled/refused/non-occurring adult act cannot switch to false `sex` media;
-3. a genuinely committed adult/sexual act reaches the correct heroine `sex` pool and a manifest-approved sex image;
-4. explicit stop/de-escalation removes stale sex media once the committed scene no longer establishes the act;
-5. refresh/re-entry preserves equivalent media meaning without duplicate Story/Commit;
-6. any natural image failure remains local and does not block Story/Commit.
+Recent DB/live review found a class of defects that previous narrow green tests did not catch:
 
-Known quality gap must be reported separately, not hidden: the current manifest has only one `general` image per heroine. Functional routing can be GREEN while `M-CATALOG-002` ordinary-image variety remains a P2/product-quality gap. Do not fabricate general variation from sex assets or external media.
+- Story and Observer can be correct while deterministic postconditions corrupt durable state.
+- CSA role IDs can remain correct while Story substitutes the requested actor/action.
+- Rule state can commit correctly while the mandatory in-world issuance scene is missing or private-app/supernatural framing leaks in.
+- A finite S1 boundary can correctly reject institutional authority while Story erases the unsupported literal action entirely.
+- Multi-rule persistence can be structurally green while two active rules are physically contradictory.
 
-## 2. Preflight — zero gameplay mutation until stable
+Therefore this task may not declare success from isolated unit contracts. Each decisive live probe must trace the whole product chain.
 
-Verify once, read-only:
+## 2. P1-A — player navigation actor binding / durable scene authority
 
-- current executable/content is accepted source plus docs descendants only;
-- TEST API is exactly `4f8e8697-7b9e-4d91-8a50-35463309ce4a` or proven source-equivalent;
-- TEST frontend is exactly `af6c13bf-ef57-40cb-a4f0-e3569b301bc5` or proven source-equivalent;
-- `/api/r3/catalogs` reports 102 active media entries = 5 `general` + 97 `sex`;
-- bare public TEST frontend loads with usable DOM and screenshot;
-- browser/network observation can capture current-game `/media/image` request and response while also confirming the visible `<img>` state.
+Read current `runtime-r3/domain/navigation.js`, reducer/callers, observer normalization, and scene commit path first.
 
-If DOM/screenshot/browser network observation is unavailable before game creation, STOP browser-control blocked with fresh games = 0. Do not create a game hoping tooling recovers.
+Known exact evidence from `ab44...` Turn 9:
 
-No full npm test is required in this acceptance-only task.
+`서원희 차장과 박정우 팀장이 회의실로 이동한 뒤에도 나는 윤민아 대리에게 업무와 무관하게 점심 메뉴를 물으며 일상 대화를 이어간다.`
 
-## 3. Setup validity barrier / one game only
+Observed evidence:
+- Story: 서원희 + 박정우 move to meeting room; player remains in office with 윤민아.
+- Observer: `brand_strategy_office`, 윤민아/김제나 present.
+- durable state after reducer: `meeting_room`, `present_actor_ids=[]`.
 
-Create exactly one fresh TEST game through visible Setup.
+Current main source has movement-word + location matching without player/self actor binding, then navigation postcondition overwrites observer state.
 
-Use a definitely valid adult profile:
-- name `김도현`
-- age `30`
-- height `180`
-- weight `75`
-- penis length `15`
-- department visible Brand Strategy / `brand_strategy`
-- position visible Intern / `intern`
-- body type = first currently valid visible catalog option
-- speech style = first currently valid visible catalog option
+Required fix:
+- `player_navigation` exists only when the literal actually binds movement/destination to the player/self.
+- movement performed only by named NPC(s) must not become player movement.
+- when there is no valid player navigation intent, grounded Story/observer scene projection remains authoritative.
+- true explicit player movement remains deterministic.
+- do not remove navigation postconditions wholesale if they remain needed for true player movement.
 
-Before the single Setup submit prove client constraints are valid. Then click `설정 완료` once.
+Required deterministic regressions:
+1. exact Turn-9 style NPC-only movement + player stays/talks => no player navigation.
+2. `나는 회의실로 이동한다.` => player navigation to meeting room.
+3. registered heroine destination probe where player explicitly goes to that heroine/location => preserved.
+4. sentence containing both NPC movement and later explicit player movement => player clause wins only when explicit.
+5. refresh/re-entry of committed scene must reproduce same durable location/presence.
 
-- no second Setup submit;
-- no second game;
-- no reset/regenerate/sample;
-- no direct gameplay API substitute;
-- no DB state seeding.
+Forbidden for this fix:
+- fuzzy NER;
+- nearest-name repair;
+- generic Korean semantic parser generation;
+- LLM navigation classifier;
+- trusting literal keywords over actor binding.
 
-Record fresh game ID.
+## 3. P1-B — rule-change official announcement must be structurally observable
 
-## 4. Lane A — ordinary heroine / general image
+Read current rule-change route, structured operation projection, provider request, Story streaming/commit path, observer, and rule-state atomic commit.
 
-Use visible play to establish one exact registered heroine as current/focal/relevant, preferably `서원희` (`heroine1`) because both general and multiple sex assets are canonically present.
+Evidence:
+- `babfa5a6...` S1 APPLY committed active S1 but Turn 1 Story had no S1 official issuance/announcement/first reaction; Turn 2 nevertheless enforced S1.
+- `b91607f4...` S7 APPLY narrated private-app activation/flash and an NPC seemingly sensing activation while the actual company notice was vague and did not clearly expose exact trainer/trainee identities.
+- Existing provider prompt already forbids private-app institutional knowledge, so prompt-only hard wording is proven insufficient.
 
-A practical visible input may be a simple direct social approach such as going to 서원희 and speaking with her; do not require work-task framing.
+Required product behavior:
+- successful APPLY / CHANGE / REMOVE remains exactly one structured rule-change gameplay turn.
+- active-rule state and committed rule-change turn remain atomic.
+- the committed visible turn MUST contain a grounded official institutional/company/public-authority issuance channel appropriate to the rule.
+- material exact scope/designations must be knowable from that channel. For S7 the official announcement must identify the configured trainer and trainee, not only say `some training procedure applies`.
+- private `상식개변` app may remain a private player UI tool but is never the source of NPC knowledge.
+- no app flash / supernatural aura / NPC sensing activation as causal explanation.
+- first affected-character reaction can remain Story-authored and character-specific.
 
-Only judge the image after the turn is committed and the UI has settled.
+Implementation boundary:
+- Do not add a second Story or reaction LLM.
+- Do not add hidden semantic retry/regenerate-until-valid.
+- Do not change provider/model/temperature/token limits.
+- Do not add a generic verifier that retries Story.
+- Use the smallest deterministic/server-owned presentation boundary necessary so an exact validated structured rule-change operation cannot commit without the official issuance being observably represented. The LLM still writes the natural reaction/narrative around that institutional fact.
+- Do not serialize the structured operation back into an ordinary free-text player action for Story inference.
 
-PASS requires:
-- committed Story actually establishes the chosen heroine as current/present/relevant;
-- actual `/media/image` request is observable;
-- request is for that exact heroine and `general`, not another heroine and not `sex`;
-- response image ID is manifest-approved for that heroine/general pool;
-- visible rendered image corresponds to the returned image URL/ID;
-- Story remains primary/readable and image loading does not cover/block arrived Story.
+Required deterministic contracts:
+- S1 APPLY exact official rule/scope announcement survives even if mocked Story omits it.
+- S7 APPLY exact trainer/trainee announcement survives even if mocked Story omits or misstates the assignment.
+- CHANGE announces changed authority and commits only new canonical state.
+- REMOVE announces revocation and commits removal.
+- provider/Story failure leaves previous rule state canonical; no half-apply.
+- exactly one Story call and one observer pass per successful rule-change turn.
+- no private-app/supernatural wording is injected by deterministic rule-change presentation.
 
-For heroine1 the only current general entry is `heroine1-main`; seeing the same portrait across ordinary heroine1 contexts is not a routing P1, but must be recorded under the known M-CATALOG-002 P2 quality gap.
+## 4. P1-C — active-CSA ordinary literal agency
 
-Wrong heroine or false sex pool on an ordinary committed scene = deterministic P1 STOP.
+Trace ordinary literal -> provider request construction -> active CSA context -> Story -> observer -> durable state.
 
-## 5. Lane B — non-occurring adult intent must not create false sex media
+### S7 exact failure
 
-While the same heroine is current, use exactly one visible input whose literal meaning explicitly cancels/stops before the adult contact occurs, for example:
+Evidence game `b91607f4...`:
+- active S7 trainer = 서원희, trainee = 윤민아.
+- literal: `서원희 차장님, 윤민아 대리에게 오늘 지정된 성적 업무 교육을 어떻게 시작할지 차분히 설명해 주세요.`
+- actual Story redirected the scene so the player was asked to explain the notice instead of 서원희 explaining to 윤민아.
 
-`서원희에게 입맞춤하려다가 생각을 바꿔 멈추고, 아무 행동도 하지 않는다.`
+Required:
+- actor = 서원희, target = 윤민아, requested action/topic = explain how to begin designated training.
+- Story may choose wording/reaction/outcome but may not redirect explanatory duty to the player or substitute another task.
 
-The Story must preserve the non-occurrence. If Story silently performs the act anyway, that is an agency/product P1 and STOP.
+### S1 unsupported-action exact failure
 
-If Story preserves non-occurrence:
-- no committed evidence may authorize a sex image merely because the request/intention contained adult wording;
-- any media request must remain semantically safe (`general` for the same heroine or no image, according to current projection); and
-- a sex-pool request/visible sex image is P1 STOP.
+Evidence game `babfa5a6...` Turn 3:
+- active S1 finite supported families are `kiss`, `sexual_touch`, `genital_exposure`, `genital_touch`, `oral`, `penetration`.
+- literal asks 서원희 to sing a sexual song.
+- singing is correctly outside S1 mandatory authority, but actual Story erased the request and continued the prior kiss event.
 
-Do not retry with another refusal/cancellation sample.
+Required:
+- outside supported S1 family = not institutionally mandatory.
+- the literal action remains an ordinary request/instruction and must stay visible in Story semantics.
+- NPC may refuse, question, react, or voluntarily comply according to ordinary scene/character logic, but the game may not pretend the request was never made.
+- supported S1 family within exact configured scope must still receive the accepted institutional authority.
 
-## 6. Lane C — genuine adult act / sex pool
+Required deterministic regressions:
+- exact S7 trainer/trainee literal preserves actor, target, action/topic.
+- unsupported S1 literal is preserved but not marked mandatory.
+- supported S1 literal remains mandatory within scope.
+- unsupported classification must not rewrite actor/target/action.
+- active CSA context ordering must not shadow the exact literal action.
 
-Reach one genuinely committed sexual act with the same heroine using visible gameplay only.
+Forbidden:
+- generic action execution DSL;
+- broad action taxonomy beyond existing finite S1 families;
+- semantic retry;
+- second Story;
+- relation/consent/corruption engine.
 
-Preferred bounded setup if needed for deterministic reachability:
-- use the already accepted visible S1 authority surface only as a setup mechanism, not as a new CSA acceptance campaign;
-- select exact valid subject/counterparty roles for the same heroine and player;
-- S1 APPLY announcement itself does **not** count as an adult act and must not independently justify sex media;
-- then issue one visible S1-supported `oral` instruction in the exact selected actor/direction, because heroine1 has approved oral/deepthroat/fellatio sex assets.
+## 5. P1/P2-D — finite contradictory CSA compatibility
 
-Do not rerun S1 supported/unsupported boundary as a pass-seeking campaign. Use at most one S1 APPLY and one supported adult instruction if this route is used.
+Binding contract requires catalog-owned finite incompatibility, not a generic physical solver.
 
-The positive media lane is reached only if committed Story clearly states that the adult act actually begins/occurs. A request, discussion, announcement, refusal, or blocked attempt does not count.
+Audit current `content/csa_catalog.json`, `runtime-r3/domain/csa.js`, server validation and frontend APPLY/CHANGE presentation.
 
-If the supported instruction is silently substituted, wrong actor/target is used, or official supported S1 authority is ignored in a deterministic way, classify the actual owning product P1 and STOP; do not hunt another adult route.
+Minimum binding incompatible pairs for overlapping female scope:
+- W3 `cleavage_exposed_work` ↔ M1 `work_in_underwear_only`.
+- W3 ↔ M2 `work_nude`.
+- W1 `no_bra_under_work_clothes` ↔ M1 because M1 requires underwear top worn.
+- W2 `no_panties_under_work_clothes` ↔ M1 because M1 requires underwear bottom worn.
 
-Once a genuine adult act is committed, PASS requires:
-- actual `/media/image` request is observable;
-- exact heroine ID is preserved;
-- pool is `sex`;
-- returned image ID exists in the repository manifest for that exact heroine/sex pool;
-- selected situation/tags are not contradicted by the committed act;
-- DB-only image IDs never appear;
-- visible image matches returned media;
-- media remains presentation-only and Story/Commit already exists independently.
+Also inspect direct finite `execution.required_state` contradictions among current curated clothing presets and add only directly proven finite pairs. Do not infer a generic ontology.
 
-Wrong heroine, `general`-only despite clear eligible committed adult evidence, unrelated sex act, or DB-only row = P1 STOP.
+Required behavior:
+- incompatible APPLY on overlapping scope cannot silently leave both active.
+- choose the smallest coherent product path supported by current UI/runtime: either clear rejection before rule-change turn or explicit replacement/CHANGE. Do not invent silent precedence.
+- player-facing conflict copy must identify the conflicting visible rules, not internal IDs/R3 jargon.
+- compatible combinations still work and remain independently inspectable.
+- no migration should be required merely to express finite catalog compatibility if current state can represent rejection/replacement.
 
-## 7. Lane D — de-escalation / stale sex removal
+Required deterministic tests:
+- all minimum conflict pairs rejected/replaced as designed.
+- same rules on genuinely non-overlapping scopes may coexist only if current selector model can represent that distinction correctly; otherwise do not fake scope separation.
+- one known compatible pair continues to apply/persist.
+- failed incompatible APPLY does not consume a Story turn if operation validation rejects it before reservation; if existing contract requires a structured failed operation presentation, STOP and request operator review rather than inventing new product law.
 
-After the genuine adult scene, use one visible literal stop/de-escalation input such as:
+## 6. Out of scope for this task — preserve evidence for next P2 integrity lane
 
-`지금 하던 성적 행동을 즉시 멈추고 서원희와 평범한 대화로 돌아간다.`
+Do not broaden implementation into these unless a core P1 fix necessarily touches the exact same boundary:
 
-Pass requires the Story to preserve stop/change intent. Once the committed Story clearly ends the sexual act:
-- stale sex media must not remain as the authoritative current-scene image after projection/render settles;
-- subsequent media may be same-heroine `general` or no image;
-- another heroine or stale unrelated sex act is forbidden.
+- removed-rule ghost/current-authority residue after CHANGE/REMOVE;
+- high Mind Monitor projection drop rate / legacy string-shaped MM output;
+- player-facing CSA `rule_text` leaking developer phrases (`숨은 트리거 엔진`, `장면을 만들 수 있다`, etc.);
+- image catalog variety/routing acceptance;
+- TTS acceptance.
 
-If the Story refuses to stop without a concrete active physical/rule constraint, or silently continues the act against the literal stop, classify agency/product P1 and STOP.
+These are already binding follow-ups in `CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md` and will receive a separate P2 task after this core P1 terminal is reviewed.
 
-## 8. Refresh / re-entry
+## 7. Deterministic validation before TEST deploy
 
-Perform one deliberate read-only browser refresh/re-entry on the same fresh game after the de-escalated committed state.
+1. Add focused regressions for every changed boundary above.
+2. Run changed JS syntax checks and JSON parse/catalog sanity.
+3. Run `git diff --check`.
+4. Run focused R3 tests for navigation + CSA + rule-change + provider/turn-kernel affected boundaries.
+5. Run the full repository suite exactly once after focused tests are green and before deploy.
+6. Inspect diff for accidental provider/model/config/secret/migration/schema changes.
+7. Verify preserved evidence games were not mutated.
 
-Pass:
-- no duplicate Story/Commit/action;
-- same committed turn reconstructs;
-- media reconstructs to equivalent **non-sex/de-escalated** meaning (`general` same heroine or no image);
-- stale sex image does not resurrect from browser cache;
-- free input/choices remain usable.
+If a DB schema change appears genuinely necessary, STOP `CROSS_BOUNDARY_CORE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW` and explain the smallest missing schema contract. Do not perform `supabase db push`, migration repair, history mutation, or broad schema work in this task.
 
-Do not use refresh as a retry of a failed action.
+## 8. TEST deployment
 
-## 9. Browser-control recovery law
+After reviewed source/tests land on `main`:
 
-If browser control times out after an action was submitted:
+- verify local/remote main equality;
+- read-only verify current TEST target/schema compatibility;
+- deploy only the TEST Worker(s) whose executable source changed;
+- record exact Worker versions and source SHA;
+- frontend deploy only if frontend source actually changed;
+- no Production.
 
-1. do not click/resend/retype the action;
-2. inspect read-only request/job/context/history footprint for the fresh game only;
-3. allow at most one read-only reattach to that same game;
-4. continue only if exactly-one commit and coherent visible state are proven;
-5. otherwise STOP `IMAGE_MEDIA_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`.
+Do not alter provider/model/config/secret settings to improve Story compliance.
 
-If media network observation itself cannot be recovered, do not infer request pool from DOM alone and do not call the product GREEN.
+## 9. Fresh deployed-browser cross-boundary campaign
 
-## 10. TTS separation
+Use the actual deployed TEST browser UI. No direct gameplay API substitute.
 
-TTS is out of scope in this task.
+Create **exactly one new adult-profile game** after browser DOM/screenshot readiness. Do not create a second game for pass-seeking.
 
-- Do not toggle TTS for acceptance.
-- Do not call/replay `/media/tts` intentionally.
-- Do not classify TTS based on this run.
-- A separate TTS-only live acceptance task follows after image routing review.
+Target 12–15 committed turns. Use natural bridging turns as needed, but deliberately cover all four repaired P1 families in one continuous product reality.
 
-## 11. Frozen / forbidden
+Required lanes:
 
-Counts must remain zero:
-- source/runtime/frontend/content/test/prompt/provider/model/config/secret edits;
-- API/frontend deploy;
-- DB/schema/RPC/migration/history repair/backfill;
-- Storage mutation/upload/delete;
+### NAV lane
+- reproduce an NPC-only movement sentence structurally equivalent to the exact `ab44...` Turn 9 failure while player stays with another heroine/topic.
+- inspect Story, observer raw/applied, durable scene, refresh/re-entry.
+- then perform one true explicit player movement to a different registered location/heroine and prove navigation still works.
+
+### RULE-CHANGE ANNOUNCEMENT lane
+- APPLY one named-role rule, preferably S7, and prove exact official channel exposes trainer/trainee identities.
+- no private-app institutional source and no supernatural sensing.
+- later ordinary turn proves active rule persists.
+- perform one CHANGE or REMOVE if practical to ensure the deterministic issuance mechanism also works beyond APPLY; do not turn this into the separate residue/P2 campaign.
+
+### S7 AGENCY lane
+- with trainer=서원희 and trainee=윤민아 when reachable, submit the exact semantic request asking 서원희 to explain to 윤민아 how to start the training.
+- Story must preserve actor/target/action.
+
+### S1 SUPPORTED/UNSUPPORTED lane
+- activate S1 with a clear exact bounded pair.
+- execute one supported family instruction once; prove institutional authority applies to the exact actors.
+- then issue one clearly unsupported instruction outside the six families, e.g. the sexual-song request.
+- Story must preserve the unsupported literal as an ordinary request while withholding S1 mandatory force.
+- no alternate unsupported sample if it fails.
+
+### COMPATIBILITY lane
+- visibly attempt one minimum incompatible pair on overlapping scope.
+- prove clear rejection/replacement behavior and no contradictory active state/Story turn.
+- then prove one compatible two-rule combination still works.
+
+### REFRESH
+- one deliberate read-only refresh/re-entry after several probes.
+- no duplicate Story/Commit; durable location/rule state matches committed reality.
+
+For decisive probes record:
+`literal or structured operation -> provider input/validated operation -> Story -> observer raw -> observer applied -> reducer/postcondition -> durable state -> next Story/UI`
+
+At first reproducible unrelated P0/P1 that invalidates the campaign, preserve the game read-only and STOP. Do not broaden the task or sample another game.
+
+## 10. Success gate
+
+Success requires all of the following:
+
+- NPC-only movement no longer moves player durable location.
+- true player navigation still works.
+- every tested successful rule-change turn visibly contains grounded official issuance with exact material scope/designation.
+- private app/supernatural activation is not used as NPC authority source.
+- S7 ordinary literal preserves trainer -> trainee -> requested explanation/action.
+- S1 supported instruction receives authority; unsupported instruction remains ordinary literal and is not erased.
+- minimum contradictory pair cannot silently coexist; compatible pair still can.
+- no duplicate Story/Commit/retry.
+- focused + full deterministic gates pass.
+- exact TEST deployment/browser evidence is recorded.
+- no new reproducible P0/P1 in these core lanes.
+
+Do NOT claim `OWNER_READY`. Media/TTS remains intentionally deferred. P2 integrity lane remains after this review.
+
+## 11. Forbidden
+
+Counts must remain zero unless explicitly required above:
 - Production access/deploy;
-- existing/preserved game access/reset/mutation;
-- direct API gameplay substitute;
-- retry/regeneration/sample-until-pass;
-- second fresh game;
-- new branch/PR/CURRENT_TASK file;
-- OWNER_READY claim.
+- provider/model/temperature/token/config/secret changes;
+- hidden retry/regeneration/sample-until-pass;
+- second Story/choice/MM/media LLM;
+- fuzzy/NER/nearest actor repair;
+- new parser generation;
+- generic relation/emotion/consent/obedience/corruption engine;
+- generic posture/contact/physical/sexual ontology;
+- generic CSA execution DSL;
+- migration-history repair;
+- `supabase db push` as prerequisite;
+- preserved evidence-game mutation/reset/retry;
+- new branch/PR/CURRENT_TASK file.
 
-Normal visible commits in the single fresh game are the only allowed gameplay writes.
+## 12. Terminal report
 
-## 12. Severity / stopping
+On success:
+`CROSS_BOUNDARY_CORE_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
-At first deterministic P0/P1, STOP and preserve the fresh game read-only. Do not patch product in the same task.
+On blocker:
+`CROSS_BOUNDARY_CORE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-Known general-image variety limitation is P2 unless it causes a concrete wrong-image/routing P1. Continue the mandatory functional lanes despite this known P2 so the routing boundary is actually tested.
+Terminal report must include:
+- start/final main SHA and final CURRENT_TASK blob;
+- exact changed files and why each owns the defect;
+- focused/full test counts;
+- deploy versions/counts;
+- preserved-game mutation count;
+- fresh game ID and exact 12–15-turn chronology;
+- decisive NAV/S7/S1/announcement/compatibility chains;
+- refresh/re-entry result;
+- all forbidden counts;
+- P0/P1/P2/P3 findings;
+- explicit statement that Media/TTS was not resumed.
 
-If no P0/P1 occurs and all mandatory functional lanes complete, success terminal may be GREEN while explicitly carrying the M-CATALOG-002 P2 gap.
-
-## 13. Terminal report contract
-
-Report exactly:
-- start/final main SHA and proof no executable/content drift;
-- TEST API/frontend versions and deploy counts;
-- browser DOM/screenshot/network readiness;
-- exact valid Setup values and one-submit proof;
-- fresh game ID;
-- ordinary heroine turn: literal input, committed heroine, `/media/image` request pool/heroine, response image ID, visible image;
-- non-occurring adult lane: exact literal, Story non-occurrence proof, media request/result, false-sex result;
-- adult positive route: any S1 setup operation if used, exact supported literal, Story evidence the act actually occurred, sex request/response image ID and manifest membership;
-- de-escalation literal, Story stop proof, post-stop media result;
-- deliberate refresh/re-entry result and duplicate count;
-- any natural media failure and proof Story/Commit survived; if none occurred, say not naturally encountered and rely only on frozen deterministic fail-open tests as supporting evidence;
-- M-CATALOG-002 quality assessment, explicitly noting 1 general image per heroine;
-- browser timeout/reattach/resend counts;
-- all forbidden write/deploy/Production/preserved-game counts;
-- P0/P1/P2/P3 findings.
-
-Success:
-`IMAGE_MEDIA_LIVE_ACCEPTANCE_FUNCTIONAL_GREEN_AWAITING_OPERATOR_REVIEW`
-
-Product blocked:
-`IMAGE_MEDIA_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-Browser-control blocked:
-`IMAGE_MEDIA_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
-
-## Terminal execution report
-
-`IMAGE_MEDIA_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-`OUTCOME: SUPERSEDED_BY_OWNER_PRIORITY_CORE_P1_REVIEW`
-
-- Start/final main SHA: `3ffc6abc8ae258f9483a74f4560b1add0390429f` / `3ffc6abc8ae258f9483a74f4560b1add0390429f`. No source, runtime, frontend, content, test, prompt, provider, model, config, secret, deploy, DB, or storage drift occurred; only this lifecycle file was changed.
-- TEST executable: API `game-proxy-company-r3` `4f8e8697-7b9e-4d91-8a50-35463309ce4a`; frontend `gamebuilder-company-r3` `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`. Deploy count: 0.
-- Preflight: public frontend DOM and screenshot usable; CDP Network observation usable; `/api/r3/catalogs` read-only check was 200 with 102 entries (5 general + 97 sex). Browser readiness passed before game creation.
-- Setup: exactly one fresh visible Setup submit, with valid values `김도현`, age `30`, height `180`, weight `75`, penis length `15`, `brand_strategy`, `intern`, and first visible body/speech options (`balanced`, `polite`). Fresh game: `ebc440ea-5f2e-41dc-8333-12cedc1ad772`.
-- Opening: committed Turn 0 only, with four choices and visible image request `GET /api/r3/games/ebc440ea-5f2e-41dc-8333-12cedc1ad772/media/image?character_id=heroine5&pool=general...`; response 200; visible image was `https://fmcrspgxstsmxxsmkeee.supabase.co/storage/v1/object/public/Image/Heroine5/may_main.jpg` (`heroine5` general). Opening context after reattach contained exactly one turn (`turn_number: 0`, empty literal action, four choices); no duplicate commit.
-- Ordinary lane attempt: one visible literal only: `명찰을 확인하고 서원희 차장에게 다가가 정중히 출근 인사를 하며 오늘 업무와 자리 안내를 여쭙는다.`. The single POST was sent once with action id `e0748f8f-438c-4465-b3b8-ee183114d2cb`, `expected_turn: 1`, and exact UTF-8 literal in `postData`. No response, `loadingFailed`, or `loadingFinished` event arrived during 35 seconds of observation; UI remained Turn 0 with the original Story and enabled input. One allowed read-only reattach to the same URL returned context 200 and again proved only Turn 0. No resend/retype occurred. This product/API block prevented reaching a committed ordinary heroine turn and all subsequent lanes.
-- Lane B non-occurring adult intent: not run because the single-game run stopped at the first deterministic product block; no false-sex judgment made.
-- Lane C adult positive route: not run; no S1 operation and no adult instruction.
-- Lane D de-escalation: not run.
-- Refresh/re-entry acceptance: the one allowed read-only reattach was diagnostic recovery after the hung action, not a retry; it produced no duplicate Story/Commit and preserved non-sex Turn 0. The mandatory post-de-escalation refresh was not run because no adult lane was reached.
-- Natural media failure: not naturally encountered. The observed `/media/image` opening request succeeded; no fail-open judgment beyond the frozen deterministic contract was made.
-- M-CATALOG-002: remains a known P2 quality gap; current manifest has one general image per heroine. Opening used the manifest-backed `heroine5` general image; no variety conclusion was drawn.
-- Browser recovery: timeout/reattach/resend counts `0 / 1 / 0` (one read-only reattach, no action resend or retype). DOM, screenshot, and network tooling remained available; therefore this is PRODUCT_BLOCKED, not browser-control blocked.
-- Forbidden operations: source/content/test/config/provider/model edits `0`; deploys `0`; DB/schema/RPC/migration/history writes `0`; storage mutations `0`; Production access/deploy `0`; existing/preserved-game access or reset `0`; direct API gameplay substitute `0`; second fresh game `0`; retry/regeneration/sample-until-pass `0`; new branch/PR/CURRENT_TASK `0`; OWNER_READY `0`; intentional TTS toggle/call/replay `0` (TTS not judged).
-- Findings: the observed pending TEST `/turn` behavior and P2 M-CATALOG-002 gap are partial evidence only. The terminal decision is owner-review supersession, not a GREEN claim and not permission to continue media lanes. The later Issue #68 operator intervention requires this safe stop because current-main review identified core P1 defects in navigation actor binding, active-CSA ordinary literal agency, institutional rule-change announcement/source semantics, unsupported S1 action agency, and CSA compatibility/precedence. No source patch is authorized in this acceptance task. P0/P3: none asserted by this run. Fresh game is preserved read-only for operator review.
+Then change only this same CURRENT_TASK lifecycle to `WAITING_REVIEW`, post one terminal Issue #68 comment, and STOP. Do not self-register the P2 task.
