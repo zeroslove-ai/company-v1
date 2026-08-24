@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-image-media-live-acceptance-v2
 Mode: ACCEPTANCE-ONLY — IMAGE MEDIA ROUTING / ADULT POOL / REFUSAL / DE-ESCALATION / REFRESH
 Updated: 2026-08-25 07:24 KST
@@ -254,3 +254,23 @@ Browser-control blocked:
 `IMAGE_MEDIA_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
+
+## Terminal execution report
+
+`IMAGE_MEDIA_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Start/final main SHA: `3ffc6abc8ae258f9483a74f4560b1add0390429f` / `3ffc6abc8ae258f9483a74f4560b1add0390429f`. No source, runtime, frontend, content, test, prompt, provider, model, config, secret, deploy, DB, or storage drift occurred; only this lifecycle file was changed.
+- TEST executable: API `game-proxy-company-r3` `4f8e8697-7b9e-4d91-8a50-35463309ce4a`; frontend `gamebuilder-company-r3` `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`. Deploy count: 0.
+- Preflight: public frontend DOM and screenshot usable; CDP Network observation usable; `/api/r3/catalogs` read-only check was 200 with 102 entries (5 general + 97 sex). Browser readiness passed before game creation.
+- Setup: exactly one fresh visible Setup submit, with valid values `김도현`, age `30`, height `180`, weight `75`, penis length `15`, `brand_strategy`, `intern`, and first visible body/speech options (`balanced`, `polite`). Fresh game: `ebc440ea-5f2e-41dc-8333-12cedc1ad772`.
+- Opening: committed Turn 0 only, with four choices and visible image request `GET /api/r3/games/ebc440ea-5f2e-41dc-8333-12cedc1ad772/media/image?character_id=heroine5&pool=general...`; response 200; visible image was `https://fmcrspgxstsmxxsmkeee.supabase.co/storage/v1/object/public/Image/Heroine5/may_main.jpg` (`heroine5` general). Opening context after reattach contained exactly one turn (`turn_number: 0`, empty literal action, four choices); no duplicate commit.
+- Ordinary lane attempt: one visible literal only: `명찰을 확인하고 서원희 차장에게 다가가 정중히 출근 인사를 하며 오늘 업무와 자리 안내를 여쭙는다.`. The single POST was sent once with action id `e0748f8f-438c-4465-b3b8-ee183114d2cb`, `expected_turn: 1`, and exact UTF-8 literal in `postData`. No response, `loadingFailed`, or `loadingFinished` event arrived during 35 seconds of observation; UI remained Turn 0 with the original Story and enabled input. One allowed read-only reattach to the same URL returned context 200 and again proved only Turn 0. No resend/retype occurred. This product/API block prevented reaching a committed ordinary heroine turn and all subsequent lanes.
+- Lane B non-occurring adult intent: not run because the single-game run stopped at the first deterministic product block; no false-sex judgment made.
+- Lane C adult positive route: not run; no S1 operation and no adult instruction.
+- Lane D de-escalation: not run.
+- Refresh/re-entry acceptance: the one allowed read-only reattach was diagnostic recovery after the hung action, not a retry; it produced no duplicate Story/Commit and preserved non-sex Turn 0. The mandatory post-de-escalation refresh was not run because no adult lane was reached.
+- Natural media failure: not naturally encountered. The observed `/media/image` opening request succeeded; no fail-open judgment beyond the frozen deterministic contract was made.
+- M-CATALOG-002: remains a known P2 quality gap; current manifest has one general image per heroine. Opening used the manifest-backed `heroine5` general image; no variety conclusion was drawn.
+- Browser recovery: timeout/reattach/resend counts `0 / 1 / 0` (one read-only reattach, no action resend or retype). DOM, screenshot, and network tooling remained available; therefore this is PRODUCT_BLOCKED, not browser-control blocked.
+- Forbidden operations: source/content/test/config/provider/model edits `0`; deploys `0`; DB/schema/RPC/migration/history writes `0`; storage mutations `0`; Production access/deploy `0`; existing/preserved-game access or reset `0`; direct API gameplay substitute `0`; second fresh game `0`; retry/regeneration/sample-until-pass `0`; new branch/PR/CURRENT_TASK `0`; OWNER_READY `0`; intentional TTS toggle/call/replay `0` (TTS not judged).
+- Findings: P1 deployed TEST `/turn` action submission remains unresolved/pending and does not produce a committed turn; P2 M-CATALOG-002 one-general-image-per-heroine quality gap; P0/P3 none. Fresh game is preserved read-only for operator review.
