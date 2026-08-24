@@ -1,440 +1,530 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-canon-convergence-staged-repair-v4
-Mode: OWNER-ACCEPTED CANON — STAGE A NARRATIVE/P1 CLOSURE AFTER R3 TEST SCHEMA CONVERGENCE
-Updated: 2026-08-24 22:58 KST
+Status: READY
+Task ID: company-r3-csa-three-tier-rule-change-story-v1
+Mode: OWNER-ACCEPTED CSA REDESIGN — 21-SLOT CANONICAL CATALOG / STRUCTURED RULE-CHANGE STORY TURN / TEST IMPLEMENTATION
+Updated: 2026-08-24 23:04 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `da0065742962f74c2a6b0679e740fe9e655a628c`
-Accepted schema convergence terminal: Issue #68 comment `5395751404`
-Accepted schema convergence review: Issue #68 comment `5395803643`
-Previous staged-repair blocker: Issue #68 comment `5395267488`
-Previous browser convergence failure: Issue #68 comment `5394670021`
-Accepted implementation baseline to preserve: `c166eee1ccbca23227a7b8f6fd30800c4ba392bb`
-Current main runtime/source tree is authoritative; the local-only 316/316 edits reported by `5395267488` are evidence only and are NOT landed.
+Registration base main: `cde3dffd5abfb1f5f3dc7115cee3bba1e0ad69b1`
+Binding CSA canon commit: `8db9cc0cccde68fc66f973de19c28c13154d9960`
+Binding CSA canon blob: `26ebc9fb12984553076fcc49bbd44e1620928caa`
+Binding live acceptance commit: `81c8d7beca6bb29dd1c13ffa672e085616e8aed8`
+Binding live acceptance blob: `a9de6e85e0b6cf5d460a33800babc9a0f86ec898`
+Current-truth commit before registration: `cde3dffd5abfb1f5f3dc7115cee3bba1e0ad69b1`
+Stage-A accepted terminal: Issue #68 `5396213794`
+Stage-A operator review: Issue #68 `5396294637`
+CSA design provenance only: Draft PR #103 / head `f9168285d47b143c0759a0add045709e62e87da2`
+TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
 ## Reuse / authority law
 
 - Work on `main` only.
 - Reuse this exact `docs/ops/CURRENT_TASK.md` path. Overwrite it in place for lifecycle state.
-- Do NOT create a new CURRENT_TASK file.
-- Do NOT create an ops branch or any other branch.
-- Read before edit, in order:
+- Do NOT create a new CURRENT_TASK file, ops branch, feature branch, or implementation PR.
+- Read before any edit, in order:
   1. `AGENTS.md`
   2. `CURRENT_TRUTH.md`
   3. `docs/redesign/COMPANY_CANON.md`
   4. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
-  5. `docs/redesign/MEDIA_CATALOG_CONTRACT.md`
-  6. Issue #68 terminal `5394670021`
-  7. Issue #68 terminal `5395267488`
-  8. Issue #68 terminal `5395751404`
-  9. Issue #68 operator review `5395803643`
-  10. this CURRENT_TASK
-- Latest owner canon/current main outrank old PRs/issues/tests/live behavior.
-- PR #95/#96 and old redesign branches are provenance only.
-- Preserve the A′/R3 architecture. Do not redesign the engine to solve output quality.
-- Do not redo accepted `c166eee...` character/media/memory/CSA groundwork unless current evidence proves it wrong.
-- Do not assume any unpushed/local-only source result from `5395267488` exists. Reproduce a fix from current main only when the owning boundary is still provably wrong.
+  5. current repository CSA content/runtime/frontend/DB contract/tests
+  6. Draft PR #103 only as provenance/context after current canon
+  7. Stage-A terminal `5396213794` and review `5396294637`
+  8. this CURRENT_TASK
+- Current main canon outranks Draft PR #103 wording when they differ. Do not merge PR #103 as implementation/canon authority.
+- Preserve accepted Stage-A behavior and source unless new deterministic evidence proves a regression.
+- Preserve A′/R3 architecture: server-owned turn kernel + one Story + one post-Story observer + atomic Commit.
+- Never restore the old exact-nine/zero-turn behavior merely because current source/tests still encode it.
 
 Target success terminal:
-`CANON_CONVERGENCE_STAGE_A_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CSA_THREE_TIER_RULE_CHANGE_STORY_IMPLEMENTED_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`CANON_CONVERGENCE_STAGE_A_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CSA_THREE_TIER_RULE_CHANGE_STORY_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-Never claim OWNER_READY. This task is intentionally Stage A only. Do NOT start Stage B/C/D automatically.
-
----
-
-# 0. Fixed starting facts
-
-The migration-lineage blocker is closed for current R3 product work.
-
-Accepted TEST schema state from terminal `5395751404`:
-- R3 structural target equals current-main source;
-- 7 R3 table structures/columns/constraints/indexes already equivalent;
-- 13 current `company_r3_*` functions already equivalent;
-- the only applied bridge was ACL-only, narrowing `service_role` table access to SELECT;
-- `supabase_migrations` stayed 36 rows, fingerprint `119aca88c88b24fafac3ecec8eb629eb` unchanged;
-- R3 gameplay row counts were unchanged;
-- migration-history mutations = 0;
-- migration apply/db push/repair = 0.
-
-Therefore this Stage A MUST NOT run global migration lineage reconciliation, `supabase migration repair`, or `supabase db push` as a deployment prerequisite.
-
-A read-only R3 schema-target recheck is allowed before deployment. If current TEST R3 target has materially drifted from current main, STOP BLOCKED with exact object evidence. Do not repair migration history.
-
-No DB schema change is expected or authorized in this Stage A. If a proposed Stage-A fix genuinely requires a new DB schema contract, STOP for operator review rather than silently authoring/applying a migration.
+Never claim OWNER_READY. This task implements and proves the new CSA foundation; later holistic/media/long-memory acceptance remains separate.
 
 ---
 
-# 1. Stage-A product canon
+# 0. Fixed owner/product facts
 
-Stage A is owned by:
-- `P-IDENTITY-001`
-- `P-AGENCY-001`
-- `P-PLAYER-THOUGHT-001`
-- `P-STORY-001`
-- `P-CHARACTER-001`
-- `P-OPENING-001`
-- `P-MEMORY-001`
-- `P-MIND-001`
-- `P-INPUT-001`
-- `P-QUALITY-001`
+The following are already product law. Do not reinterpret them during implementation:
 
-Key non-negotiables:
-- adult company-life interactive fiction / character simulation, not work-task simulator;
-- free-form literal actor/target/action/topic/refusal/self-state/intent preserved;
-- Story may block/fail/consequence an action, but cannot silently replace it;
-- game must not invent the player's private desire/consent/motive/thought;
-- Opening is a living scene, not roster/profile dump;
-- heroines must differentiate through behavior/dialogue, not labels;
-- Mind Monitor is `{surface, subconscious}`, current/relevant actors only, same committed reality as Story;
-- ordinary turn remains Story -> one observer; no second Story/choice/MM LLM;
-- exactly four full Story choices plus separate compact quick-action labels; compact click submits full literal unchanged;
-- Story quality/browser reality outranks green tests alone.
+1. Old exact-nine catalog is superseded.
+2. MVP target is 21 product slots: 7 Weak + 7 Medium + 7 Strong.
+3. Visible primary UI tabs are `약함 | 중간 | 강함`; no separate category navigation.
+4. Every preset is finite and owns bounded subject/counterparty/designation selectors.
+5. No player-facing generic trigger/action/duration/modifier DSL.
+6. Multiple compatible rules may be active together.
+7. APPLY/CHANGE/REMOVE are structured rule-change Story turns and consume exactly one gameplay turn on successful commit.
+8. Rule operation is server-owned structured truth; Story cannot rewrite which rule/scope operation occurred.
+9. Rule state + rule-change Story commit atomically. Failed Story must not leave a half-applied rule.
+10. The same turn visibly dramatizes the institutional announcement and immediate reaction; same-turn MM may be emitted.
+11. Active rules continue into later ordinary Story until changed/removed.
+12. No private-app/supernatural awareness; no retroactive “always normal” memory rewrite.
+13. Compliance != affection/desire/arousal/romance/loyalty/private consent-as-feeling/personality rewrite.
+14. No `타락도`, corruption, sexual-adaptation, obedience, generic relation or generic consent meter.
+15. Strong tier is bounded player-delegated institutional authority, not a replacement generic sexual-command DSL.
+
+Do not start from the historical zero-turn Stage-B acceptance instructions. They are superseded by current main canon.
 
 ---
 
-# 2. Preserve/read-only evidence games
+# 1. Fresh current-source inventory before edits
 
-Do not reset/mutate/replay-for-green these prior evidence games:
+Before changing source, build an exact inventory of every current CSA semantic owner/reader/writer and classify it.
 
-- Campaign A stale-turn evidence: `3295849e-3734-4c96-90f7-8ea54042968c`
-- Campaign B MM identity evidence: `17b85d0b-fc18-4a6f-9670-caab09cf09e8`
+At minimum inspect:
 
-Use them read-only only when exact forensic evidence is still available.
+- repository CSA catalog/content source(s), if any;
+- hard-coded exact-nine ID arrays/sets/maps;
+- frontend CSA tabs/cards/forms/selectors/active-rule UI;
+- API routes and frontend client methods used by APPLY/CHANGE/REMOVE;
+- server/store/RPC paths that mutate active CSA state;
+- R3 state shape for active rules/revision/scope;
+- system-events or equivalent recent-event path;
+- Story prompt projection of active rules and CSA changes;
+- observer/MM handling on CSA-related turns;
+- clothing projection tied to W1/W2/M1/M2 semantics;
+- any `authorityFor`, `modeFor`, rule-9, generic execute-immediately, sexual action or legacy helper paths;
+- Supabase tables/RPC/functions/checks that enumerate or validate template IDs/operation shape;
+- all deterministic tests that encode exact-nine or zero-turn assumptions.
 
-Fresh browser acceptance must use NEW disposable adult-profile games.
+For every relevant path classify:
 
----
+- `KEEP_UNCHANGED`
+- `KEEP_AND_GENERALIZE_TO_CANONICAL_CATALOG`
+- `REPLACE_EXACT_NINE`
+- `REPLACE_ZERO_TURN`
+- `HISTORICAL_READ_COMPAT_ONLY`
+- `DELETE_DEAD_OR_SUPERSEDED`
+- `AMBIGUOUS_STOP`
 
-# 3. P1-A — stale/failed turn transport and player-facing recovery
+Do not preserve stale behavior to keep tests green. Do not delete proven historical read compatibility merely because an identifier is old.
 
-Campaign A previously reached Turn 10, then Turn 11 surfaced `company_r3_stale_turn_timeout` and `Retry failed action` in player-facing UI.
-
-Current source already contains accepted R3 explicit failed-turn retry/stage-fencing work from earlier cuts. Do NOT reopen that architecture merely because a provider/edge request can genuinely fail.
-
-First classify the current boundary from source plus read-only evidence:
-
-`visible literal -> browser POST/request id -> action_id/attempt -> R3 job -> Story provider lifecycle -> observer -> Commit -> reconnect/context recovery -> rendered UI`.
-
-Required distinction:
-
-1. **false/ambiguous stale** — server is still validly processing/committed but client falsely terminalizes or loses the result: P1 source defect, fix owning boundary;
-2. **genuine durable failed job** — Story/provider/edge genuinely failed and durable state says failed: may be acceptable only if explicit user recovery works cleanly, no duplicate Story/Commit occurs, and player-facing UI does not expose internal jargon;
-3. **hard lock after failure** — next explicit player action cannot recover the canonical turn: P0/P1 source defect;
-4. **duplicate/replayed logical turn without explicit user retry**: P0/P1 defect.
-
-Do not use:
-- blind timeout inflation;
-- provider/model/temperature/token changes;
-- hidden automatic retry/regeneration;
-- second Story for the same logical action;
-- fake client-side commit;
-- retry-until-pass acceptance.
-
-If source still exposes `company_r3_stale_turn_timeout`, `r3_*`, `revision`, `Commit`, `Retry failed action`, or equivalent internals as normal game language, replace only the presentation wording while retaining diagnostic codes internally.
-
-A dedicated recovery probe may use exactly one explicit user retry only if a fresh run naturally produces a durable failed job. That retry is product-flow evidence, not a second sample for pass-seeking. Do not count retried prose as a clean quality sample.
-
-Focused contracts must prove:
-- a legal in-flight job is not falsely abandoned;
-- a true failed/stale job reaches explicit recoverable terminal state;
-- one explicit retry uses a fresh action id / correct attempt fencing and commits at most once;
-- refresh/reconnect does not create a second Story/turn;
-- a failed action does not permanently hard-lock the next canonical turn;
-- fast path stays one visible action -> one Story -> one Commit.
+If the implementation cannot distinguish product authority from historical compatibility without destructive data rewrite, STOP with exact evidence.
 
 ---
 
-# 4. P1-B — Story / Mind Monitor actor identity
+# 2. Establish one canonical 21-slot repository CSA catalog
 
-Campaign B previously showed Story participant identity and rendered Mind Monitor heroine identity disagreeing.
+## 2.1 Source ownership
 
-Trace exact current path:
+Use one forward canonical repository source for active CSA product semantics.
 
-`Story registered actor ids/dialogue -> committed scene present/focal ids -> observer raw MM actor ids -> normalizer/applied ids -> frontend canonical character-name render`.
+- If a suitable existing canonical CSA content file already exists, evolve it in place.
+- Otherwise create one clearly named canonical source, preferably `content/csa_catalog.json` unless current repository conventions prove a better single source.
+- Runtime and frontend must consume/project that source; do not maintain hand-copied independent semantic arrays.
+- SQL may validate structural shape/IDs when required, but SQL is not a second human-readable rule catalog.
 
-Classify the first broken boundary:
-- Story actor identity;
-- observer actor_id output;
-- grounding against current/relevant actors;
-- normalizer mapping;
-- stale prior MM reuse;
-- frontend id->name mapping.
+## 2.2 Stable product mapping
 
-Fix only the owning boundary.
+Provide a stable one-to-one runtime template ID for every binding product slot:
 
-Required behavior:
-- canonical exact actor IDs only;
-- MM entries only for current/relevant registered actors;
-- no fuzzy name / nearest-name / pronoun guessing / Korean-name similarity repair;
-- ambiguous/invalid MM entry drops locally with warning and never gets assigned to another heroine;
-- stale MM from a prior turn must not survive as if current when the new applied MM is empty/invalid;
-- MM failure remains local; valid Story commits;
-- visible character name must be derived from exact applied actor id;
-- MM content must describe the same committed reality as Story;
-- player private thought remains empty unless grounded in literal user input.
+Weak: `W1..W7`
+Medium: `M1..M7`
+Strong: `S1..S7`
 
-Add focused regressions for multi-NPC and invalid/ambiguous actor-id cases.
+Runtime IDs should be descriptive stable snake_case names; W/M/S slot is also recorded in catalog metadata. Do not expose either raw ID in normal player UI.
+
+The catalog must contain only the fields genuinely needed to drive product behavior, such as:
+
+- `template_id`
+- `slot` (`W1` etc.)
+- `tier` (`weak|medium|strong`)
+- player-visible Korean name/rule text
+- authority label/presentation
+- valid subject scope descriptors
+- valid counterparty/recipient/designation scope descriptors when required
+- bounded selector schema
+- finite behavior/prompt premise metadata needed by this preset
+- compatibility lineage where an old ID maps directly to W1/W2/M1/M2
+- active/selectable flag
+
+Do not add a generic trigger/action/duration/modifier language just because JSON could represent one.
+
+## 2.3 Selector boundaries
+
+Selectors are preset-specific.
+
+- Named selectors use registered adult characters only; do not generate arbitrary NPCs to satisfy a selector.
+- Gender/direction constraints must be explicit where the canonical preset depends on them.
+- W5/W6 keep the touched female employee vs configured counterparty direction straight.
+- M3/M4 supporter/recipient direction must remain explicit.
+- S2/S3/S5/S7 require explicit named-adult employee designation where applicable.
+- S4 does not auto-add bystanders.
+
+For S1, derive the smallest finite supported sexual-work action-family allowlist from **already supported/current or newly canonical W/M physical semantics plus proven current adult action support**. Do not invent a universal command executor. Publish the exact finite family list in the catalog and terminal. If choosing the finite list would require a new owner product decision beyond this boundary, STOP before implementing a generic fallback.
+
+## 2.4 Legacy exact-nine handling
+
+New selection UI/API must not expose retired exact-nine items.
+
+Preserve historical persisted IDs only where a real read/replay/evidence caller requires them. Do not backfill/rename/reset preserved game rows merely to migrate IDs.
+
+Direct semantic lineage:
+- old no-bra -> W1
+- old no-panties -> W2
+- old underwear-only -> M1
+- old nude-work -> M2
+
+Retired primary concepts must not remain selectable under hidden aliases:
+- waist/thigh request rule
+- generic masturbate-for-recipient slot
+- standalone vaginal-sex strong slot
+- generic immediate-execute request rule
+- standalone continue-until-orgasm slot
 
 ---
 
-# 5. Opening focal projection and character dramatization
+# 3. Replace zero-turn CSA with a structured rule-change Story turn
 
-Inspect current Opening context construction, including `relevantActorIds(opening)` / heroine-card projection or equivalents.
+Trace current operation first:
+`visible app operation -> client/API -> validation -> state/RPC -> turn kernel -> Story -> observer -> Commit -> context/UI`
 
-Required distinction:
-- canonical world `present` actors remain truthful;
-- Story focal prompt context may be a smaller subset chosen for natural dramatization;
-- do not erase physically present registered characters from world state merely to simplify prose.
+Then converge to the current canon with the smallest A′-compatible design.
 
-If current Opening hands all co-located heroines full prompt cards and creates roster/profile-dump pressure, narrow only **focal Story projection**.
+## 3.1 Structured event identity
 
-`content/characters.json` remains canonical content, but Story receives a bounded whitelist of acting-useful material only. Preserve useful dramatization fields such as:
-- ordinary initiative/habits;
-- speech/address/social distance;
-- work/private behavior;
-- stress/anger/embarrassment/conflict;
-- help/care;
-- hierarchy behavior;
-- attraction/intimacy/boundary behavior;
-- first CSA reaction/adaptation;
-- continuity after meaningful events;
-- a small set of dialogue examples.
+APPLY/CHANGE/REMOVE must enter the server as a structured event, e.g. `rule_change_turn`, carrying exact validated fields such as:
 
-Do not dump unrelated body/catalog/private metadata or internal archetype labels into Story prompts.
+- operation: `apply|change|remove`
+- active rule instance id when change/remove requires it
+- canonical template id
+- exact bounded subject scope
+- exact bounded counterparty/recipient/designation scope
+- previous active-rule version/reference needed for change/remove
 
-Acceptance failure examples:
-- `서원희는 생활형 리더다`-style profile recitation;
-- all heroines introduced as dossier list;
-- mandatory first-work quest;
-- work/report/meeting answer mechanically injected into unrelated social/adult scene.
+Do not serialize this into ordinary free text and then ask Story to infer which operation happened.
 
----
+## 3.2 Use the existing R3 turn correctness boundary
 
-# 6. Agency / thought / choice regression preservation
-
-Before editing these areas, verify current-main behavior and tests. Only patch a proven gap.
-
-Permanent probes:
-- `한리브 대리와 점심 메뉴에 대해 가볍게 이야기한다.`
-- `혼자 창가에 서서 오늘 아침의 낯선 앱에 대해 생각한다.`
-- movement toward a registered heroine including 윤민아 when context permits;
-- explicit refusal followed later by changed intent;
-- stop/change an ongoing interaction.
+Rule-change Story turns must reuse the server-owned logical-turn/attempt/stream/Commit machinery as much as possible.
 
 Required:
-- literal target/topic/movement/refusal/self-directed action preserved;
-- Story can narrate refusal/block/consequence, not substitute another action;
-- no invented player attraction/desire/consent/moral judgment/decision in `player_inner_thought`;
-- exactly four full provider-visible choices on completed Story;
-- observer copies/structures literal choices, does not invent replacements;
-- choice projection failure does not trigger a second Story;
-- choices should be meaningfully different, especially in adult scenes; not four variants of escalation.
+- one logical gameplay turn;
+- one Story call;
+- one existing observer call;
+- exact attempt fencing/idempotence/reconnect behavior;
+- four resulting Story choices through the normal choice protocol;
+- no second reaction Story;
+- no hidden retry/regeneration.
+
+Do not create a second turn writer or parallel CSA storytelling kernel if the existing R3 turn kernel can own the event type.
+
+## 3.3 Atomic rule authority
+
+The rule transaction may be reserved/staged before Story, but the new active-rule authority and the Story turn must become canonical together.
+
+Prove:
+- before successful Commit, prior active-rule state remains canonical;
+- successful Commit advances gameplay turn exactly once and persists the new active-rule state exactly once;
+- failed Story/transport does not leave a half-applied active rule;
+- explicit retry/reconnect follows existing accepted R3 semantics and cannot duplicate the rule change;
+- observer failure is local/fail-open and may not rewrite the structured rule operation.
+
+Do not solve this with arbitrary LLM save patches.
 
 ---
 
-# 7. Stage-A validation and landing
+# 4. Story / announcement / persistent authority / Mind Monitor
 
-## 7.1 Deterministic source validation
+## 4.1 Rule-change Story prompt
 
-Run focused tests for changed Stage-A boundaries only first:
-- R3 turn/reconnect/failed-retry presentation if changed;
-- MM actor identity/grounding;
-- Opening focal projection;
-- character bounded projection;
-- agency/player thought/choice contracts touched by the diff.
+Story receives the exact structured event plus:
+- current scene/time;
+- affected/relevant registered character cards via the existing bounded projection;
+- previous/new rule premise/scope needed to understand the change;
+- grounded authority channel options from the canonical preset/tier;
+- recent committed history/memory.
+
+Story must visibly dramatize a grounded institutional announcement appropriate to the rule, e.g. phone push, company monitor, intranet/company messenger, HR/employment notice, regulator notice.
+
+Story must not:
+- mention the private app as known to NPCs;
+- use supernatural aura/memory rewrite;
+- pretend the rule was always normal;
+- change the structured rule/scope operation;
+- treat compliance as desire/romance/arousal/loyalty.
+
+## 4.2 Same-turn MM
+
+The existing observer may emit MM for current/relevant affected actors during the rule-change Story.
+
+Preserve the accepted Stage-A exact-ID grounding:
+- exact canonical actor IDs only;
+- invalid/stale entries drop locally;
+- no fuzzy name repair;
+- MM describes the same announced rule reality as Story;
+- surprise/embarrassment/reluctance may coexist with compliance;
+- no private-app awareness.
+
+## 4.3 Persistent later Story effect
+
+Every later ordinary Story receives all applicable active canonical rule premises/scopes/designations continuously until change/remove.
+
+Do not reduce active-rule context to only the most recent announcement event.
+Do not treat the rule as “consumed” after first reaction.
+Do not add a separate aftereffect engine.
+
+Test CHANGE/REMOVE residue explicitly.
+
+---
+
+# 5. Minimal structural state only
+
+Use the smallest state needed by the 21 finite presets.
+
+Expected retained/allowed state classes include:
+- active rule instances with canonical template ID and bounded scope;
+- lifecycle/revision/created-at or equivalent transaction metadata already needed for correctness;
+- four-slot clothing for W1/W2/M1/M2;
+- named designations/assignments proven necessary for S2/S3/S5/S7;
+- bounded current-scene facts already owned by canonical scene state.
+
+Do NOT add:
+- generic sexual event ledger;
+- generic action execution DSL;
+- posture/contact ontology;
+- corruption/adaptation/obedience meter;
+- generic relationship/consent matrix;
+- dynamic arousal/erection/ejaculation gauge.
+
+If a specific preset requires one extra finite field, tie it directly to that preset and document why natural committed Story + existing state is insufficient.
+
+---
+
+# 6. Frontend CSA redesign
+
+Implement the visible product surface from canon.
+
+Primary app:
+- tabs exactly `약함 | 중간 | 강함`;
+- selected tier directly displays its seven canonical rule cards;
+- no category submenu;
+- each card shows Korean name/rule text + authority presentation + `설정`;
+- `설정` renders only the bounded selectors for that preset;
+- active rules are separately visible with understandable `변경` / `해제`;
+- named designation presets provide explicit registered-adult employee selector;
+- no raw template IDs, trigger/action/duration, revision, JSON, R3 codes.
+
+When APPLY/CHANGE/REMOVE is submitted:
+- the normal Story reading surface remains visible;
+- the operation streams/commits as the dedicated rule-change Story turn;
+- user sees the institutional announcement and same-turn scene reaction;
+- resulting four choices/free input are available normally;
+- frontend does not fake local active-rule success before committed context confirms it.
+
+Preserve Story-first desktop/mobile reading priority and all accepted Stage-A recovery wording.
+
+---
+
+# 7. DB / migration / TEST schema policy
+
+Current global migration filename lineage remains historically inconsistent. Do NOT run `supabase migration repair` and do NOT rewrite migration history.
+
+First determine whether the redesign can be represented safely by current R3 JSON/state/system/turn schema.
+
+### If no DB schema change is required
+
+- make no schema write;
+- prove current TEST target remains compatible read-only;
+- proceed to deploy.
+
+### If a genuine new DB contract is required
+
+Author only the smallest forward additive migration in `supabase/migrations/`.
+
+Before TEST apply classify the exact live target delta:
+- `ALREADY_EQUIVALENT`
+- `SAFE_ADDITIVE_CREATE_OR_REPLACE`
+- `SAFE_ACL_ONLY`
+- `DATA_OR_EVIDENCE_REWRITE_REQUIRED`
+- `DESTRUCTIVE`
+- `AMBIGUOUS`
+
+If any data/evidence rewrite, destructive change, or ambiguity is required, STOP BLOCKED. Do not backfill preserved games.
+
+Because standard `db push` may be blocked by historical filename lineage, do not use migration-history repair as a workaround. If and only if the new final target delta is fully proven additive/ACL-only and requires no gameplay-row rewrite, it may be applied TEST-only once through the already accepted target-schema bridge method:
+- one atomic top-level PostgreSQL statement;
+- exact SQL derived from the newly landed current-main target source;
+- no migration-ledger write;
+- no gameplay-row DML during installation;
+- pre/post target-schema fingerprint;
+- pre/post R3 row counts and migration-ledger fingerprint unchanged.
+
+If the available execution channel cannot prove atomic one-shot outcome, STOP before mutation.
+
+No Production access.
+
+---
+
+# 8. Deterministic validation before live deploy
+
+Add/replace tests against current canon. Delete/rewrite stale exact-nine/zero-turn expectations instead of creating compatibility solely for tests.
+
+Required deterministic coverage:
+
+## Catalog / selectors
+- exactly 21 active/selectable canonical slots, 7 per tier;
+- every slot has one stable runtime ID and correct W/M/S mapping;
+- old retired items are not selectable;
+- selector allowlists reject invalid direction/scope;
+- named designation selectors use registered adult IDs;
+- S1 finite action family list is explicit and bounded;
+- no generic DSL fields exposed.
+
+## Rule-change turn
+- APPLY successful commit advances gameplay turn by exactly 1;
+- CHANGE successful commit advances exactly 1;
+- REMOVE successful commit advances exactly 1;
+- operation survives Story input literally/structurally without reinterpretation;
+- successful commit atomically changes active state + turn;
+- Story failure before commit leaves prior state unchanged;
+- reconnect/idempotence cannot double-apply or double-commit;
+- observer failure remains local;
+- four Story choices survive rule-change turn.
+
+## Persistence / prompt
+- active rule remains in later ordinary Story context;
+- two/three compatible active rules project together;
+- remove one does not erase unrelated rule;
+- no stale removed rule in later Story;
+- rule announcement event appears in committed history/memory normally;
+- no private-app awareness prompt leakage;
+- no compliance->desire instruction.
+
+## UI
+- `약함|중간|강함`, seven cards each;
+- bounded selector rendering;
+- active change/remove;
+- full committed Story result after operation;
+- no internal IDs/jargon;
+- 390x844 action reachability/basic layout.
 
 Then run:
-- changed JS syntax checks;
-- JSON parse checks for changed content;
-- `git diff --check`.
+- focused changed-boundary suites;
+- changed JS/MJS syntax;
+- JSON parse/contract validation for canonical catalog;
+- `git diff --check`;
+- one full `npm test` as regression signal before deploy.
 
-Before TEST deploy, run the established full repository test suite once as regression signal. Do not restore superseded behavior merely to make stale tests green.
+No green count substitutes for browser acceptance.
 
-Land only reviewed Stage-A source/test changes on `main` with normal fast-forward semantics. No new branch/PR.
+---
 
-## 7.2 TEST schema predeploy gate — read-only only
+# 9. Landing and exact TEST deploy
 
-Freshly read current TEST R3 target objects. Confirm the schema remains materially equivalent to current main after accepted terminal `5395751404`.
+Land source/content/test changes on `main` with normal fast-forward semantics. No new branch/PR.
 
-Do NOT run:
-- `supabase db push`;
-- `supabase migration repair`;
-- migration-history mutation;
-- migration reapplication.
+Verify local HEAD == origin/main before deployment.
 
-If material schema drift is found, STOP BLOCKED instead of repairing it inside this task.
+Deploy only exact changed R3 TEST components:
+- API Worker if runtime/server changed;
+- frontend Worker because CSA UI will change;
+- no unrelated worker.
 
-## 7.3 TEST deployment
-
-Deploy only R3 TEST components whose source actually changed:
-- API Worker if server/runtime changed;
-- frontend Worker if frontend/presentation changed.
-
-Record exact Worker version IDs and source SHA.
+Record exact main/source SHA and Worker version IDs.
 No Production deploy/access.
 
 ---
 
-# 8. Fresh real-browser Stage-A acceptance
+# 10. Fresh real-browser acceptance for this implementation cut
 
-After exact TEST deploy/preflight, use actual deployed browser UI, not direct gameplay API as a substitute.
+Use the actual deployed TEST frontend and new disposable adult-profile games. No direct gameplay API as substitute for product acceptance, no DOM mutation, no storage preseed, no hidden retry/sample-until-pass.
 
-Create one NEW adult-profile game and run a continuous **10–12 ordinary-turn** Stage-A campaign. No regeneration/sample-until-pass.
+Run at least one continuous **12–15 committed-turn** campaign plus bounded fresh probes if required to isolate rule-specific mechanics.
 
-Required coverage:
-- Opening as a natural living scene with small focal interaction;
-- social/non-work small talk;
-- one full-choice click and one unrestricted free input;
-- permanent Han Ribe lunch probe;
-- self-directed/alone probe;
-- movement toward a registered heroine when practical;
-- one refusal/change-of-mind sequence;
-- one stop/change interaction;
-- heroine conversation and follow-up;
-- multi-NPC scene when natural;
-- at least one flirt/adult/intimate request plus de-escalation or boundary response;
-- player-thought negative checks;
-- at least five consecutive MM-bearing turns when the scene supports MM, with exact visible name/applied actor-id parity;
-- refresh/re-entry after Turn 3+ and confirmation of no duplicate Story/Commit;
-- four full choices remain visible/useful and compact actions still submit full literal.
+Mandatory visible coverage:
 
-For every decisive probe, record:
-`literal action -> Story -> observer raw -> observer applied -> durable state -> next Story/UI`.
+1. Opening and at least one ordinary social/non-work turn to prove Stage-A behavior survived.
+2. Open CSA app and verify three tabs/seven cards per tier.
+3. APPLY one disruptive Weak rule through visible selectors.
+   - exactly one committed rule-change Story turn;
+   - grounded institutional announcement;
+   - same-turn affected NPC reaction/MM where applicable;
+   - no app awareness;
+   - active rule visible after commit.
+4. Next ordinary unrelated/social turn: active rule still exists; later relevant turn follows rule premise when applicable.
+5. CHANGE that rule or its allowed scope through visible UI: exactly one Story turn; future authority changes without history rewrite.
+6. REMOVE through visible UI: exactly one Story turn; later ordinary turn shows no stale enforcement.
+7. Apply one Medium physical/sexual institutional rule and prove its direct canonical semantics in a plausible adult context.
+8. Apply one Strong named designation (S2/S3/S5 or S7) and prove exact selected registered actor is the institutional assignee.
+9. Exercise S1 once with a supported finite action family and once with an unsupported/out-of-family free-form request; only the supported family receives S1 mandatory institutional authority.
+10. Exercise at least one two-rule compatible combination; if stable within campaign, add a third compatible rule and prove independent remove/change.
+11. If S4 is used, prove no bystander auto-injection.
+12. MM exact actor parity on rule-change turn and following relevant turn.
+13. Refresh/re-entry after active rule exists: no duplicate rule-change turn and active state/context parity remains.
+14. History shows the rule-change Story turn in correct chronology.
+15. Desktop plus ~390x844 CSA configuration/action reachability and Story-first reading order.
 
-Stage-A PASS requires:
-- no reproducible P0/P1 agency/identity/MM/Opening/narrative-transport defect;
-- no false/ambiguous stale classification;
-- if a genuine failed job naturally occurs, product exposes explicit understandable recovery and does not hard-lock/duplicate; dedicated explicit retry may be tested once, but do not use it to manufacture a clean prose sample;
-- no player-facing internal R3 jargon;
-- no roster/dossier Opening;
-- no work-task funnel dominating unrelated social/adult actions.
+For every decisive CSA operation record:
+`visible selection -> structured operation -> streamed Story -> observer raw/applied -> committed active state -> next Story/UI`.
 
-If the campaign hits a new unrelated P1 that invalidates subsequent evidence, preserve fixture and STOP. Do not broaden into Stage B/C/D.
+This cut does NOT need to live-play every one of the 21 presets. Deterministic contracts must cover all 21; full all-slot/long-memory/media holistic acceptance follows in a later task. However any representative preset exercised live must match its exact canon semantics.
 
----
-
-# 9. Global prohibitions
-
-Do NOT add or reintroduce:
-- generic relation/consent/emotion engine;
-- generic physical/posture/contact ontology;
-- sexual event ledger/dynamic sexual gauges;
-- generic CSA execution/sexual-action DSL;
-- second Story/choice/MM/media LLM;
-- fuzzy/NER/nearest actor repair;
-- automatic retry/regeneration-until-lucky;
-- provider/model/config/secret changes as quality fixes;
-- new parser generation;
-- global migration-history repair;
-- Production access/deploy;
-- destructive DB/history/game rewrite;
-- new CURRENT_TASK file or branch.
-
-Do not mutate preserved evidence games listed in this task.
+Stop on the first reproducible P0/P1 in this scope; do not compensate by broadening later subsystems.
 
 ---
 
-# 10. Terminal / lifecycle
+# 11. Global prohibitions
 
-On PASS:
-- ensure Stage-A source/test changes are actually landed on `main`;
+Do NOT:
+- restore exact-nine as product authority;
+- restore zero-turn APPLY/CHANGE/REMOVE;
+- create a generic CSA/sexual execution DSL;
+- add a 44/60+ active catalog;
+- add generic relationship/consent/emotion/corruption/adaptation/obedience engines;
+- add generic posture/contact ontology or sexual event ledger;
+- add a second Story/choice/MM/reaction/media LLM;
+- add fuzzy/nearest-name actor repair;
+- change provider/model/temperature/token/config/secrets as a quality fix;
+- auto-retry/regenerate until pass;
+- mutate preserved evidence games;
+- run migration repair/history rewrite;
+- access/deploy Production;
+- create a new CURRENT_TASK file/branch/PR.
+
+---
+
+# 12. Terminal / lifecycle
+
+On success:
+- ensure all accepted source/content/test changes are landed on `main`;
 - verify local/remote main equality;
-- overwrite this SAME CURRENT_TASK file to `Status: WAITING_REVIEW`;
+- overwrite this SAME CURRENT_TASK to `Status: WAITING_REVIEW`;
 - post one terminal to Issue #68;
-- STOP. Do NOT start Stage B automatically.
+- STOP. Do not auto-start the later holistic acceptance task.
 
 Terminal must include:
-- START/FINAL main SHA and source SHA(s);
-- canon blob/SHA read;
-- exact source/test files changed;
-- focused/full test results and static checks;
-- read-only TEST schema recheck result;
-- deployed API/frontend version IDs or explicit no-change/no-deploy;
-- fresh browser game id and turn count;
-- P1-A classification and any explicit retry evidence;
-- P1-B raw/applied/render identity evidence;
-- Opening focal-cast evidence;
-- permanent agency probes;
-- player-thought negative evidence;
-- MM consecutive-turn evidence;
-- refresh/re-entry duplicate check;
+- START/FINAL main SHA;
+- canon blob and live-acceptance blob read;
+- exact changed source/content/test/migration files;
+- complete old CSA inventory/classification summary;
+- canonical 21 slot -> runtime ID mapping;
+- S1 exact finite action-family list;
+- selector contract summary for all 21;
+- old exact-nine compatibility/deletion decisions;
+- rule-change event/state/turn architecture summary;
+- DB schema delta classification and exact TEST apply mechanism if any;
+- migration repair/history writes count;
+- focused/full/static validation results;
+- TEST API/frontend version IDs;
+- fresh browser game IDs and committed-turn count;
+- APPLY/CHANGE/REMOVE exact turn-count/atomicity evidence;
+- announcement/MM evidence;
+- active-rule persistence and stale-remove evidence;
+- Medium/Strong/S1 representative evidence;
+- multi-rule combination evidence;
+- refresh/history/mobile evidence;
 - P0/P1/P2/P3 findings;
 - Production access=0;
-- migration apply/db push/repair/history mutation=0;
-- preserved evidence games mutation=0.
+- preserved evidence game mutation=0.
 
 Success terminal:
-`CANON_CONVERGENCE_STAGE_A_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CSA_THREE_TIER_RULE_CHANGE_STORY_IMPLEMENTED_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`CANON_CONVERGENCE_STAGE_A_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CSA_THREE_TIER_RULE_CHANGE_STORY_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-STOP after terminal. Operator review will decide whether to register Stage B CSA lifecycle continuation.
-
----
-
-# Stage-A terminal report
-
-Terminal: `CANON_CONVERGENCE_STAGE_A_COMPLETE_AWAITING_OPERATOR_REVIEW`
-
-## Landed source and validation
-
-- Work was performed on `main` only. Start/final main SHA: `15f7f3b5684d48bae6d10ea68b8ac50ca94c009a`.
-- `origin/main` equals the final local SHA; no unpushed commit remains.
-- Canon/source references were read before execution, including `docs/redesign/COMPANY_CANON.md` and `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md` at the accepted current-main baseline. This task preserves the accepted R3 schema and A-prime boundaries.
-- Source files changed in the landed repair commit:
-  - `frontend-r3/app.js`
-  - `frontend-r3/status.js`
-  - `frontend-r3/turn-transport.js`
-  - `runtime-r3/domain/observer-normalizer.js`
-  - `runtime-r3/server/worker.js`
-- Focused tests retained/updated:
-  - `test/r3-canon-convergence.test.mjs`
-  - `test/r3-feedback-revision.test.mjs`
-  - `test/r3-frontend-contract.test.mjs`
-  - `test/r3-source-correction.test.mjs`
-  - `test/r3-turn-transport.test.mjs`
-- Focused tests: 57 passed.
-- Full `npm.cmd test`: 554 passed, 0 failed.
-- Changed JavaScript/module syntax checks passed; `git diff --check` passed. No changed JSON content required a JSON parse check.
-- No provider/model/config/secret change, no new DSL/router/verifier/retry architecture, and no schema change.
-
-## TEST schema/deploy evidence
-
-- TEST project was read-only checked at Supabase project `fmcrspgxstsmxxsmkeee`.
-- R3 tables/functions remained materially equivalent to current main; migration history remained 36 rows and no migration repair, migration apply, `db push`, or history mutation was performed.
-- Deployed only changed R3 components from the final source SHA:
-  - API Worker `wrangler.r3.api.jsonc`: version `8e5e4a27-35e4-429a-9df8-c32ddc189657`.
-  - Frontend Worker `wrangler.r3.frontend.jsonc`: version `f8ea750a-aafb-4589-8e0e-e74479b4ab91`.
-- Production access/deploy: 0.
-
-## Fresh browser acceptance
-
-- Fresh disposable adult-profile game: `03f0e48b-466b-4f12-8b6a-50730efbe8f5`.
-- Continuous campaign: Opening plus committed Turns 1–12; no reset and no replay of preserved games.
-- Opening was a living first-day office scene centered on the elevator arrival, Park Jungwoo's greeting, and the first small interaction. It was not a roster/profile dump. Durable Opening scene state retained the canonical six present actor IDs while Story used a bounded focal presentation.
-- Four full choices were visible on every completed Story; separate free-input control remained available. A full-choice click and free input both reached the live path; the compact full-choice literal was preserved in the committed turn.
-- Decisive action traces (browser literal → stored `game_actions`/R3 `literal_action` → Story → observer raw/applied → state/UI) were read back from `company_r3_turns`. Korean literals were stored as intact UTF-8 text; no `??` corruption was observed.
-- Permanent Han Ribe lunch probe: Turn 2 literal asks `한리브` about a non-work lunch and proposes eating together; Story accepts a 12:30 conditional plan. Turns 3–4 continue the exact restaurant/menu thread.
-- Social/non-work and multi-NPC probes: Turn 5 asks Yoon Mina about her lunch; Story includes her independent plan and other employees' movement. Turn 9 asks Han Ribe about weekends, and Story follows her quiet walking/park preference rather than forcing work.
-- Movement/follow-up: Turn 6 approaches Han Ribe to confirm the meeting time; Turn 7 follows the literal plan to wait and go to the first-floor restaurant; Turn 10 returns with her to the office. The durable location remained canonical and present actor IDs changed only through accepted observer output.
-- Adult/boundary probe: Turn 11 explicitly asks whether a sexual approach is acceptable in the workplace and promises to stop if uncomfortable. Story gives a clear workplace/time boundary without inventing consent or escalating. Turn 12 is the explicit apology/stop/change response and commits normally.
-- Player-thought negative: raw observer projections that were not grounded in the literal action were dropped locally; no stale prior MM/thought was carried into the next committed UI. The Turn 11/12 boundary sequence retained the literal player's stated intention and subsequent change of intent.
-- MM identity: Turn 7–11 provided five consecutive committed turns with non-empty applied MM (`1, 1, 1, 3, 3` entries). Raw/applied keys matched the exact registered actor IDs and rendered names matched those IDs (including `heroine4` → `한리브`, `heroine2` → `윤민아`, `heroine5` → `이메이`). Turn 12's invalid scalar MM projection was dropped to empty applied MM while Story and state committed, with no prior MM reuse.
-- Refresh/re-entry: after Turn 3+, a fresh browser view and later an explicit reload returned the same game at Turn 12 with 12 Story paragraphs and no duplicate Story/Commit.
-
-## P1 classification and findings
-
-- P1-A: the first full-choice submission in the fresh campaign produced one non-durable transport failure visible as understandable Korean recovery text; read-only TEST showed no durable job/turn, no stale committed turn, and no duplicate. The next explicit free-input submission created Turn 1 with a fresh literal and normal Story→observer→commit. This was not a durable failed job, so no retry-until-pass or recovery retry was used.
-- P1-B: exact post-Story actor membership is now authoritative for MM grounding; the live campaign showed exact raw/applied/rendered parity and local fail-open behavior when an MM projection was invalid.
-- Opening, agency, player-thought, choice-count, social/non-work, refusal/boundary, and transport-presentation checks showed no reproducible new P0/P1 defect after the landed repair.
-- P2/P3: no new finding in Stage-A scope.
-- Preserved evidence games `3295849e-3734-4c96-90f7-8ea54042968c` and `17b85d0b-fc18-4a6f-9670-caab09cf09e8` were read-only and mutation count was 0.
-- Migration apply/db push/repair/history mutation: 0. Production mutation: 0.
-
-Operator review is required before any later Stage-B CSA continuation. Do not generate or start another task from this report.
+Never report OWNER_READY from this task.
