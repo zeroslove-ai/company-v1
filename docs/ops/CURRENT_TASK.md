@@ -1,17 +1,17 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-media-tts-live-acceptance-v1
-Mode: ACCEPTANCE-ONLY — FREEZE CSA / MEDIA + TTS DEPLOYED BROWSER PRODUCT GATE
-Updated: 2026-08-25 06:08 KST
+Status: READY
+Task ID: company-r3-media-catalog-authority-reconciliation-v1
+Mode: NARROW P1 REPAIR — REPOSITORY MEDIA MANIFEST SOLE SEMANTIC AUTHORITY / READ-ONLY ASSET CURATION / DB INDEX ONLY
+Updated: 2026-08-25 06:28 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main before this overwrite: `fd455df80b5f1e1c3dddd63c814f40e45623ef7c`
-Previous task: `company-r3-csa-catalog-actor-scope-projection-s7-closure-v1`
-Previous terminal: Issue #68 `5401267206`
-Operator review: Issue #68 `5401331690`
-Accepted executable implementation: `bcc06683c084537e67a013fbddb577964a372d77`
-Accepted TEST API: `game-proxy-company-r3` / `fc98e0c3-db75-4088-bc0c-eddf129af4b6`
+Registration base main before this overwrite: `7a79e97bcd0d71241b5ba86b2a4f44b8298cf004`
+Previous task: `company-r3-media-tts-live-acceptance-v1`
+Previous terminal: Issue #68 `5401516101`
+Operator review: Issue #68 `5401581083`
+Accepted executable implementation before this repair: `bcc06683c084537e67a013fbddb577964a372d77`
+Accepted TEST API before this repair: `game-proxy-company-r3` / `fc98e0c3-db75-4088-bc0c-eddf129af4b6`
 Accepted TEST frontend: `gamebuilder-company-r3` / `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
@@ -24,314 +24,316 @@ Preserved evidence games — READ ONLY, no reset/reuse/mutation:
 - `babfa5a6-719b-4dbe-a392-cb2c62cc1faa`
 - `bbd1431a-f09f-40f4-82fa-c8827de84693`
 - `b91607f4-6945-44eb-87a3-6f2b2d6e1834`
+- `9a5c3943-2e9e-4254-b6de-7638bdd88a76`
 
 ## Authority / reuse law
 
 - Work on `main` only.
 - Reuse this exact `docs/ops/CURRENT_TASK.md` path. Never create another CURRENT_TASK file, ops branch, feature branch, or implementation PR.
-- Mandatory read order: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, `docs/redesign/MEDIA_CATALOG_CONTRACT.md`, terminal `5401267206`, operator review `5401331690`, then this task.
-- Preserve A′/R3 architecture.
-- Freeze accepted three-tier CSA foundation and do not rerun it for pass-seeking.
-- This task is acceptance-only. Do not patch source/test/content/prompt/provider/model/config/catalog/DB before a deterministic live P0/P1 is observed and operator review occurs.
+- Mandatory read order: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, `docs/redesign/MEDIA_CATALOG_CONTRACT.md`, terminal `5401516101`, operator review `5401581083`, then this task.
+- Preserve A′/R3 architecture and the accepted three-tier CSA foundation.
+- This task owns only media catalog semantic authority/reconciliation. Freeze Story, Observer semantics except existing media-hint behavior, CSA, TTS, player agency, MM, scene, memory, and frontend presentation behavior unless a deterministic test proves they are directly required for this catalog authority repair.
 - No Production access. No OWNER_READY claim.
 
 Success terminal:
-`MEDIA_TTS_LIVE_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`MEDIA_CATALOG_AUTHORITY_RECONCILED_AWAITING_OPERATOR_REVIEW`
+
+Curation/evidence blocked terminal:
+`MEDIA_CATALOG_CURATION_EVIDENCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Product blocked terminal:
-`MEDIA_TTS_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-Browser-control blocked terminal:
-`MEDIA_TTS_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`MEDIA_CATALOG_AUTHORITY_REPAIR_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ---
 
-# 0. Frozen accepted evidence
+# 0. Accepted/frozen evidence
 
 Freeze as GREEN and do not rerun for pass-seeking:
 
-- 21-slot CSA presentation, bounded selectors, APPLY/CHANGE/REMOVE +1-turn semantics;
-- Weak lifecycle, W5 direction, M1/M3, M5 world-norm combination;
-- S1 supported/unsupported finite authority, named S2/S3/S5, S7 multi-NPC;
-- multi-rule durability/residue;
-- existing History/mobile/MM/private-app/compliance-vs-feeling evidence;
+- CSA 21-slot 7/7/7 presentation and mandatory representative semantic acceptance;
+- Weak APPLY/CHANGE/REMOVE, W5 direction, M1/M3, M5 world-norm, S1 supported/unsupported finite boundary, named S2/S3/S5, S7 multi-NPC, multi-rule durability/residue;
 - accepted selector implementation `79fbfd6013c2db54d4e6a68af6dc92123e292abb`;
 - accepted S1 binding lineage `f607e4e868e18bde61ba8c46d508d3a502551c6f`;
-- accepted actor-catalog projection `bcc06683c084537e67a013fbddb577964a372d77`.
+- accepted heroine catalog projection `bcc06683c084537e67a013fbddb577964a372d77`;
+- existing History/mobile/MM/private-app/compliance-vs-feeling evidence.
 
-A-CSA-004 S6 remains `when practical` and is not silently promoted to GREEN. This task does not reopen S6.
+The previous Media/TTS browser run is NOT GREEN. It is preserved only as browser-control evidence:
+- game `9a5c3943-...` reached ordinary Turns 0-4;
+- no visible ordinary image was proven;
+- TTS OFF network-zero proof was not observable;
+- TTS ON timed out before result reconciliation;
+- adult/refusal/de-escalation/refresh/replay lanes were not reached.
 
----
-
-# 1. Purpose / current suspected boundary
-
-Close the owner-ready media/TTS lanes in actual deployed browser play without preemptive repair.
-
-Binding product gates:
-- `A-MEDIA-001` from `LIVE_ACCEPTANCE_MATRIX.md`;
-- `A-DIALOGUE-TTS-001`;
-- `M-ACCEPT-001` from `MEDIA_CATALOG_CONTRACT.md`.
-
-Known baseline is evidence only, not a pre-judged failure:
-- each heroine currently has effectively one general portrait in the deployed media inventory;
-- adult-pool rows exist;
-- specialized canon records a reachability defect candidate where frontend may request `general` unconditionally while committed adult evidence may not reach the sex-pool gate.
-
-Do NOT patch from that note alone. First reproduce or falsify it against the exact accepted TEST build.
+Do not access that game in this task.
 
 ---
 
-# 2. Preflight — no deploy, no source write
+# 1. Binding P1 / exact owning boundary
 
-Verify:
-- current `main` is executable-equivalent to `bcc06683...` plus docs lifecycle only;
-- TEST API exactly `fc98e0c3-db75-4088-bc0c-eddf129af4b6` or proven exact source-equivalent;
-- TEST frontend exactly `af6c13bf-ef57-40cb-a4f0-e3569b301bc5` or proven exact source-equivalent;
-- no unexpected media/TTS/content/catalog drift;
-- current `content/media_catalog.json` remains accepted repository authority;
-- no redeploy if workers already match.
+`MEDIA_CATALOG_CONTRACT.md` M-CATALOG-001 is binding:
 
-Unexpected executable/deployment drift => STOP product blocked. Do not normalize or redeploy in this acceptance task.
+- repository `content/media_catalog.json` is the semantic/curation source;
+- manifest owns stable `image_id`, `character_id`, `pool`, `situation`, `tags`, `active`, `curation_rank`, and stable `asset_locator`;
+- Supabase `image_library` is only deployed/query/serving index and must not silently become a second semantic catalog.
 
-Read-only DB/media inventory inspection is allowed only to understand candidate availability and selected asset identity. No DB writes.
+Current deterministic source contradiction:
 
----
+1. repository manifest currently contains five active `general` entries, one per heroine, and zero `sex` entries;
+2. `loadCanonicalCompanyR3Content()` correctly loads `media_catalog.json` into canonical content;
+3. `catalogResponse()` exposes that canonical media catalog;
+4. but `runtime-r3/server/supabase-store.js::listImageCandidates(characterId,pool)` queries `image_library` directly by `edition_id`, `character_id`, `image_pool`, DB `active`, and DB `curation_rank`;
+5. `imageMediaResponse()` passes those DB rows directly to image selection;
+6. therefore a DB-only row absent from the repository manifest can currently participate in selection and its DB semantic labels/rank can affect presentation.
 
-# 3. Browser readiness barrier before game creation
+That violates M-CATALOG-001 even before live sex-pool acceptance.
 
-Open a fresh browser page at bare TEST frontend.
-
-Before Setup:
-- DOM read PASS;
-- one screenshot PASS;
-- Setup fields readable;
-- bounded repeat DOM read PASS;
-- Media/TTS controls can be located without opening/altering a game.
-
-If DOM/screenshot/browser control is unavailable => STOP `MEDIA_TTS_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`, create zero games, patch nothing.
+Do not fix this by deleting DB rows, changing DB schema, or treating all existing DB rows as canonical.
 
 ---
 
-# 4. Exactly one fresh visible adult TEST game
+# 2. Phase A — read-only deployed media inventory and stable identity
 
-Only after readiness PASS:
-- create exactly one fresh adult TEST game through visible valid Setup;
-- one Setup submit, one Opening;
-- no second game, reset, regeneration, seeding, sample-until-pass, preserved-game reuse, or direct gameplay API substitution;
-- require visible Turn 0, readable Story, four full choices, compact actions where present, free input.
+Before source changes, inventory the deployed media system read-only.
 
-Record fresh game ID.
+Required:
 
-The campaign should prefer one heroine already naturally reachable in the opening/nearby scene and keep the same heroine through ordinary -> adult -> refusal/de-escalation whenever practical so image authority can be compared coherently.
+1. inspect current `content/media_catalog.json` exactly;
+2. inspect `image_library` for `edition_id=company-v1` read-only, including every actually available column relevant to identity/serving/metadata;
+3. determine whether `image_id` is stable and unique for Company rows;
+4. determine whether serving URLs are public stable URLs, signed/expiring URLs, or another form;
+5. inspect Supabase Storage/object metadata read-only where accessible to establish bucket + object path or another stable identity;
+6. map the existing five manifest general `asset_locator` values to the actual deployed objects/rows;
+7. inventory candidate sex rows/assets without mutating them.
 
----
+Asset curation law:
 
-# 5. Media lane — ordinary scene
+- Do not infer an adult act, pose, situation, character, or pool merely from a filename/path, folder name, numeric ID, old loose tag, or model guess.
+- Trusted existing metadata may be used only when its provenance/meaning is sufficiently clear and it agrees with the actual asset.
+- When visual inspection is available, inspect the actual asset and use only what is visibly supportable.
+- Do not commit binary images into this repository.
+- Do not canonize temporary/signed URLs as `asset_locator`.
+- Prefer durable `storage://<bucket>/<object-path>` or another genuinely stable locator.
+- A smaller truthful catalog is better than fabricated coverage.
+- If candidate sex assets exist but no trustworthy stable identity and semantic meaning can be established, STOP with `MEDIA_CATALOG_CURATION_EVIDENCE_BLOCKED_AWAITING_OPERATOR_REVIEW`; report exactly what evidence is missing. Do not invent curation.
 
-Establish one ordinary, non-work or lightly social heroine interaction with no sexual act/state.
-
-Record:
-- committed Story and actual focal/present heroine;
-- visible image, if any;
-- `/media/image` request parameters and response via browser/network or equivalent read-only browser inspection;
-- selected `character_id`, requested/effective pool, image ID/asset identity when available.
-
-PASS requires:
-- image character matches grounded current heroine;
-- no unrelated heroine;
-- ordinary scene does not use false sex-pool media;
-- image failure/no candidate fails open and does not block Story/Commit.
-
-Single generic portrait repetition alone is catalog-quality evidence, not necessarily P1 unless it creates materially false current-scene presentation.
+No DB/storage writes in this phase.
 
 ---
 
-# 6. Media lane — genuinely committed adult/intimate scene
+# 3. Phase B — reconcile repository manifest truthfully
 
-Through visible free input, create a plausible explicit adult/intimate interaction with the same registered adult heroine where Story actually commits the act/state. Do not rely on a mere request; the Story must establish occurrence.
+Only after Phase A evidence is sufficient.
 
-Use natural interaction. Do not use CSA solely to manufacture media evidence unless necessary to establish a valid product-supported adult context; if CSA is used, do not rerun frozen semantic acceptance.
+Update `content/media_catalog.json` as the sole semantic catalog.
 
-PASS requires:
-- committed Story clearly establishes the adult/intimate act/state;
-- correct current heroine remains media authority;
-- `/media/image` can reach an appropriate `sex` pool candidate when approved media exists for that heroine/scene family;
-- selected asset meaning is not obviously unrelated to the committed scene;
-- media sidecar does not alter or block Story/Commit.
+Requirements for every active entry:
 
-If a genuinely committed adult scene with known available sex-pool candidates systematically requests/returns only `general` or no sex candidate because committed evidence is not projected, classify deterministic P1 at the exact media projection/request boundary and STOP. Do not hotfix in this task.
+- unique stable `image_id` matching a deployed query-index identity;
+- registered heroine `character_id`;
+- `pool` exactly `general` or `sex`;
+- truthful natural-language `situation` grounded in the asset/trusted evidence;
+- small useful `tags` grounded in the asset/trusted evidence;
+- `active` boolean owned by manifest;
+- `curation_rank` owned by manifest;
+- stable non-temporary `asset_locator`.
 
----
+General entries:
+- preserve the existing five only if their stable locator and character mapping are verified;
+- correct or deactivate any entry whose actual object cannot be verified; explain evidence.
 
-# 7. Refusal / non-occurrence lane
+Sex entries:
+- curate all high-confidence candidate assets reasonably inspectable in this task; do not stop at an arbitrary one-row sample if multiple assets are clearly classifiable;
+- success may not claim adult media readiness with zero approved sex entries when verified suitable sex assets are actually available;
+- there is no numeric quota and no requirement to force every existing DB sex row into the manifest;
+- do not create a taxonomy deeper than useful natural situation/tags.
 
-After or before the committed adult scene as natural continuity permits, make one explicit adult request that the heroine refuses or that otherwise does not occur.
-
-PASS requires:
-- refused/non-occurring request alone does not switch media to `sex`;
-- no false asset implying the refused act occurred;
-- Story agency/refusal remains intact;
-- media failure remains local.
-
-If the same current image remains from a prior committed adult scene, distinguish cache/stale-media behavior from a new false selection using visible/network evidence.
-
----
-
-# 8. De-escalation / scene-end lane
-
-Clearly stop or de-escalate the intimate interaction and return to ordinary conversation or leave/change context using visible free input.
-
-PASS requires:
-- stale sex media is removed or replaced by semantically safe current-scene media;
-- removed/de-escalated intimate state is not still visually asserted;
-- no unrelated heroine image;
-- Story remains player-primary.
-
-One same-game refresh/re-entry after de-escalation:
-- no duplicate commit;
-- same committed Story reconstructed;
-- media meaning remains coherent and does not resurrect stale sex media merely due refresh.
+Do not modify `characters.json` or CSA content for media curation.
 
 ---
 
-# 9. TTS lane
+# 4. Phase C — make runtime manifest-authoritative
 
-Use an actual registered-character dialogue turn with clearly rendered heroine dialogue.
+Repair the smallest runtime boundary so DB is a serving index only.
 
-## TTS OFF
-Before enabling TTS:
-- verify toggle is visibly OFF;
-- across at least one committed dialogue turn, browser/network evidence must show zero `/media/tts` calls while OFF.
+Required behavior:
 
-A background/preload/silent synthesis while OFF is P1.
+1. derive approved candidates from `content.mediaCatalog.entries` first;
+2. filter by manifest `active`, exact `character_id`, and exact `pool`;
+3. only manifest-approved `image_id`s may be queried from `image_library`;
+4. DB supplies only deployed identity/serving information required at request time, principally `image_id` + `image_url` (and only unavoidable operational fields);
+5. semantic fields used by selection — `character_id`, `pool`, `situation`, `tags`, `active`, `curation_rank`, stable locator — come from the repository manifest, not DB copies;
+6. join DB serving rows to manifest by exact stable `image_id`;
+7. a DB-only rogue row must never be selectable;
+8. a DB row whose semantic labels disagree with the manifest must not override manifest semantics;
+9. an approved manifest entry missing from the DB serving index fails open to no image; Story/Commit remain unaffected;
+10. duplicate/ambiguous DB identity must fail local/fail-open, not select arbitrarily;
+11. existing `projectCurrentMedia()`, grounded observer `media_hint`, and frontend projection remain presentation-only and must not become gameplay authority.
 
-## TTS ON
-Enable using the visible control once.
-
-For one eligible registered-character dialogue:
-- one visible TTS action/automatic playback according to current UI contract;
-- request speaker must match the registered heroine who actually spoke;
-- submitted text must correspond to committed dialogue, not narrator/private thought/uncommitted text;
-- returned audio must be playable/eligible or fail locally with explicit non-blocking UI if the side service is unavailable;
-- Story/Commit cannot depend on TTS success.
-
-## Replay
-Use visible replay once if available:
-- replay must target the same committed dialogue/speaker;
-- it must not silently cause uncontrolled repeated synthesis;
-- record whether implementation reuses existing result or intentionally makes one bounded replay request.
-
-Systematic parser/Story-format mismatch that makes heroine dialogue permanently ineligible is a product defect; one service/network failure that is explicit and non-blocking may be P2/P3 depending on impact.
+Preferred code shape:
+- keep manifest filtering/join semantics in the R3 media domain/worker boundary;
+- make store candidate lookup accept exact approved image IDs rather than semantic `character_id/pool` authority;
+- do not add a media LLM, physical/sexual ledger, new relation state, or generic ontology.
 
 ---
 
-# 10. Inspection / stop law
+# 5. Allowed source scope
 
-For every media/TTS checkpoint record:
-`literal input -> committed Story semantics -> current scene/focal actor -> media/TTS request -> sidecar response -> visible UI`.
+Expected changed files are limited to the owning boundary, for example:
 
-At first deterministic P0/P1:
-- STOP immediately;
-- preserve fresh game read-only;
-- no retry/resample/regeneration/alternate heroine/game;
-- no same-task source/test/content/provider/model/config/catalog patch;
-- no redeploy;
-- terminal `MEDIA_TTS_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`.
+- `content/media_catalog.json`
+- `runtime-r3/domain/media.js`
+- `runtime-r3/server/worker.js`
+- `runtime-r3/server/supabase-store.js`
+- `runtime-r3/server/store.js` only if the in-memory/store interface needs the same exact-ID contract
+- one existing media/catalog contract test file, preferably `test/content-media-contract.test.mjs` or a focused R3 media contract test
 
-Browser observability failure after a gameplay action:
-1. do not resend/reclick/repeat the action;
-2. read-only context/network footprint may classify whether it committed;
-3. at most one read-only reattachment/re-entry to the same fresh game for inspection;
-4. if visible state still cannot be reconciled, STOP browser-control blocked;
-5. never patch product from browser-control failure.
+`runtime-r3/domain/content-loader.js` should not need semantic redesign because it already loads `media_catalog.json`.
+
+If another file is truly required, document the deterministic reason in the terminal report.
+
+Forbidden unless a new deterministic owning-boundary proof requires operator review first:
+- Story/provider prompt changes;
+- Observer semantic expansion beyond existing media_hint contract;
+- frontend changes or frontend redeploy;
+- TTS code changes;
+- CSA/catalog semantics;
+- scene/MM/memory/player-thought changes;
+- DB schema/RPC/migration;
+- provider/model/config/secret/timeout changes.
 
 ---
 
-# 11. Forbidden
+# 6. Deterministic regression contract
 
-- source/test/content/prompt/provider/model/config/secret/timeout edits = 0;
-- API/frontend redeploy = 0 when exact accepted workers are already present;
-- DB/schema/migration/ledger/history repair/backfill/direct gameplay mutation = 0;
-- `supabase db push` forbidden;
+Add/extend tests using real canonical content, not only synthetic media fixtures.
+
+At minimum prove:
+
+## Manifest shape and source authority
+- actual loaded canonical `mediaCatalog` equals repository manifest;
+- active image IDs are unique;
+- active entries use registered heroines and valid pools;
+- every active entry has non-empty situation, bounded truthful tags, finite rank, and stable locator;
+- active locators do not use signed/temporary HTTP URLs as canon;
+- no duplicate semantic source is introduced.
+
+## DB rogue-row exclusion
+Given an approved manifest general or sex set plus DB rows containing:
+- approved rows;
+- a high-ranked DB-only rogue row for the same heroine/pool;
+- a DB row with conflicting situation/tags/rank;
+prove only exact manifest-approved IDs are eligible and selection semantics come from manifest.
+
+## Missing index fail-open
+- manifest-approved ID absent from DB => no crash, no Story/Commit impact, no unrelated fallback heroine/act.
+
+## Exact pool authority
+- general request cannot select manifest sex entry;
+- sex request cannot select manifest general entry;
+- if manifest has zero approved entries for a requested pool, DB-only rows in that pool remain unreachable.
+
+## Existing presentation invariants
+Keep green:
+- committed adult evidence can still project `sex` when existing grounded media_hint permits it;
+- refusal/stop evidence cannot validate a false sex media_hint;
+- focal/current heroine authority remains exact;
+- image failure remains local;
+- TTS tests remain green without TTS code changes.
+
+Run:
+- focused media/catalog tests;
+- full `npm test`;
+- `node --check` for changed JS/MJS;
+- parse/validate final media manifest;
+- `git diff --check`.
+
+No gameplay/browser acceptance is required in this task.
+
+---
+
+# 7. TEST deployment
+
+Only after deterministic GREEN and only if executable/content Worker source changed:
+
+- deploy `game-proxy-company-r3` to TEST exactly once through the existing contract-gated path;
+- record old API Worker `fc98e0c3-db75-4088-bc0c-eddf129af4b6` and exact new Worker version;
+- verify `/api/r3/catalogs` exposes the reconciled manifest source-equivalently;
+- do not create a game for this task;
+- do not call media endpoints using preserved games;
+- do not redeploy frontend; it must remain `gamebuilder-company-r3 / af6c13bf-ef57-40cb-a4f0-e3569b301bc5` or proven exact source-equivalent;
+- DB/storage remains read-only;
+- no Production.
+
+If deployment drift is detected, STOP and report; do not normalize unrelated components.
+
+---
+
+# 8. Stop law
+
+Immediate STOP conditions:
+
+- unable to establish stable identity for the existing canonical general entries;
+- unable to establish trustworthy semantics/stable identity for any available sex candidate while such coverage is required for later M-ACCEPT-001;
+- asset evidence conflicts materially with existing metadata and cannot be resolved safely;
+- deterministic tests show the proposed exact-ID join still permits DB semantic authority;
+- required repair expands into Story/Observer/TTS/frontend/gameplay architecture rather than catalog authority;
+- unexpected executable/deployment drift.
+
+Do not solve evidence gaps by guessing.
+Do not write DB/storage to make tests pass.
+Do not run browser gameplay to hunt for a passing asset.
+
+---
+
+# 9. Forbidden
+
 - Production access/deploy = 0;
-- preserved evidence game access/mutation/reset = 0;
-- gameplay retry/regeneration/sample-until-pass = 0;
-- direct API gameplay substitution = 0;
+- DB writes, schema/RPC/migration/ledger/history repair/backfill = 0;
+- Supabase Storage object mutation/upload/delete = 0;
+- `supabase db push` forbidden;
+- frontend source changes/deploy = 0;
+- provider/model/config/secret/timeout changes = 0;
+- previous evidence-game access/mutation/reset = 0;
+- new gameplay game creation = 0;
+- retry/regeneration/sample-until-pass = 0;
 - new branch/PR/CURRENT_TASK file = 0;
 - OWNER_READY claim forbidden.
 
 ---
 
-# 12. Terminal report contract
+# 10. Terminal report contract
 
-Report:
-- start/final main SHA and proof source writes 0;
-- current CURRENT_TASK final blob;
-- exact API/frontend Worker versions and deploy counts;
-- media catalog read-only identity/inventory facts used;
-- browser readiness;
-- fresh game ID;
-- ordinary scene Story/focal heroine + image request/response/visible result;
-- committed adult scene + image request/response/visible result and sex-pool reachability;
-- refused/non-occurring request + image result;
-- de-escalation/scene-end + stale-media result;
-- refresh/re-entry media coherence;
-- TTS OFF zero-call proof;
-- TTS ON speaker/text/request/result;
-- replay behavior;
-- browser reattachment count;
-- gameplay resend/retry count;
-- DB/schema/migration/history writes 0;
+Report exactly:
+
+- start/final main SHA;
+- implementation SHA;
+- final CURRENT_TASK blob;
+- exact changed files;
+- read-only `image_library` inventory counts by heroine/pool and relevant actual columns;
+- stable identity/storage evidence and whether URLs are stable or temporary;
+- mapping status for the original five general manifest entries;
+- number of candidate assets inspected and final approved/deactivated/unclassified counts by heroine/pool, without claiming semantic meaning for unverified assets;
+- final manifest summary and evidence basis for new/changed entries;
+- proof no binary assets committed;
+- proof runtime queries only manifest-approved exact IDs;
+- proof DB semantic labels/rank cannot override manifest;
+- rogue-row, conflicting-metadata, missing-index, pool-separation tests;
+- focused/full/syntax/manifest/diff results;
+- TEST API old/new Worker versions and deploy count;
+- frontend version unchanged and deploy count 0;
+- game creation/access count 0;
+- DB/storage writes 0;
 - Production 0;
 - preserved evidence access/mutation 0;
-- P0/P1/P2/P3 findings and exact first broken boundary if blocked.
+- P0/P1/P2/P3 findings and any remaining curation gap.
 
 Success:
-`MEDIA_TTS_LIVE_ACCEPTANCE_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`MEDIA_CATALOG_AUTHORITY_RECONCILED_AWAITING_OPERATOR_REVIEW`
 
-Product blocked:
-`MEDIA_TTS_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
+If asset identity/semantic evidence is insufficient:
+`MEDIA_CATALOG_CURATION_EVIDENCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-Browser-control blocked:
-`MEDIA_TTS_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
+If implementation/deterministic product repair is blocked:
+`MEDIA_CATALOG_AUTHORITY_REPAIR_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
-
-## Terminal result
-
-Terminal: `MEDIA_TTS_LIVE_ACCEPTANCE_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-- Start/final executable `main` SHA: `67872fcf90c476aa069913f94c442af25b059d81`.
-- Source, test, content, prompt, provider, model, config, catalog, DB/schema,
-  migration, deployment, and Production writes: `0`.
-- Accepted TEST API: `game-proxy-company-r3` / `fc98e0c3-db75-4088-bc0c-eddf129af4b6`.
-- Accepted TEST frontend: `gamebuilder-company-r3` /
-  `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`.
-- Read-only media catalog inventory: version `1`, edition `company-v1`, five
-  active general entries (one per heroine), zero repository sex entries.
-
-Browser readiness passed on the bare TEST frontend: DOM, screenshot, setup
-fields, bounded repeat DOM read, and media/TTS control location. Exactly one
-fresh visible adult game was created: `9a5c3943-2e9e-4254-b6de-7638bdd88a76`.
-Opening Turn 0 and ordinary committed Turns 1-4 were visible. The ordinary
-story grounded `김제나` as the focal heroine and preserved free input plus
-four natural choices. No ordinary image was visible; the page had one hidden
-zero-sized placeholder image, and browser network/request evidence could not
-be read.
-
-TTS OFF was visibly verified with `aria-pressed=false` before one committed
-dialogue turn (Turn 4); zero `/media/tts` calls could not be independently
-proven because the browser network observability surface was unavailable.
-TTS ON was visibly verified with `aria-pressed=true`, then one eligible
-heroine dialogue input was submitted once. The browser session timed out
-before the resulting committed state and any TTS request/result could be
-reconciled. There was one read-only reattachment to the same fresh game;
-the follow-up read-only snapshot also timed out. Gameplay action resend and
-retry count: `0`.
-
-Per the browser-observability stop law, adult committed-scene media,
-refusal/non-occurrence, de-escalation/scene-end, refresh/re-entry, and bounded
-replay were not run. No P0/P1 product finding is claimed; the exact first
-broken boundary is browser control/observability after the TTS-ON action.
-All preserved evidence games remained untouched and no owner-ready claim was
-made. Operator review is required before any later task or live operation.
