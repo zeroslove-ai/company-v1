@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-test-schema-target-convergence-v1
 Mode: CURRENT-R3 TEST SCHEMA TARGET AUDIT / SAFE ADDITIVE BRIDGE / NO MIGRATION-HISTORY REPAIR
-Updated: 2026-08-24 22:00 KST
+Updated: 2026-08-24 22:08 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `d6ff6995b788ed7fff22e601618a59c85a29a0d8`
@@ -258,3 +258,39 @@ Blocked terminal:
 `R3_TEST_SCHEMA_TARGET_CONVERGENCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 STOP after terminal. Do not automatically restart `company-r3-canon-convergence-staged-repair-v3`; operator review will register the continuation.
+
+---
+
+# 10. Execution evidence — awaiting operator review
+
+Terminal: `R3_TEST_SCHEMA_TARGET_CONVERGED_AWAITING_OPERATOR_REVIEW`
+Execution lease: Issue #68 comment `5395654224`
+Starting main SHA: `b4199bc694e5fd6280e17e7c030c72c675510867`
+Current canon read: `docs/redesign/COMPANY_CANON.md` blob `ccfe0daa0abde7e5fdd378d3647a9cd4c325ba84`
+TEST project: `fmcrspgxstsmxxsmkeee`
+
+Pre-apply R3 schema fingerprint: `b37a6c6468aff4d71bb4dc0fbe601510`
+Post-apply R3 schema fingerprint: `d9dbeb8a2afdd4535a2f5a77b217dcd2`
+Pre/post component hashes:
+
+- columns: `294d926c539ec5a8696cfd1582348980` → unchanged
+- constraints: `0c7cd6e4bd9cba67d8cac3a9b79ae953` → unchanged
+- indexes: `0f1006be28dc0daee83bdff11f6a3750` → unchanged
+- functions: `697a10963bf44a2c3f667fa468a5abdd` → unchanged
+- table ACLs: `4fb8bd80517adf90ebf937301852c8f2` → `3891d26cc66fb288c2bb84a6c59da9fa`
+
+R3 target classification:
+
+- 7 target tables: `ALREADY_EQUIVALENT` for object existence, columns, defaults, nullability, checks, FKs, PKs, uniques, and indexes.
+- 7 target table ACL surfaces: `SAFE_ACL_ONLY` (live `service_role` had full table DML; final R3 source contract is `service_role` SELECT only, with public/anon/authenticated revoked).
+- 13 current `company_r3_*` functions: `ALREADY_EQUIVALENT` for signatures, bodies, language, `SECURITY DEFINER`, owner, and `search_path`; function ACLs were already equivalent.
+- Unsafe/ambiguous objects: none.
+
+Result: `BRIDGE_APPLIED`.
+Bridge SHA-256: `76c38e2bf96430013108851d71d761429cb4d397e864af57b392bdc07211ba86`
+Execution mechanism: one `supabase_execute_sql` call containing exactly one top-level PostgreSQL `DO $bridge$ ... $bridge$;` statement with only ACL revoke/grant operations; no table-row DML and no function invocation.
+
+Ledger pre/post: `36` rows / `119aca88c88b24fafac3ecec8eb629eb` → unchanged. Migration-history mutations: `0`.
+R3 row counts pre/post: games `146`, state `146`, turn_jobs `503`, turns `640`, system_events `59`, turn_revision_history `355`, feedback_attempts `4` → unchanged. Gameplay-row mutation: `0`.
+DB schema writes: `1` ACL-only bridge. Migration apply: `0`; `supabase db push`: `0`; migration repair: `0`; deploys: `0`; game create/reset/play/turns: `0`; Production access: `0`.
+Repository changes: this existing `docs/ops/CURRENT_TASK.md` lifecycle/evidence section only; no migration source, bridge artifact, runtime, test, or config changes.
