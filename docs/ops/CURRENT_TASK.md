@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-owner-style-browser-product-audit-v1
 Mode: EVIDENCE-ONLY DEEP BROWSER PRODUCT REVIEW
 Updated: 2026-08-24 19:20 KST
