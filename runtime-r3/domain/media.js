@@ -96,12 +96,21 @@ function sexualEvidence(context, turn) {
   return evidence === true || evidence?.active === true || evidence?.scene === true || evidence?.status === 'active';
 }
 
+function committedMediaHint(turn, content, presentActorIds) {
+  const hint = object(turn?.observer_applied?.media_hint);
+  const id = text(hint.actor_id); const quote = text(hint.quote); const pool = hint.pool === 'sex' ? 'sex' : hint.pool === 'general' ? 'general' : '';
+  const name = actorNames(content)[id]; const storyText = String(turn?.story_text ?? '');
+  if (!heroineIds(content).has(id) || !presentActorIds.includes(id) || !name || !quote || !storyText.includes(quote) || !quote.includes(name) || !pool) return null;
+  return { actor_id: id, pool, quote, tags: Array.isArray(hint.tags) ? hint.tags.filter(tag => typeof tag === 'string' && tag.trim()).slice(0, 8) : [] };
+}
+
 export function projectCurrentMedia({ context, content, requestedCharacterId = '', requestedPool = 'general' } = {}) {
   const state = object(context?.state?.state); const scene = object(state.scene);
   const registered = heroineIds(content);
   const present = [...new Set(Array.isArray(scene.present_actor_ids) ? scene.present_actor_ids : [])];
   const presentHeroines = present.filter(id => registered.has(id));
   const turn = latestCommittedTurn(context);
+  const mediaHint = committedMediaHint(turn, content, presentHeroines);
   const presentation = committedPresentation(turn, content, present);
   const dialogueLines = presentation.dialogueLines;
   const focal = presentation.focalActor?.actor_id || (registered.has(scene.focal_actor_id) && presentHeroines.includes(scene.focal_actor_id) ? scene.focal_actor_id : '');
@@ -110,11 +119,12 @@ export function projectCurrentMedia({ context, content, requestedCharacterId = '
   if (requestedCharacterId) {
     if (presentHeroines.includes(requestedCharacterId)) characterId = requestedCharacterId;
     else return { character_id: null, pool: 'general', dialogue_lines: dialogueLines, reason: 'character_not_present' };
-  } else if (focal) characterId = focal;
+  } else if (mediaHint) characterId = mediaHint.actor_id;
+  else if (focal) characterId = focal;
   else if (dialogueSpeakers.length === 1) characterId = dialogueSpeakers[0];
   else if (presentHeroines.length === 1) characterId = presentHeroines[0];
-  const pool = requestedPool === 'sex' && sexualEvidence(context, turn) ? 'sex' : 'general';
-  return { character_id: characterId || null, pool, dialogue_lines: dialogueLines, situation: text(scene.scene_note), tags: [], location_id: scene.location_id ?? null, reason: characterId ? null : 'no_unambiguous_present_heroine' };
+  const pool = mediaHint?.pool ?? (requestedPool === 'sex' && sexualEvidence(context, turn) ? 'sex' : 'general');
+  return { character_id: characterId || null, pool, dialogue_lines: dialogueLines, situation: text(scene.scene_note), tags: mediaHint?.tags ?? [], location_id: scene.location_id ?? null, reason: characterId ? null : 'no_unambiguous_present_heroine' };
 }
 
 export function selectApprovedImage({ candidates = [], projection } = {}) {

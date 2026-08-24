@@ -19,6 +19,19 @@ const PLAYER_IDENTITY_CONTRACT = Object.freeze({
   formal_identity_boundary: 'The canonical player name, department, and formal position/rank supplied in canonical_player_identity are authoritative Story facts on every turn. Do not replace, normalize, downgrade, upgrade, or invent a different formal department, rank, title, business-card identity, badge identity, introduction, signature, or address. If Story mentions one of those identity artifacts, use the exact canonical labels supplied here.',
   no_inference_boundary: 'Do not derive the player formal department, rank, or title from department names, NPC roles, scene context, seniority stereotypes, or model inference. Do not let Observer or any post-processing change player identity.'
 });
+const STORY_DRAMATIZATION_CONTRACT = Object.freeze({
+  use_as_scene_behavior: true,
+  boundary: 'Use each registered heroine dramatization as behavior, speech, initiative, private routine, conflict/care, hierarchy, attraction boundary, and continuity evidence in the scene. Do not print field names, profile labels, dossiers, or hidden canon as exposition.',
+  distinct_heroines: true,
+  dialogue_examples_are_style_guidance_only: true
+});
+const CONTINUITY_MEMORY_CONTRACT = Object.freeze({
+  chronological: true,
+  preserve_first: Object.freeze(['literal refusal or boundary', 'conflict and repair', 'help or promise', 'intimacy or attraction evidence', 'institutional rule adaptation']),
+  raw_recent_is_authoritative: true,
+  older_summaries_are_grounded_only: true,
+  no_generic_relationship_state: true
+});
 
 export function requestExecutionTiming(rule = {}) {
   const requestTriggered = rule.mode === 'on_player_request' || REQUEST_TRIGGER_VALUES.has(rule.trigger);
@@ -69,6 +82,8 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     player_agency_contract: PLAYER_AGENCY_CONTRACT,
     canonical_player_identity: canonicalPlayerIdentity,
     player_identity_contract: PLAYER_IDENTITY_CONTRACT,
+    story_dramatization_contract: STORY_DRAMATIZATION_CONTRACT,
+    continuity_memory_contract: CONTINUITY_MEMORY_CONTRACT,
     profile: state.profile ?? {},
     time: state.time ?? {},
     location,

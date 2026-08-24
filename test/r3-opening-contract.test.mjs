@@ -162,6 +162,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
     turn_summary: '',
     player_inner_thought: '',
     mind_monitor: {},
+    media_hint: null,
     focal_actor: null,
     dialogue_lines: [],
     warnings: []
@@ -184,7 +185,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(observerContext.current_context.scene.scene_note, undefined);
   assert.equal(observerContext.current_context.scene.location_id, state.scene.location_id);
   assert.deepEqual(observerContext.current_context.scene.present_actor_ids, state.scene.present_actor_ids);
-  assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, player_inner_thought, mind_monitor, choices, and warnings/i);
+  assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, player_inner_thought, mind_monitor, choices, media_hint, and warnings/i);
   assert.match(observerSystem, /bounded registered character canon/i);
   assert.match(observerSystem, /canonical_location_directory.*exact registered \{location_id,name\} pairs/i);
   assert.match(observerSystem, /location\.location_id MUST come from canonical_location_directory/i);
@@ -203,7 +204,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /If the current Story does not ground a useful scene_note, return an empty string/i);
   assert.match(observerSystem, /natural first-person Korean/i);
   assert.match(observerSystem, /player_inner_thought/i);
-  assert.match(observerSystem, /required and must be non-empty/i);
+  assert.match(observerSystem, /optional and must be empty unless literal_action explicitly establishes/i);
   assert.match(observerSystem, /completeness is mandatory for safely supported heroine speech/i);
   assert.match(observerSystem, /must return every such supported heroine line in dialogue_lines/i);
   assert.match(observerSystem, /dialogue_lines must not be \[\] in that case/i);

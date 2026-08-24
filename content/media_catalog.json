@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "edition_id": "company-v1",
+  "entries": [
+    { "image_id": "heroine1-main", "character_id": "heroine1", "pool": "general", "situation": "office", "tags": ["office", "uniform"], "active": true, "curation_rank": 10, "asset_locator": "storage://Image/Heroine1/one_main.jpg" },
+    { "image_id": "heroine2-main", "character_id": "heroine2", "pool": "general", "situation": "office", "tags": ["office", "uniform"], "active": true, "curation_rank": 10, "asset_locator": "storage://Image/Heroine2/minami_main.jpg" },
+    { "image_id": "heroine3-main", "character_id": "heroine3", "pool": "general", "situation": "office", "tags": ["office", "uniform"], "active": true, "curation_rank": 10, "asset_locator": "storage://Image/Heroine3/jena_main.jpg" },
+    { "image_id": "heroine4-main", "character_id": "heroine4", "pool": "general", "situation": "office", "tags": ["office", "uniform"], "active": true, "curation_rank": 10, "asset_locator": "storage://Image/Heroine4/live_main.jpg" },
+    { "image_id": "heroine5-main", "character_id": "heroine5", "pool": "general", "situation": "office", "tags": ["office", "uniform"], "active": true, "curation_rank": 10, "asset_locator": "storage://Image/Heroine5/may_main.jpg" }
+  ]
+}

@@ -4,6 +4,17 @@ function object(value) {
 
 function array(value) { return Array.isArray(value) ? value : []; }
 
+function boundedText(value, max = 420) { return typeof value === 'string' ? value.trim().slice(0, max) : ''; }
+
+function dramatizationCard(card) {
+  const source = object(card?.dramatization);
+  const fields = ['ordinary_initiative', 'private_life', 'stress_conflict_care', 'hierarchy', 'attraction_boundaries', 'csa_first_reaction', 'csa_adaptation', 'continuity'];
+  return {
+    ...Object.fromEntries(fields.map(field => [field, boundedText(source[field])]).filter(([, value]) => value)),
+    dialogue_examples: array(source.dialogue_examples).map(item => boundedText(item, 300)).filter(Boolean).slice(0, 4)
+  };
+}
+
 export function createCompanyR3Content(raw = {}) {
   const characters = object(raw.characters?.characters ?? raw.characters);
   const generalProfiles = object(raw.generalNpcs?.profiles ?? raw.generalNpcs);
@@ -22,7 +33,8 @@ export function createCompanyR3Content(raw = {}) {
     positions,
     bodyTypes,
     speechStyles,
-    csaPresets: raw.csaPresets ?? null
+    csaPresets: raw.csaPresets ?? null,
+    mediaCatalog: object(raw.mediaCatalog)
   };
   return validateCompanyR3Content(content);
 }
@@ -31,6 +43,10 @@ export function validateCompanyR3Content(content) {
   if (content?.edition?.edition_id !== 'company-v1') throw new Error('r3_invalid_edition');
   if (Object.keys(content.characters ?? {}).length !== 5) throw new Error('r3_invalid_character_catalog');
   if (!Array.isArray(content.locations) || content.locations.length === 0) throw new Error('r3_invalid_location_catalog');
+  if (content.mediaCatalog.edition_id !== 'company-v1' || !Array.isArray(content.mediaCatalog.entries)) throw new Error('r3_invalid_media_catalog');
+  for (const entry of content.mediaCatalog.entries) {
+    if (!entry?.image_id || !entry?.character_id || !['general', 'sex'].includes(entry.pool) || !entry.asset_locator) throw new Error('r3_invalid_media_entry');
+  }
   for (const [id, character] of Object.entries(content.characters)) {
     if (character?.character_id !== id || typeof character?.name !== 'string' || !character.name.trim()) throw new Error('r3_invalid_character');
   }
@@ -81,7 +97,8 @@ function heroineCard(character) {
     personality: card.personality,
     speech: card.speech,
     addressing: card.addressing,
-    distinctive_traits: Array.isArray(card.distinctive_traits) ? card.distinctive_traits.slice(0, 4) : []
+    distinctive_traits: Array.isArray(card.distinctive_traits) ? card.distinctive_traits.slice(0, 4) : [],
+    dramatization: dramatizationCard(card)
   };
 }
 

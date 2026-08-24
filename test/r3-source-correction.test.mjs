@@ -199,13 +199,13 @@ test('R3 player inner thought is a bounded committed JSON projection with no mig
   const state = createInitialState({ name: 'R3 thought player' }, 'brand_strategy_office', ['heroine1']);
   const story = storyWithChoices(['ask a question', 'walk to the lobby', 'review the brief', 'wait quietly']);
   const normalized = normalizeObserver({ player_inner_thought: '  지금은 상황을 먼저 파악하고 싶다.\n  ', choices: ['bad'] }, { storyText: story, content, currentState: state });
-  assert.equal(normalized.player_inner_thought, '지금은 상황을 먼저 파악하고 싶다.');
+  assert.equal(normalized.player_inner_thought, '');
   const reduced = reduceObservation({ state, observation: normalized, turnNumber: 0 });
   assert.equal(reduced.applied.player_inner_thought, normalized.player_inner_thought);
   const store = new InMemoryR3Store();
   const game = store.createGame({ profile: state.profile, locationId: state.scene.location_id, presentActorIds: state.scene.present_actor_ids });
   const context = store.createOpening(game.game.game_id, { expectedRevision: 0, storyText: story, choices: normalized.choices, summary: 'opening', observerRaw: { player_inner_thought: normalized.player_inner_thought }, observerApplied: reduced.applied, stateAfter: reduced.state });
-  assert.equal(context.turns[0].observer_applied.player_inner_thought, '지금은 상황을 먼저 파악하고 싶다.');
+  assert.equal(context.turns[0].observer_applied.player_inner_thought, '');
   assert.equal(context.turns[0].observer_applied.migration, undefined);
 });
 

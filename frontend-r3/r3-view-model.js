@@ -40,6 +40,6 @@ export function buildR3ViewModel(context = {}, catalogs = {}) {
     turn: { committed_turn: committedTurn, turn_id: latestIsCurrent ? `${committedTurn}:${latest.revision ?? 0}` : '', revision: latestIsCurrent ? Number(latest.revision ?? 0) : 0, action_id: latest.action_id ?? '' },
     job: context.job ?? null
   };
-  view.media = projectR3Media({ ...view, presentation: view.presentation, media: { dialogue_lines: dialogueLines } });
+  view.media = projectR3Media({ ...view, presentation: view.presentation, media: { dialogue_lines: dialogueLines, media_hint: latestIsCurrent ? observerApplied.media_hint ?? null : null } });
   return view;
 }

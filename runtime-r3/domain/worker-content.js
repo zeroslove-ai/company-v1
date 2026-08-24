@@ -7,9 +7,10 @@ import organization from '../../content/organization.json' with { type: 'json' }
 import positions from '../../content/positions.json' with { type: 'json' };
 import speechStyles from '../../content/speech_styles.json' with { type: 'json' };
 import csaPresets from '../../content/csa_presets.json' with { type: 'json' };
+import mediaCatalog from '../../content/media_catalog.json' with { type: 'json' };
 import { createCompanyR3Content } from './content.js';
 
 // Bundlers include these imports in the Worker artifact; no runtime fs or shadow catalog is used.
-export const companyR3WorkerContent = createCompanyR3Content({ edition, characters, generalNpcs, map, organization, positions, bodyTypes, speechStyles, csaPresets });
+export const companyR3WorkerContent = createCompanyR3Content({ edition, characters, generalNpcs, map, organization, positions, bodyTypes, speechStyles, csaPresets, mediaCatalog });
 
 export function loadWorkerCanonicalContent() { return companyR3WorkerContent; }

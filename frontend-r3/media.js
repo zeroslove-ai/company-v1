@@ -16,12 +16,14 @@ export function projectR3Media(viewModel = {}) {
   const dialogueSpeakers = [...new Set((viewModel.media?.dialogue_lines ?? []).map(line => line.speaker_id).filter(id => presentHeroines.includes(id)))];
   const focalId = viewModel.presentation?.focal_actor?.actor_id ?? viewModel.scene?.focal_actor?.id ?? '';
   const focal = focalId && presentHeroines.includes(focalId) ? focalId : '';
-  const imageCharacterId = focal || (dialogueSpeakers.length === 1 ? dialogueSpeakers[0] : presentHeroines.length === 1 ? presentHeroines[0] : null);
+  const hint = viewModel.media?.media_hint;
+  const hintCharacter = hint?.actor_id && presentHeroines.includes(hint.actor_id) ? hint.actor_id : '';
+  const imageCharacterId = hintCharacter || focal || (dialogueSpeakers.length === 1 ? dialogueSpeakers[0] : presentHeroines.length === 1 ? presentHeroines[0] : null);
   return {
     image_character_id: imageCharacterId,
-    image_pool: 'general',
+    image_pool: hint?.pool === 'sex' ? 'sex' : 'general',
     image_situation: viewModel.scene?.scene_note ?? '',
-    image_tags: [],
+    image_tags: Array.isArray(hint?.tags) ? hint.tags : [],
     dialogue_lines: viewModel.media?.dialogue_lines ?? []
   };
 }

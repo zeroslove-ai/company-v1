@@ -110,7 +110,7 @@ function chooseOpeningLocation(content, profile) {
 
 function catalogResponse(content) {
   const actorIds = [...registeredActorIds(content)];
-  return { departments: content.departments ?? [], positions: content.positions ?? [], body_types: content.bodyTypes ?? [], speech_styles: content.speechStyles ?? [], locations: content.locations ?? [], actors: canonicalActors(content, actorIds), csa_presets: createR3CsaCatalog(content.csaPresets) };
+  return { departments: content.departments ?? [], positions: content.positions ?? [], body_types: content.bodyTypes ?? [], speech_styles: content.speechStyles ?? [], locations: content.locations ?? [], actors: canonicalActors(content, actorIds), csa_presets: createR3CsaCatalog(content.csaPresets), media_catalog: content.mediaCatalog ?? { version: 1, entries: [] } };
 }
 
 function accessDeniedResponse() {
@@ -245,7 +245,7 @@ async function processFeedback({ store, provider, content, gameId, attempt, snap
     let rawObserver = {}; let observerFailed = false; let observerFailureCode = null; mark('observer_start');
     try { rawObserver = await provider.observe({ context: before, literalAction, storyText, content }); mark('observer_complete'); }
     catch (error) { observerFailed = true; const failure = observerFailureState(error); observerFailureCode = failure.code; observerFailureWarnings = failure.warnings; observerFailureEvidence = failure.evidence; mark('observer_failed', { observer_error_code: observerFailureCode, ...observerFailureEvidence }); }
-    const normalized = normalizeObserver(rawObserver, { storyText, content, currentState: before.state.state });
+    const normalized = normalizeObserver(rawObserver, { storyText, literalAction, content, currentState: before.state.state });
     if (observerFailed) normalized.warnings.unshift(...observerFailureWarnings);
     const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: attempt.targetTurnNumber });
     const context = await store.commitFeedbackRevision({ gameId, attemptId: attempt.attemptId, attempt, revisionRequestId: attempt.revisionRequestId, expectedTurn: attempt.targetTurnNumber, expectedStateRevision: attempt.expectedStateRevision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: rawObserver, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
@@ -279,7 +279,7 @@ async function processTurn({ store, provider, content, gameId, job, emit }) {
     for await (const delta of provider.story({ literalAction: attempt.literalAction, context: storyContext, csaOperation, content, onTiming: mark })) { const text = String(delta); storyText += text; emit('story_delta', { text }); if (writes < R3_MAX_PROGRESS_WRITES && (writes === 0 || storyText.length - lastProgress >= R3_PROGRESS_INTERVAL_CHARS)) { await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText }); writes += 1; lastProgress = storyText.length; } }
     mark('story_complete'); await store.markStoryComplete({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
     let rawObserver = {}; let observerFailed = false; let observerFailureCode = null; let observerFailureWarnings = []; let observerFailureEvidence = {}; mark('observer_start'); try { rawObserver = await provider.observe({ literalAction: attempt.literalAction, storyText, context: storyContext, csaOperation, content }); mark('observer_complete'); } catch (error) { observerFailed = true; const failure = observerFailureState(error); observerFailureCode = failure.code; observerFailureWarnings = failure.warnings; observerFailureEvidence = failure.evidence; mark('observer_failed', { observer_error_code: observerFailureCode, ...observerFailureEvidence }); }
-    const normalized = normalizeObserver(rawObserver, { storyText, content, currentState: storyContext.state.state }); if (observerFailed) normalized.warnings.unshift(...observerFailureWarnings);
+    const normalized = normalizeObserver(rawObserver, { storyText, literalAction: attempt.literalAction, content, currentState: storyContext.state.state }); if (observerFailed) normalized.warnings.unshift(...observerFailureWarnings);
     if (navigationIntent) normalized.warnings.unshift('canonical_navigation_applied');
     const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: attempt.turnNumber, navigationIntent, content });
     const stateAfter = csaOperation ? applyR3Csa({ state: reduced.state, content, rawOperations: [csaOperation], catalog: createR3CsaCatalog(content.csaPresets) }) : reduced.state;

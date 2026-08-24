@@ -47,7 +47,7 @@ function matchesScope(id, scope, state, content) {
 
 function subjects(scope, state, content) {
   if (scope === 'player') return ['player'];
-  const ids = [...new Set([...(state?.scene?.present_actor_ids ?? []), ...Object.keys(actorDirectory(content))])];
+  const ids = [...new Set(state?.scene?.present_actor_ids ?? [])];
   return ids.filter(id => matchesScope(id, scope, state, content));
 }
 
@@ -70,6 +70,16 @@ function validateScope(item, raw) {
 function applyClothing(state, activeRules, catalog, content) {
   const next = clone(state); next.clothing = next.clothing && typeof next.clothing === 'object' ? next.clothing : {};
   for (const rule of Object.values(activeRules)) {
+    const item = catalogItem(catalog, rule.template_id);
+    if (rule.active !== false || !item?.execution?.required_state) continue;
+    for (const actorId of subjects(rule.subject_scope, next, content)) {
+      const current = { ...(next.clothing[actorId] ?? {}) };
+      for (const slot of Object.keys(item.execution.required_state)) current[slot] = 'unknown';
+      next.clothing[actorId] = current;
+    }
+  }
+  for (const rule of Object.values(activeRules)) {
+    if (rule.active === false) continue;
     const item = catalogItem(catalog, rule.template_id);
     if (!item?.execution?.required_state || !Object.keys(item.execution.required_state).length) continue;
     for (const actorId of subjects(rule.subject_scope, next, content)) next.clothing[actorId] = { ...(next.clothing[actorId] ?? {}), ...item.execution.required_state };

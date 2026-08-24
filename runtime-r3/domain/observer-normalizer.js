@@ -3,6 +3,8 @@ import { actorDirectory, locationIds, registeredActorIds } from './content.js';
 const CLOTHING_SLOTS = new Set(['uniform_top', 'uniform_bottom', 'underwear_top', 'underwear_bottom']);
 const CLOTHING_VALUES = new Set(['worn', 'removed', 'unknown']);
 const text = value => typeof value === 'string' ? value.trim() : '';
+const SEXUAL_MEDIA_CUE = /(?:성기|삽입|사정|오르가즘|유두|알몸|벗은|애무|자위|섹스|sex|orgasm|nude|naked|masturbat|vagina|penis)/iu;
+const REFUSAL_MEDIA_CUE = /(?:싫어|하지[ ]*마|멈춰|거절|거부|중단|stop|refus|declin|no)/iu;
 
 function evidenceQuote(value, storyText) { const quote = text(value); return quote && storyText.includes(quote) ? quote : ''; }
 function dialogueEvidenceQuote(value, storyText) {
@@ -85,12 +87,27 @@ function locationIdFromCanonicalName(quote, content) {
     .sort((left, right) => right.name.length - left.name.length)[0]?.location_id ?? null;
 }
 
-export function normalizeObserver(input, { storyText = '', content, currentState } = {}) {
+function groundedMediaHint(item, storyText, content, presentActorIds) {
+  if (!item || typeof item !== 'object') return null;
+  const actorId = text(item.actor_id);
+  const actor = heroineDirectory(content)[actorId];
+  const quote = evidenceQuote(item.quote, storyText);
+  const pool = item.pool === 'sex' ? 'sex' : item.pool === 'general' ? 'general' : '';
+  if (!actor || !presentActorIds.has(actorId) || !quote || !quote.includes(actor.name) || !pool) return null;
+  if (pool === 'sex' && (!SEXUAL_MEDIA_CUE.test(quote) || REFUSAL_MEDIA_CUE.test(quote))) return null;
+  return { actor_id: actorId, pool, quote, tags: Array.isArray(item.tags) ? item.tags.filter(tag => typeof tag === 'string' && tag.trim()).map(tag => tag.trim()).slice(0, 8) : [] };
+}
+
+function explicitPlayerPerspective(literalAction) {
+  return /(?:생각|느끼|기분|마음|의도|결심|원하|궁금|걱정|긴장|기대|불안|좋아|싫어|두렵|안심|마음속|속으로|i\s+(?:think|feel|want|decide)|i'm\s+ worried)/iu.test(text(literalAction));
+}
+
+export function normalizeObserver(input, { storyText = '', literalAction = '', content, currentState } = {}) {
   const observer = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const actors = registeredActorIds(content);
   const locations = locationIds(content);
   const warnings = [];
-  const normalized = { elapsed_minutes: 0, entered: [], exited: [], scene_note: null, clothing_changes: [], choices: null, turn_summary: '', player_inner_thought: '', mind_monitor: {}, warnings };
+  const normalized = { elapsed_minutes: 0, entered: [], exited: [], scene_note: null, clothing_changes: [], choices: null, turn_summary: '', player_inner_thought: '', mind_monitor: {}, media_hint: null, warnings };
   const location = observer.location && typeof observer.location === 'object' ? observer.location : null;
   const locationQuote = location ? evidenceQuote(location.quote, storyText) : '';
   const canonicalLocationId = locationQuote ? locationIdFromCanonicalName(locationQuote, content) : null;
@@ -134,14 +151,21 @@ export function normalizeObserver(input, { storyText = '', content, currentState
   if (projectedChoices.choices) normalized.choices = projectedChoices.choices;
   if (projectedChoices.warning) warnings.push(projectedChoices.warning);
   normalized.turn_summary = text(observer.turn_summary).slice(0, 600);
-  normalized.player_inner_thought = text(observer.player_inner_thought).slice(0, 600);
+  const playerInnerThought = text(observer.player_inner_thought);
+  if (playerInnerThought && explicitPlayerPerspective(literalAction)) normalized.player_inner_thought = playerInnerThought.slice(0, 600);
+  else if (playerInnerThought) warnings.push('player_inner_thought_projection_dropped');
   const elapsed = Number(observer.elapsed_minutes);
   if (Number.isInteger(elapsed) && elapsed >= 0) normalized.elapsed_minutes = Math.min(elapsed, 1440);
   const monitor = observer.mind_monitor && typeof observer.mind_monitor === 'object' ? observer.mind_monitor : {};
   for (const [actorId, value] of Object.entries(monitor)) {
     if (!eligibleMonitorActors.has(actorId) || !directory[actorId] || !value || typeof value !== 'object') { warnings.push('mind_monitor_projection_dropped'); continue; }
-    normalized.mind_monitor[actorId] = { surface: text(value.surface).slice(0, 600), subconscious: text(value.subconscious).slice(0, 600) };
+    const surface = text(value.surface).slice(0, 600); const subconscious = text(value.subconscious).slice(0, 600);
+    if (!surface || !subconscious) { warnings.push('mind_monitor_projection_dropped'); continue; }
+    normalized.mind_monitor[actorId] = { surface, subconscious };
   }
+  const mediaHint = groundedMediaHint(observer.media_hint, storyText, content, postStoryPresentActors);
+  if (observer.media_hint && !mediaHint) warnings.push('media_hint_projection_dropped');
+  normalized.media_hint = mediaHint;
   const clothing = Array.isArray(observer.clothing_changes) ? observer.clothing_changes : [];
   for (const item of clothing) {
     if (!actors.has(item?.actor_id) || !evidenceQuote(item?.quote, storyText) || !item.slots || typeof item.slots !== 'object') { warnings.push('clothing_projection_dropped'); continue; }
