@@ -7,7 +7,7 @@ import { buildStoryContext } from '../runtime-r3/domain/memory.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { createCsaDraft, csaDraftOperation, stageCsaOperation } from '../frontend-r3/csa-draft.js';
-import { playerFacingS1ActionLabels, playerFacingTierLabel } from '../frontend-r3/csa.js';
+import { csaSelectorOperation, isCsaSelectorOperationReady, mergeCsaSelectorActor, mergeCsaSelectorScope, playerFacingS1ActionLabels, playerFacingTierLabel } from '../frontend-r3/csa.js';
 
 const content = loadCanonicalCompanyR3Content();
 const GAME_ACCESS_SECRET = 'r3-test-secret';
@@ -268,6 +268,46 @@ test('frontend W5 selector handoff preserves both actor ids through draft and tu
   assert.equal(literal_action, 'W5 audit'); assert.deepEqual(csaOperation, operation);
   const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8'); const app = fs.readFileSync(new URL('../frontend-r3/app.js', import.meta.url), 'utf8');
   assert.match(source, /const operation = clone\(csaDraftOperation\(draft\)\)/); assert.match(source, /onOperation\?\.\(\{ \.\.\.operation, literal_action/); assert.match(app, /const \{ literal_action: literalAction, \.\.\.csaOperation \} = operation/); assert.match(app, /payload\.csa_operation = pendingOperation/);
+});
+
+test('frontend bounded selectors merge actor ids and resolve compatible scopes', () => {
+  const catalog = createR3CsaCatalog(content.csaPresets);
+  const s7 = catalog.items.find(item => item.slot === 'S7');
+  const s1 = catalog.items.find(item => item.slot === 'S1');
+  const actors = [
+    { id: 'heroine1', gender: 'female' }, { id: 'heroine2', gender: 'female' }, { id: 'heroine5', gender: 'female' },
+    { id: 'general_park_jungwoo', gender: 'male' }
+  ];
+  let s7Operation = csaSelectorOperation({ item: s7 });
+  s7Operation = mergeCsaSelectorActor({ item: s7, operation: s7Operation, side: 'subject', actorId: 'heroine1', actors });
+  s7Operation = mergeCsaSelectorActor({ item: s7, operation: s7Operation, side: 'counterparty', actorId: 'heroine2', actors });
+  assert.deepEqual(s7Operation, {
+    operation: 'activate', template_id: 'sexual_work_training_designation', subject_scope: 'female_employee', counterparty_scope: 'female_employee',
+    subject_actor_id: 'heroine1', counterparty_actor_id: 'heroine2'
+  });
+  assert.equal(isCsaSelectorOperationReady(s7, s7Operation, actors), true);
+  const applied = applyR3Csa({ state: { scene: { present_actor_ids: ['heroine1', 'heroine2'] }, csa_active: [], csa_rules: {}, clothing: {} }, content, rawOperations: [s7Operation] });
+  assert.deepEqual(applied.last_rule_change.selector, { subject_actor_id: 'heroine1', counterparty_actor_id: 'heroine2' });
+
+  const changedTrainer = mergeCsaSelectorActor({ item: s7, operation: s7Operation, side: 'subject', actorId: 'heroine5', actors });
+  assert.equal(changedTrainer.subject_actor_id, 'heroine5'); assert.equal(changedTrainer.counterparty_actor_id, 'heroine2');
+  const femaleCounterparty = mergeCsaSelectorScope({ item: s7, operation: changedTrainer, side: 'counterparty', scope: 'female_employee', actors });
+  assert.equal(femaleCounterparty.counterparty_actor_id, 'heroine2');
+  const maleCounterparty = mergeCsaSelectorScope({ item: s7, operation: femaleCounterparty, side: 'counterparty', scope: 'male_employee', actors });
+  assert.equal(maleCounterparty.counterparty_actor_id, undefined); assert.equal(maleCounterparty.subject_actor_id, 'heroine5');
+  assert.equal(isCsaSelectorOperationReady(s7, maleCounterparty, actors), false);
+
+  let s1Operation = csaSelectorOperation({ item: s1 });
+  s1Operation = mergeCsaSelectorActor({ item: s1, operation: s1Operation, side: 'subject', actorId: 'heroine1', actors });
+  s1Operation = mergeCsaSelectorActor({ item: s1, operation: s1Operation, side: 'counterparty', actorId: 'general_park_jungwoo', actors });
+  assert.deepEqual(s1Operation, {
+    operation: 'activate', template_id: 'sexual_work_instruction_authority', subject_scope: 'female_employee', counterparty_scope: 'male_employee',
+    subject_actor_id: 'heroine1', counterparty_actor_id: 'general_park_jungwoo'
+  });
+  assert.equal(isCsaSelectorOperationReady(s7, csaSelectorOperation({ item: s7 }), actors), false);
+  assert.equal(isCsaSelectorOperationReady(s7, { ...s7Operation, counterparty_scope: 'male_employee' }, actors), false);
+  const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8');
+  assert.match(source, /isCsaSelectorOperationReady\(item, operation, catalog\(\)\.actors\)/);
 });
 
 test('frontend CSA exposes the three canonical tiers and no exact-nine label', () => {

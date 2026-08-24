@@ -60,6 +60,93 @@ function defaultCounterpartyScope(item) {
   return validScope(item?.counterparty_scopes, preferred);
 }
 
+function actorId(actor) { return actor?.id ?? actor?.character_id ?? actor?.actor_id; }
+
+function actorGenderScope(actor) {
+  const gender = actor?.gender ?? actor?.sex;
+  return gender === 'female' ? 'female_employee' : gender === 'male' ? 'male_employee' : null;
+}
+
+export function csaActorMatchesScope(actor, scope) {
+  if (!actor) return false;
+  if (scope === 'player') return actorId(actor) === 'player';
+  if (actorId(actor) === 'player') return false;
+  return scope === 'company_employee' || actorGenderScope(actor) === scope;
+}
+
+export function resolveCsaActorScope({ actor, allowedScopes = [], currentScope } = {}) {
+  const scopes = Array.isArray(allowedScopes) ? allowedScopes : [];
+  if (!actor) return null;
+  if (scopes.includes(currentScope) && csaActorMatchesScope(actor, currentScope)) return currentScope;
+  const exactGenderScope = actorGenderScope(actor);
+  if (scopes.includes(exactGenderScope)) return exactGenderScope;
+  if (scopes.includes('company_employee')) return 'company_employee';
+  return null;
+}
+
+function actorMap(actors) {
+  return new Map((Array.isArray(actors) ? actors : []).map(actor => [actorId(actor), actor]).filter(([id]) => id));
+}
+
+function selectorActorKey(side) { return side === 'counterparty' ? 'counterparty_actor_id' : 'subject_actor_id'; }
+function selectorScopeKey(side) { return side === 'counterparty' ? 'counterparty_scope' : 'subject_scope'; }
+function selectorScopes(item, side) { return side === 'counterparty' ? item?.counterparty_scopes : item?.subject_scopes; }
+
+export function csaSelectorOperation({ item, operation = null } = {}) {
+  if (!item?.id) return clone(operation);
+  const next = {
+    ...(operation ?? {}),
+    operation: 'activate',
+    template_id: item.id,
+    subject_scope: operation?.subject_scope ?? validScope(item.subject_scopes, item.default_subject_scope),
+    counterparty_scope: operation?.counterparty_scope ?? defaultCounterpartyScope(item)
+  };
+  if (!operation?.subject_actor_id) delete next.subject_actor_id;
+  if (!operation?.counterparty_actor_id) delete next.counterparty_actor_id;
+  return next;
+}
+
+export function normalizeCsaSelectorOperation({ item, operation, actors = [] } = {}) {
+  const next = clone(operation);
+  if (!item || !next || !['named_actor', 'actor_pair'].includes(item.selector_schema)) return next;
+  const byId = actorMap(actors);
+  for (const side of item.selector_schema === 'actor_pair' ? ['subject', 'counterparty'] : ['subject']) {
+    const idKey = selectorActorKey(side);
+    if (next[idKey] && !csaActorMatchesScope(byId.get(next[idKey]), next[selectorScopeKey(side)])) delete next[idKey];
+  }
+  return next;
+}
+
+export function mergeCsaSelectorActor({ item, operation, side, actorId: selectedActorId, actors = [] } = {}) {
+  const next = csaSelectorOperation({ item, operation });
+  const actor = actorMap(actors).get(selectedActorId);
+  const scopeKey = selectorScopeKey(side);
+  const idKey = selectorActorKey(side);
+  const resolvedScope = resolveCsaActorScope({ actor, allowedScopes: selectorScopes(item, side), currentScope: next[scopeKey] });
+  if (resolvedScope) { next[scopeKey] = resolvedScope; next[idKey] = selectedActorId; }
+  else delete next[idKey];
+  return normalizeCsaSelectorOperation({ item, operation: next, actors });
+}
+
+export function mergeCsaSelectorScope({ item, operation, side, scope, actors = [] } = {}) {
+  const next = csaSelectorOperation({ item, operation });
+  const scopeKey = selectorScopeKey(side);
+  const idKey = selectorActorKey(side);
+  if (selectorScopes(item, side)?.includes(scope)) next[scopeKey] = scope;
+  if (next[idKey] && !csaActorMatchesScope(actorMap(actors).get(next[idKey]), next[scopeKey])) delete next[idKey];
+  return normalizeCsaSelectorOperation({ item, operation: next, actors });
+}
+
+export function isCsaSelectorOperationReady(item, operation, actors = []) {
+  if (!item || !['named_actor', 'actor_pair'].includes(item.selector_schema)) return true;
+  const normalized = normalizeCsaSelectorOperation({ item, operation, actors });
+  const requiredSides = item.selector_schema === 'actor_pair' ? ['subject', 'counterparty'] : ['subject'];
+  return requiredSides.every(side => {
+    const id = normalized?.[selectorActorKey(side)];
+    return Boolean(id) && csaActorMatchesScope(actorMap(actors).get(id), normalized?.[selectorScopeKey(side)]);
+  });
+}
+
 export function replacementPresetItems({ activeRules = [], catalogItems = [], rule } = {}) {
   const activeTemplates = new Set(activeRules
     .filter(activeRule => activeRule?.id !== rule?.id)
@@ -202,6 +289,12 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
   async function applyDraft() {
     if (applying || getBusy?.() || !dirty()) return;
     const operation = clone(csaDraftOperation(draft));
+    const item = itemFor(operation?.template_id);
+    if (!isCsaSelectorOperationReady(item, operation, catalog().actors)) {
+      draft = { ...draft, notice: '선택한 직원과 현재 범위가 일치하지 않습니다.' };
+      render();
+      return;
+    }
     applying = true;
     overlay.hidden = true;
     closeScrollLock();
@@ -321,16 +414,16 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     card.append(el(documentRef, 'strong', `${playerFacingTierLabel(item.tier ?? item.strength)} · ${item.label ?? '규칙'}`), el(documentRef, 'p', item.content_template ?? ''));
     const subject = pending?.subject_scope ?? item.default_subject_scope;
     const counterparty = pending?.counterparty_scope ?? defaultCounterpartyScope(item);
+    const pendingSelector = () => csaSelectorOperation({ item, operation: operationFor(item.id) });
     const actionLabels = playerFacingS1ActionLabels(item.supported_action_families);
     if (actionLabels.length) card.append(el(documentRef, 'small', `지원 범위: ${actionLabels.join(', ')}`));
-    if (item.selector_schema === 'named_actor' || item.selector_schema === 'actor_pair') card.append(actorField('지정 직원', pending?.subject_actor_id ?? '', value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: value })));
-    if (item.selector_schema === 'actor_pair') card.append(actorField('상대 직원', pending?.counterparty_actor_id ?? '', value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: pending?.subject_actor_id, counterparty_actor_id: value })));
-    card.append(selectField('대상 범위', item.subject_scopes, subject, value => stage({ operation: 'activate', template_id: item.id, subject_scope: value, counterparty_scope: counterparty })));
-    if (item.counterparty_scopes.length) card.append(selectField('상대 범위', item.counterparty_scopes, counterparty, value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: value })));
+    if (item.selector_schema === 'named_actor' || item.selector_schema === 'actor_pair') card.append(actorField('지정 직원', pending?.subject_actor_id ?? '', value => stage(mergeCsaSelectorActor({ item, operation: pendingSelector(), side: 'subject', actorId: value, actors: catalog().actors }))));
+    if (item.selector_schema === 'actor_pair') card.append(actorField('상대 직원', pending?.counterparty_actor_id ?? '', value => stage(mergeCsaSelectorActor({ item, operation: pendingSelector(), side: 'counterparty', actorId: value, actors: catalog().actors }))));
+    card.append(selectField('대상 범위', item.subject_scopes, subject, value => stage(mergeCsaSelectorScope({ item, operation: pendingSelector(), side: 'subject', scope: value, actors: catalog().actors }))));
+    if (item.counterparty_scopes.length) card.append(selectField('상대 범위', item.counterparty_scopes, counterparty, value => stage(mergeCsaSelectorScope({ item, operation: pendingSelector(), side: 'counterparty', scope: value, actors: catalog().actors }))));
     const choose = el(documentRef, 'button', pending ? '초안에 선택됨' : '초안에 담기'); choose.type = 'button'; choose.disabled = applying || Boolean(getBusy?.()) || Boolean(pending); choose.addEventListener('click', () => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty })); card.append(choose);
-    const selectorReady = item.selector_schema === 'none' || (item.selector_schema === 'named_actor' && Boolean(pending?.subject_actor_id)) || (item.selector_schema === 'actor_pair' && Boolean(pending?.subject_actor_id) && Boolean(pending?.counterparty_actor_id));
+    const selectorReady = item.selector_schema === 'none' || isCsaSelectorOperationReady(item, pendingSelector(), catalog().actors);
     choose.disabled = choose.disabled || !selectorReady;
-    if (item.selector_schema !== 'none') choose.addEventListener('click', () => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: pending?.subject_actor_id, counterparty_actor_id: pending?.counterparty_actor_id }));
     return card;
   }
 
