@@ -42,7 +42,7 @@ export function requestExecutionTiming(rule = {}) {
   } : null;
 }
 
-export function buildStoryContext(context, literalAction, { content, opening = false, feedbackText = '', csaOperation = null } = {}) {
+export function buildStoryContext(context, literalAction, { content, opening = false, feedbackText = '', csaOperation = null, ruleChangeEvent = null } = {}) {
   const state = context?.state?.state ?? {};
   const turns = Array.isArray(context?.turns) ? context.turns : [];
   const location = canonicalLocation(content, state.scene?.location_id);
@@ -91,11 +91,11 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     actors: canonicalActors(content, actorIds),
     clothing: state.clothing ?? {},
     active_rules: activeRules,
-    ...(csaOperation ? {
-      pending_csa_operation: {
-        type: 'csa_operation',
-        operation: csaOperation,
-        boundary: 'This exact visible app operation is the player action for this turn; enact its immediate world consequence naturally, then return to the player\'s literal intent.'
+    ...(ruleChangeEvent || csaOperation ? {
+      pending_rule_change_turn: {
+        type: 'rule_change_turn',
+        ...(ruleChangeEvent ?? { operation: csaOperation }),
+        boundary: 'This exact visible app operation is the player action for this turn. Announce the institutional change naturally in Story, enact only its bounded immediate consequence, and return to the player literal intent. Do not infer affection, desire, consent, or app awareness from compliance.'
       }
     } : {}),
     opening_contract: opening ? {

@@ -82,10 +82,10 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
   }
 
   return {
-    async *story({ context, literalAction = '', opening = false, content, feedbackText = '', feedbackReferenceStory = '', csaOperation = null, onTiming = null }) {
+    async *story({ context, literalAction = '', opening = false, content, feedbackText = '', feedbackReferenceStory = '', csaOperation = null, ruleChangeEvent = null, onTiming = null }) {
       const handle = await request({ model: storyModel, stream: true, thinking: { type: 'disabled' }, max_tokens: 5000, messages: [
         { role: 'system', content: STORY_SYSTEM_PROMPT },
-        { role: 'user', content: JSON.stringify({ opening, ...(feedbackReferenceStory ? { feedback_reference_story: String(feedbackReferenceStory).slice(0, 4000) } : {}), ...buildStoryContext(context, literalAction, { content, opening, feedbackText, csaOperation }) }) }
+        { role: 'user', content: JSON.stringify({ opening, ...(feedbackReferenceStory ? { feedback_reference_story: String(feedbackReferenceStory).slice(0, 4000) } : {}), ...buildStoryContext(context, literalAction, { content, opening, feedbackText, csaOperation, ruleChangeEvent }) }) }
       ] }, timeouts.storyTotalMs, 'r3_story_timeout', { firstContentMs: timeouts.storyFirstContentMs, promptContent: opening && !literalAction ? OPENING_PRODUCT_PROMPT : STORY_PRODUCT_PROMPT, onResponseHeaders: () => onTiming?.('story_response_headers') });
       try { yield* readOpenAiStream(handle.response, { firstDeadline: handle.firstDeadline, totalDeadline: handle.deadline, cancelFirst: handle.cancelFirst, abort: handle.abort, onFirstDelta: () => onTiming?.('story_first_delta') }); }
       catch (error) { throw handle.timedOut() ?? error; }

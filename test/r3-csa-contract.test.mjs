@@ -49,10 +49,16 @@ async function openGame(worker, gameId, auth) {
   assert.equal(opening.at(-1).data.status, 'committed');
 }
 
-test('R3 CSA catalog remains the bounded nine-template catalog', () => {
+test('R3 CSA catalog is the bounded 21-slot canonical catalog with explicit lineage', () => {
   const catalog = createR3CsaCatalog(content.csaPresets);
   assert.deepEqual(catalog.items.map(item => item.id), R3_CSA_TEMPLATE_IDS);
-  assert.equal(catalog.items.length, 9);
+  assert.equal(catalog.items.length, 21);
+  assert.deepEqual(catalog.items.slice(0, 7).map(item => item.tier), Array(7).fill('weak'));
+  assert.deepEqual(catalog.items.slice(7, 14).map(item => item.tier), Array(7).fill('medium'));
+  assert.deepEqual(catalog.items.slice(14).map(item => item.tier), Array(7).fill('strong'));
+  assert.equal(catalog.compatibility_lineage.no_bra_under_work_clothes, 'W1');
+  assert.equal(catalog.compatibility_lineage.work_nude, 'M2');
+  assert.ok(catalog.retired_template_ids.includes('continue_until_recipient_orgasm'));
 });
 
 test('bounded clothing projection remains a pure state projection; active UI path is a turn', () => {
@@ -60,6 +66,17 @@ test('bounded clothing projection remains a pure state projection; active UI pat
   const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee' }] });
   assert.equal(next.committed_turn, 4);
   assert.equal(next.clothing.heroine1.underwear_top, 'removed');
+});
+
+test('named strong selectors stay bounded and the server records one structured rule-change event', () => {
+  const state = { revision: 0, committed_turn: 0, scene: { present_actor_ids: ['heroine1'] }, csa_active: [], csa_rules: {}, clothing: {} };
+  const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'S2', subject_scope: 'female_employee', counterparty_scope: 'player', subject_actor_id: 'heroine1' }] });
+  const rule = next.csa_rules[next.csa_active[0]];
+  assert.equal(rule.template_id, 'S2');
+  assert.deepEqual(rule.selector, { subject_actor_id: 'heroine1' });
+  assert.equal(next.last_rule_change.type, 'rule_change_turn');
+  assert.equal(next.last_rule_change.slot, 'S2');
+  assert.throws(() => applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'S2', subject_scope: 'female_employee', subject_actor_id: 'not-registered' }] }), /actor_selector_invalid/);
 });
 
 test('visible APPLY uses exactly one Story/Observer/commit and never the zero-turn writer', async () => {
@@ -85,7 +102,7 @@ test('CHANGE then REMOVE each consume one turn and preserve historical Story chr
   const apply = await postTurn(worker, gameId, auth, { action_id: 'apply-2', expected_turn: 1, literal_action: 'Apply a rule', csa_operation: { operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' } });
   const ruleId = apply.at(-1).data.context.state.state.csa_active[0];
   const change = await postTurn(worker, gameId, auth, { action_id: 'change-2', expected_turn: 2, literal_action: 'Change the selected rule', csa_operation: { operation: 'update', id: ruleId, template_id: 'work_in_underwear_only', subject_scope: 'female_employee' } });
-  assert.equal(change.at(-1).data.status, 'committed'); assert.equal(change.at(-1).data.context.state.state.csa_rules[ruleId].template_id, 'work_in_underwear_only');
+  assert.equal(change.at(-1).data.status, 'committed'); assert.equal(change.at(-1).data.context.state.state.csa_rules[ruleId].template_id, 'M1');
   const remove = await postTurn(worker, gameId, auth, { action_id: 'remove-2', expected_turn: 3, literal_action: 'Remove the selected rule', csa_operation: { operation: 'deactivate', id: ruleId } });
   const final = remove.at(-1).data.context; assert.equal(final.state.committed_turn, 3); assert.equal(final.state.state.csa_active.length, 0); assert.equal(final.turns.length, 4); assert.match(final.turns[1].story_text, /Apply/); assert.match(final.turns[2].story_text, /Change/); assert.match(final.turns[3].story_text, /Remove/);
 });
@@ -116,6 +133,11 @@ test('frontend CSA draft UI uses one existing turn handoff and no legacy app wri
   const html = fs.readFileSync(new URL('../frontend-r3/index.html', import.meta.url), 'utf8');
   assert.match(source, /stageCsaOperation/); assert.match(source, /미적용 변경 1건/); assert.match(source, /onOperation/); assert.match(source, /overlay\.hidden = true/); assert.match(source, /상식개변 적용/); assert.doesNotMatch(source, /client\.csa|\/api\/app-state|\/api\/app-validate|batch/i);
   assert.match(html, /data-tab="home"/); assert.match(html, /data-tab="player"/); assert.match(html, /data-tab="npc"/); assert.match(html, /data-tab="csa"/); assert.match(html, /data-tab="manual"/); assert.match(app, /csa_operation/); assert.match(app, /client\.turn/); assert.match(app, /return submit\(literalAction/);
+});
+
+test('frontend CSA exposes the three canonical tiers and no exact-nine label', () => {
+  const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8');
+  assert.match(source, /csa-tier-tabs/); assert.match(source, /dataset\.tier/); assert.match(source, /약함/); assert.match(source, /중간/); assert.match(source, /강함/); assert.doesNotMatch(source, /9-rule/);
 });
 
 test('Story/Observer boundary states that compliance does not prove private positive emotion', () => {

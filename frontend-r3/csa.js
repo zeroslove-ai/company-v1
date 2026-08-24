@@ -48,7 +48,8 @@ export function replacementOperation(rule, item) {
     id: rule.id,
     template_id: item.id,
     subject_scope: validScope(item.subject_scopes, item.default_subject_scope),
-    counterparty_scope: validScope(item.counterparty_scopes, item.default_counterparty_scope)
+    counterparty_scope: validScope(item.counterparty_scopes, item.default_counterparty_scope),
+    ...(rule?.selector ?? {})
   };
 }
 
@@ -62,6 +63,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
   if (!overlay || !body || !open) return { sync() {} };
 
   let tab = 'home';
+  let tier = 'weak';
   let draft = null;
   let applying = false;
   let opener = null;
@@ -154,6 +156,11 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     select.addEventListener('change', () => onChange(select.value));
     wrap.append(select);
     return wrap;
+  }
+
+  function actorField(label, value, onChange, disabled = false) {
+    const actors = (catalog().actors ?? []).filter(actor => actor?.id && actor.id !== 'player');
+    return catalogField(label, [{ id: '', label: '대상 선택', disabled: true }, ...actors.map(actor => ({ id: actor.id, label: actor.name ?? actor.id }))], value, onChange, disabled);
   }
 
   function operationLiteral(operation) {
@@ -287,9 +294,15 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     card.append(el(documentRef, 'strong', `${item.strength ?? '규칙'} · ${item.label}`), el(documentRef, 'p', item.content_template ?? ''));
     const subject = pending?.subject_scope ?? item.default_subject_scope;
     const counterparty = pending?.counterparty_scope ?? item.default_counterparty_scope;
+    if (item.supported_action_families?.length) card.append(el(documentRef, 'small', `지원 행동군: ${item.supported_action_families.join(', ')}`));
+    if (item.selector_schema === 'named_actor' || item.selector_schema === 'actor_pair') card.append(actorField('지정 직원', pending?.subject_actor_id ?? '', value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: value })));
+    if (item.selector_schema === 'actor_pair') card.append(actorField('상대 직원', pending?.counterparty_actor_id ?? '', value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: pending?.subject_actor_id, counterparty_actor_id: value })));
     card.append(selectField('대상 범위', item.subject_scopes, subject, value => stage({ operation: 'activate', template_id: item.id, subject_scope: value, counterparty_scope: counterparty })));
     if (item.counterparty_scopes.length) card.append(selectField('상대 범위', item.counterparty_scopes, counterparty, value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: value })));
     const choose = el(documentRef, 'button', pending ? '초안에 선택됨' : '초안에 담기'); choose.type = 'button'; choose.disabled = applying || Boolean(getBusy?.()) || Boolean(pending); choose.addEventListener('click', () => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty })); card.append(choose);
+    const selectorReady = item.selector_schema === 'none' || (item.selector_schema === 'named_actor' && Boolean(pending?.subject_actor_id)) || (item.selector_schema === 'actor_pair' && Boolean(pending?.subject_actor_id) && Boolean(pending?.counterparty_actor_id));
+    choose.disabled = choose.disabled || !selectorReady;
+    if (item.selector_schema !== 'none') choose.addEventListener('click', () => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: pending?.subject_actor_id, counterparty_actor_id: pending?.counterparty_actor_id }));
     return card;
   }
 
@@ -299,8 +312,11 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     const current = el(documentRef, 'section'); current.append(el(documentRef, 'h4', `현재 활성 규칙 ${rules.length}개`));
     if (rules.length) rules.forEach(rule => current.append(activeCard(rule)));
     else current.append(el(documentRef, 'p', '현재 활성 규칙이 없습니다.'));
-    body.append(current, el(documentRef, 'h4', '9-rule MVP 프리셋'));
-    const presets = el(documentRef, 'div'); presets.className = 'csa-app-status-grid'; catalog().items.forEach(item => { const card = presetCard(item); if (card) presets.append(card); }); body.append(presets);
+    body.append(current, el(documentRef, 'h4', '21-slot canonical catalog'));
+    const tierTabs = el(documentRef, 'nav'); tierTabs.className = 'csa-tier-tabs';
+    for (const value of ['weak', 'medium', 'strong']) { const button = el(documentRef, 'button', { weak: '약함', medium: '중간', strong: '강함' }[value]); button.type = 'button'; button.dataset.tier = value; button.setAttribute('aria-selected', value === tier ? 'true' : 'false'); button.addEventListener('click', () => { tier = value; render(); }); tierTabs.append(button); }
+    body.append(tierTabs);
+    const presets = el(documentRef, 'div'); presets.className = 'csa-app-status-grid'; presets.dataset.tier = tier; catalog().items.filter(item => (item.tier ?? item.strength) === tier).forEach(item => { const card = presetCard(item); if (card) presets.append(card); }); body.append(presets);
   }
 
   function renderManual() {

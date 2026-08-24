@@ -14,7 +14,7 @@ export function loadCanonicalCompanyR3Content(root = process.cwd()) {
     positions: readJson(root, 'positions.json'),
     bodyTypes: readJson(root, 'body_types.json'),
     speechStyles: readJson(root, 'speech_styles.json')
-    ,csaPresets: readJson(root, 'csa_presets.json')
+    ,csaPresets: readJson(root, 'csa_catalog.json')
     ,mediaCatalog: readJson(root, 'media_catalog.json')
   });
 }

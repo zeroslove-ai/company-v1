@@ -6,7 +6,7 @@ import map from '../../content/map.json' with { type: 'json' };
 import organization from '../../content/organization.json' with { type: 'json' };
 import positions from '../../content/positions.json' with { type: 'json' };
 import speechStyles from '../../content/speech_styles.json' with { type: 'json' };
-import csaPresets from '../../content/csa_presets.json' with { type: 'json' };
+import csaPresets from '../../content/csa_catalog.json' with { type: 'json' };
 import mediaCatalog from '../../content/media_catalog.json' with { type: 'json' };
 import { createCompanyR3Content } from './content.js';
 
