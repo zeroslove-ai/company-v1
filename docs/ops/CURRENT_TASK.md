@@ -1,18 +1,18 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-csa-final-semantic-live-acceptance-browser-recovery-v1
-Mode: ACCEPTANCE-ONLY RECOVERY — BROWSER OBSERVABILITY / S1 SUPPORTED-vs-UNSUPPORTED / S7 FINAL MANDATORY LANE
-Updated: 2026-08-25 04:22 KST
+Status: READY
+Task ID: company-r3-csa-bounded-selector-coherence-s7-transport-v1
+Mode: NARROW P1 REPAIR — FRONTEND BOUNDED SELECTOR COHERENCE / S7 TRANSPORT / FINAL MANDATORY CSA SEMANTIC CLOSURE
+Updated: 2026-08-25 05:11 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main before this overwrite: `30e07f2dcd859924fffe79f28d45907493e6dd5f`
-Previous task: `company-r3-csa-s1-active-authority-story-binding-v1`
-Previous terminal: Issue #68 `5400147907`
-Operator review: Issue #68 `5400182417`
+Registration base main before this overwrite: `587bdd014950fe1ef6e6773665a013bcd7c7e6a8`
+Previous task: `company-r3-csa-final-semantic-live-acceptance-browser-recovery-v1`
+Previous terminal: Issue #68 `5400391054`
+Operator review: Issue #68 `5400801857`
 Accepted executable implementation: `f607e4e868e18bde61ba8c46d508d3a502551c6f`
 Accepted TEST API: `game-proxy-company-r3` / `769cd525-7b56-40cf-ad0b-f6c2132b9802`
-Accepted TEST frontend: `gamebuilder-company-r3` / `9bb754d0-632c-42e5-83b1-441ce6079688`
+Accepted TEST frontend before this repair: `gamebuilder-company-r3` / `9bb754d0-632c-42e5-83b1-441ce6079688`
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
 Preserved evidence games — READ ONLY, no reset/reuse/mutation:
@@ -21,272 +21,265 @@ Preserved evidence games — READ ONLY, no reset/reuse/mutation:
 - `ab44e91c-5eaa-4fb1-9396-138073ec5257`
 - `1ef46111-5a09-43cd-b61e-c0d36df04d12`
 - `c04e91e5-e18f-492f-8b85-32104bb5c3b1`
+- `babfa5a6-719b-4dbe-a392-cb2c62cc1faa`
 
 ## Authority / reuse law
 
 - Work on `main` only.
 - Reuse this exact `docs/ops/CURRENT_TASK.md` path. Never create another CURRENT_TASK file, ops branch, feature branch, or implementation PR.
-- Mandatory read order: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, terminal `5400147907`, operator review `5400182417`, then this task.
-- Actual deployed visible browser UI is the product gate. Read-only API/DB/job/context evidence may identify the footprint of an already-submitted visible action, but may never substitute for visible gameplay.
-- Freeze accepted executable `f607e4e...`. This task authorizes ZERO source/test/content/prompt/provider/model/config/timeout/secret edits.
-- Freeze TEST API `769cd525...` and TEST frontend `9bb754d0...`. This task authorizes ZERO redeploy unless an unexpected source/version drift is proven; drift => BLOCKED, do not normalize it.
-- Freeze every previously accepted CSA lane. Do not rerun for pass-seeking.
+- Mandatory read order: `AGENTS.md`, `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`, terminal `5400391054`, operator review `5400801857`, then this task.
+- Preserve A′/R3 architecture and current owner CSA canon.
+- Repair only the proven frontend bounded-selector draft/transport boundary.
 - No Production access. No OWNER_READY claim.
 
 Success terminal:
-`CSA_FINAL_MANDATORY_SEMANTIC_LANES_CLOSED_AWAITING_OPERATOR_REVIEW`
+`CSA_S7_SELECTOR_TRANSPORT_FIXED_AND_MANDATORY_CSA_SEMANTICS_CLOSED_AWAITING_OPERATOR_REVIEW`
 
-Product-blocked terminal:
-`CSA_FINAL_MANDATORY_SEMANTIC_LANES_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-Browser-control-blocked terminal:
-`CSA_FINAL_MANDATORY_SEMANTIC_LANES_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Blocked terminal:
+`CSA_S7_SELECTOR_TRANSPORT_OR_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ---
 
-# 0. Operator classification of previous BLOCKED
+# 0. Accepted/frozen live evidence
 
-Previous task implemented the S1 ordinary-turn Story projection repair and passed deterministic validation:
+From fresh game `babfa5a6-719b-4dbe-a392-cb2c62cc1faa`, freeze as LIVE GREEN:
 
-- changed exactly `runtime-r3/domain/csa.js`, `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-csa-contract.test.mjs`;
-- focused CSA `20/20`;
-- full npm `564/564`;
-- syntax/catalog/diff checks PASS;
-- exact S1 family array unchanged: `kiss`, `sexual_touch`, `genital_exposure`, `genital_touch`, `oral`, `penetration`;
-- active S1 Story binding now provides PLAYER as issuer, exact selected subject/counterparty identities/scopes, exact six-family list, explicit unsupported non-authority boundary, and literal-agency preservation;
-- no catalog/durable-state/store/reducer/DB/provider-model semantic redesign.
+- browser readiness, valid Setup, Opening;
+- S1 activation exactly +1 with subject/instructed employee 서원희 and bounded counterparty 박정우;
+- S1 supported-family literal `서원희 차장이 박정우 팀장에게 키스하도록 업무지시한다.` committed as Turn 2 with PLAYER as issuer, 서원희 performer, 박정우 counterparty, kiss preserved and bounded official authority applied;
+- no actor reversal, family substitution, generic rule-confirmation detour, or compliance-to-feeling rewrite;
+- S1 unsupported literal `서원희 차장에게 성적인 노래를 부르라고 업무지시한다.` committed as Turn 3; singing did NOT become mandatory and was NOT converted into any supported family;
+- four choices + free input returned after both ordinary turns;
+- no browser observability failure, retry, resend, second game, DB repair, Production, or preserved-game mutation.
 
-TEST API was deployed once to `769cd525-7b56-40cf-ad0b-f6c2132b9802`; frontend remained `9bb754d0-632c-42e5-83b1-441ce6079688`.
+Freeze all earlier accepted CSA evidence as well: 7/7/7 presentation, Weak lifecycle, W5 exact transport/actor direction, M1/M3, M5 direct world-norm, named S2/S3/S5, multi-rule durability/residue, History, refresh, mobile, MM/private-app/compliance-vs-feeling separation.
 
-Fresh game `c04e91e5-e18f-492f-8b85-32104bb5c3b1` completed Setup + Opening and visibly submitted S1 APPLY once for 서원희/박정우. Browser DOM snapshot, screenshot, and visual recovery then timed out before a reliable committed-state readback. No supported literal was submitted. Therefore the terminal is accepted as BROWSER/HARNESS OBSERVABILITY BLOCKED, not a new product P1.
+Do NOT rerun any of those for pass-seeking.
 
-Do not access or continue that game. Preserve it read-only.
-
----
-
-# 1. Frozen GREEN evidence — do not reopen
-
-Absent new deterministic contradictory evidence, freeze:
-
-- three visible tiers `약함 | 중간 | 강함`, exactly 7/7/7 = 21;
-- Korean S1 family presentation and no player-facing raw IDs;
-- Weak APPLY/CHANGE/REMOVE lifecycle + residue behavior;
-- W5 exact transport and actor direction;
-- M1 clothing;
-- M3 exact pair/direction;
-- M5 direct semen-consumption fatigue/stress-recovery world-norm + compatible active-rule behavior;
-- named Strong S2/S3/S5;
-- prior multi-rule durability/residue;
-- non-work/social agency;
-- History chronology;
-- refresh/re-entry duplicate safety;
-- mobile ~390x844 usability;
-- MM/private-app/compliance-vs-feeling separation;
-- deterministic S1 active-authority binding implementation `f607e4e...`.
-
-Only still-unclosed mandatory semantic lanes:
-
-1. live S1 supported-family execution in exact selected scope;
-2. live S1 unsupported outside-family non-authority boundary;
-3. live Strong multi-NPC S7, or S4 only under genuine precondition-only fallback.
+The only mandatory semantic lane still open is live S7 Strong multi-NPC training designation + one follow-up + reconstruction.
 
 ---
 
-# 2. Read-only preflight / browser readiness barrier
+# 1. Accepted P1 / first broken boundary
 
-Before creating any game:
+Terminal `5400391054` reached S7 only after both S1 gates passed.
 
-1. verify current `main` executable is source-equivalent to accepted `f607e4e...` plus docs/lifecycle descendants only;
-2. verify TEST API is exactly `769cd525-7b56-40cf-ad0b-f6c2132b9802` or proven exact source-equivalent;
-3. verify TEST frontend is exactly `9bb754d0-632c-42e5-83b1-441ce6079688` or proven exact source-equivalent;
-4. no deployment mutation;
-5. open fresh TEST page and prove stable browser control BEFORE Setup:
-   - DOM read succeeds;
-   - one screenshot succeeds;
-   - Setup fields can be read;
-   - wait a short bounded interval and repeat one DOM read to prove the page remains observable.
+Visible S7 selection:
+- rule: `성적 업무 교육·훈련 지정권` / `sexual_work_training_designation`;
+- trainer: 서원희 / `heroine1`;
+- trainee: 윤민아 / `heroine2`;
+- both are registered adult female employees;
+- roles were visibly not swapped.
 
-If browser readiness fails before game creation, STOP browser-control-blocked and create zero games.
+One visible APPLY click produced:
+`입력이 서버에 전송되거나 저장되지 않았습니다. 내용을 확인한 뒤 직접 다시 제출할 수 있습니다.`
 
-If executable/deployment drift is detected, STOP product-blocked; do not repair or redeploy.
+No S7 job/turn/commit existed; game stayed Turn 3. No retry/resend and no S4 fallback. This is accepted P1.
 
-No test rerun is required because source is frozen.
+Source inspection proves the owning boundary is frontend selector coherence, not server semantics:
 
----
-
-# 3. Exactly one fresh visible TEST game
-
-After readiness PASS, create exactly one new disposable TEST game through visible Setup.
-
-Use a deterministic valid adult profile such as:
-
-- name `김도현`
-- age `30`
-- height `180`
-- weight `75`
-- penis length `15`
-- current valid visible department/position/body/speech IDs.
-
-Validate visible values before the single Setup submit. Click `설정 완료` exactly once.
-
-Opening exactly once. Require visible Turn 0 Story, four choices, and free input before CSA mutation.
-
-No second game, reset, regeneration, direct state/actor seeding, alternate fixture, or sample-until-pass.
+- canonical S7 allows subject scopes `[female_employee, male_employee, company_employee]` and counterparty scopes `[female_employee, male_employee, company_employee]`;
+- therefore 서원희 -> 윤민아 is a valid canonical S7 pair;
+- S7 default subject scope is `female_employee`, default counterparty scope is `male_employee`;
+- `frontend-r3/csa.js::actorField()` currently lists all non-player actors regardless of the operation's selected scope;
+- choosing 윤민아 can therefore leave hidden `counterparty_scope=male_employee` unless scope is separately synchronized;
+- `presetCard()` field callbacks stage partial activate operations and can drop sibling `subject_actor_id` / `counterparty_actor_id` while editing scope or another selector field;
+- server `runtime-r3/domain/csa.js` correctly rejects actor/scope mismatch before reserve. Do NOT weaken server validation.
 
 ---
 
-# 4. S1 activation prerequisite
+# 2. Required repair — bounded selector coherence only
 
-Use visible CSA controls to activate S1 `성적 업무지시권` once.
+Use the current catalog/actor metadata as the only authority. Do not invent new semantic categories.
 
-Preferred exact pair if available:
+For every current `named_actor` / `actor_pair` preset UI:
 
-- subject / instructed employee: `heroine1` / 서원희
-- counterparty / bounded action context: `general_park_jungwoo` / 박정우
+1. visible actor choice and staged operation must always agree;
+2. sibling selector IDs must survive edits unless they become invalid;
+3. selecting an actor under an incompatible current scope must resolve to a compatible allowed scope using existing catalog semantics:
+   - if current scope already matches actor, preserve it;
+   - otherwise prefer the actor's exact gender scope (`female_employee` or `male_employee`) when allowed;
+   - otherwise use `company_employee` when allowed;
+   - otherwise the actor selection is not valid/apply-ready;
+4. if the user explicitly changes a scope so an already-selected actor becomes incompatible, clear that actor and require re-selection rather than submit a hidden invalid combination;
+5. `player` scope behavior for existing named presets must remain unchanged;
+6. selector edits must merge the current pending operation rather than rebuild a partial operation that silently drops the other selected actor;
+7. global Apply must never call `onOperation` for a selector operation that is visibly incomplete or actor/scope-incoherent;
+8. do not add fuzzy actor matching, semantic LLM classification, second catalog, or a generic free-form selector DSL.
 
-If unavailable, choose another exact visible valid registered adult pair and record IDs/names/scopes. No seeding.
+For S7 specifically, visible trainer 서원희 + trainee 윤민아 must produce a structured activation equivalent to:
 
-Require:
+```json
+{
+  "operation": "activate",
+  "template_id": "sexual_work_training_designation",
+  "subject_scope": "female_employee",
+  "counterparty_scope": "female_employee",
+  "subject_actor_id": "heroine1",
+  "counterparty_actor_id": "heroine2"
+}
+```
 
-- one visible APPLY only;
+The existing S7 semantic direction remains trainer(subject) -> trainee(counterparty). Do not change canon or server Story binding.
+
+---
+
+# 3. Allowed source scope
+
+Expected changed files only:
+
+- `frontend-r3/csa.js`
+- `frontend-r3/csa-draft.js` only if the cleanest single-owner merge/coherence helper belongs there
+- `test/r3-csa-contract.test.mjs`
+
+One adjacent frontend CSA test file may be changed/added only if an existing direct UI-test owner already exists and is materially better than putting the regression in `r3-csa-contract.test.mjs`. Report why.
+
+Forbidden source changes:
+
+- `content/csa_catalog.json` IDs, scopes, families, labels, or semantics;
+- `runtime-r3/domain/csa.js` server validation or rule semantics;
+- `runtime-r3/domain/memory.js` / provider S1 binding;
+- worker/store/supabase-store/reducer;
+- schema/RPC/migrations;
+- media/TTS;
+- provider/model/config/secret/timeout.
+
+If deterministic evidence says the fix requires a forbidden owner, STOP instead of broadening.
+
+---
+
+# 4. Deterministic regression requirements
+
+At minimum prove directly:
+
+1. S7 catalog remains unchanged and female -> female is canonically allowed;
+2. starting from S7 defaults, selecting trainer `heroine1` and trainee `heroine2` produces exact coherent scopes `female_employee` / `female_employee` and preserves both actor IDs;
+3. the resulting exact S7 operation is accepted by existing `applyR3Csa()` server validation without changing that validator;
+4. actor-pair sibling ID preservation: changing one actor does not silently drop the other valid actor;
+5. changing subject/counterparty scope preserves a compatible sibling actor and clears an incompatible actor;
+6. S1 existing female `heroine1` -> male `general_park_jungwoo` operation stays unchanged and exact;
+7. W5 exact female -> male selector path remains green;
+8. named S2/S3/S5 selector operation remains bounded and does not regress `player`/company scope behavior;
+9. incomplete actor_pair cannot become Apply-ready;
+10. no hidden invalid actor/scope operation reaches `onOperation`;
+11. 21-slot 7/7/7 catalog tests and exact S1 six-family tests remain green;
+12. S1 active-authority Story projection regressions from `f607e4e...` remain green.
+
+Prefer pure operation/context assertions plus one existing DOM/UI-level regression if the current test harness supports it. Do not add a heavyweight browser test framework solely for this repair.
+
+Run:
+- focused CSA/front-end selector tests;
+- full `npm` test suite;
+- `node --check` for changed JS/MJS;
+- catalog JSON sanity/read-only check;
+- `git diff --check`.
+
+No DB writes during deterministic validation.
+
+---
+
+# 5. TEST deployment
+
+Only after deterministic GREEN:
+
+- deploy changed `gamebuilder-company-r3` frontend to TEST exactly once;
+- record implementation SHA and exact new frontend Worker version;
+- do NOT redeploy API; API must remain `game-proxy-company-r3 / 769cd525-7b56-40cf-ad0b-f6c2132b9802` or proven exact source-equivalent;
+- no Production;
+- no DB/schema/migration/ledger/history mutation.
+
+Unexpected API/source drift => STOP. Do not normalize it.
+
+---
+
+# 6. Fresh visible S7 acceptance — exactly one game
+
+After exact TEST frontend deployment:
+
+## 6.1 Readiness
+Before creating a game, fresh page must pass:
+- DOM read;
+- one screenshot;
+- Setup fields readable;
+- bounded repeat DOM read.
+
+If readiness fails, STOP as harness/browser-control blocked; create zero games and patch nothing further.
+
+## 6.2 Exactly one game
+Create exactly one fresh adult TEST game with a valid visible Setup (e.g. 김도현 / 30 / 180 / 75 / 15 and current valid visible catalog IDs), single submit, single Opening.
+
+Require visible Turn 0, four choices, free input.
+
+No second game/reset/regeneration/seeding/sample-until-pass.
+
+## 6.3 S7 selector/transport gate
+Open Strong S7.
+
+Use exact visible pair if available:
+- trainer: 서원희 / `heroine1`;
+- trainee: 윤민아 / `heroine2`.
+
+Because both are female, visible scope/draft state must coherently resolve to female/female before Apply. Record visible selectors and, if available through non-mutating frontend state inspection, exact staged operation.
+
+Click APPLY exactly once.
+
+PASS requires:
+- one `/turn` gameplay submission only;
+- exact structured S7 operation with both actor IDs and coherent scopes;
 - exactly +1 committed Story turn;
-- selected pair exact;
-- S1 active exactly once;
-- Story grounded as institutional announcement, no private-app institutional source;
-- four choices + free input return.
+- exact trainer/trainee identities and roles, no swap;
+- grounded institutional training designation;
+- no unnamed replacement/bystander injection;
+- no private-app institutional source;
+- no obedience/affinity/corruption meter;
+- four choices + free input return;
+- S7 active exactly once.
 
-This is prerequisite reconstruction only, not a request to re-prove the already accepted implementation.
+If valid S7 still does not send/store/commit, STOP P1. No S4 fallback and no second S7 sample.
 
----
-
-# 5. S1 supported-family gate — mandatory
-
-Use `kiss` / `키스` unless the chosen exact pair differs, in which case adapt names only while preserving semantic form.
-
-For preferred pair submit exactly once through visible free input:
-
-`서원희 차장이 박정우 팀장에게 키스하도록 업무지시한다.`
-
-PASS requires all of:
-
-- player remains the issuer of the work instruction;
-- 서원희 remains the instructed employee/performer;
-- 박정우 remains the selected action counterparty/target context;
-- action remains 키스, not another family;
-- S1 treats this supported instruction as bounded official work authority in this same Story turn;
-- no generic rule-confirmation discussion, future deferral, actor reversal, unrelated participant, or substituted action;
-- compliance does not manufacture desire/romance/comfort/arousal/private consent-as-feeling/personality rewrite;
-- four choices + free input remain after commit.
-
-First deterministic failure => STOP product-blocked. No second supported sample.
-
----
-
-# 6. S1 unsupported boundary — mandatory, only after supported PASS
-
-With the same S1 still active, submit exactly one clearly unsupported instruction outside all six families.
-
-Preferred literal:
-
-`서원희 차장에게 성적인 노래를 부르라고 업무지시한다.`
-
-Singing is outside kiss / sexual_touch / genital_exposure / genital_touch / oral / penetration.
+## 6.4 Ordinary follow-up
+Only after S7 PASS, submit one visible ordinary free input asking the designated trainer to begin or discuss the designated training with the trainee.
 
 PASS requires:
+- trainer remains 서원희;
+- trainee remains 윤민아;
+- roles/direction coherent;
+- player literal intent preserved;
+- no bystander injection or personality/consent rewrite;
+- +1 ordinary commit, four choices + free input.
 
-- Story preserves that the player issued the singing request/instruction;
-- S1 itself does NOT make singing institutionally mandatory;
-- Story may show ordinary voluntary acceptance, refusal, negotiation, awkwardness, or character reaction;
-- no conversion of singing into a supported family;
-- no generic unlimited sexual-command DSL;
-- exact selected S1 actor scope remains coherent.
+## 6.5 Same-game reconstruction
+Perform one intentional read-only refresh/re-entry of the same fresh game:
+- no duplicate Story/Commit;
+- S7 active exactly once;
+- exact trainer/trainee selector state reconstructs coherently;
+- last Story/choices/MM/scene canonical;
+- no stale local draft or raw internal IDs.
 
-If Story says S1 compels the singing order, or silently converts it to a supported family, deterministic P1 => STOP immediately. No second unsupported sample.
-
----
-
-# 7. Strong multi-NPC gate — S7 preferred
-
-Only after both S1 gates PASS.
-
-Use visible S7 `성적 업무 교육·훈련 지정권` with exact registered adult trainer and trainee.
-
-PASS requires:
-
-- APPLY exactly +1 gameplay turn;
-- exact trainer ID/name and trainee ID/name;
-- roles/direction not swapped;
-- institutional training designation grounded without unnamed replacement or bystander injection;
-- no generic obedience/affinity/corruption metric;
-- one ordinary visible follow-up asks the designated trainer to begin/discuss the designated training with the trainee;
-- follow-up preserves trainer/trainee roles and player literal intent.
-
-S4 fallback is allowed ONLY when S7 is genuinely unreachable due ordinary scene/precondition reality BEFORE any valid S7 operation is submitted.
-
-If a valid S7 operation/Story deterministically fails, STOP product-blocked. Do not hide a failure by switching to S4.
-
-If S4 fallback is legitimately used, prove authority alone does not auto-inject a bystander and joint participation occurs only after actual player approval/direction with exact registered adults.
+No need to rerun S1/M5/Weak/History/mobile unless this new frontend change visibly contradicts a frozen behavior.
 
 ---
 
-# 8. Browser-control recovery law
-
-This task exists because the previous run lost observability after a visible action. Therefore:
-
-If browser DOM/screenshot inspection fails AFTER any gameplay action is submitted:
-
-1. DO NOT click/resend/repeat/recreate the action;
-2. record the last visible action and expected turn;
-3. use read-only job/context evidence only to determine whether that already-submitted action has zero footprint, in-flight footprint, failed footprint, or one committed footprint;
-4. allow at most ONE read-only browser reattachment/re-entry to the SAME game;
-5. after reattachment, visible UI must coherently reconstruct exactly one state/commit before continuing;
-6. if visible UI remains unreadable or state cannot be reconciled, STOP `CSA_FINAL_MANDATORY_SEMANTIC_LANES_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`;
-7. read-only evidence is not permission to continue gameplay without visible UI;
-8. action resend count must remain 0.
-
-Do not classify a browser-control timeout as a product defect unless visible/reliable product evidence proves one.
-
----
-
-# 9. Final same-game reconstruction
-
-After supported S1 + unsupported boundary + S7/S4 all PASS:
-
-- perform one intentional read-only refresh/re-entry of the same fresh game;
-- verify no duplicate Story/Commit;
-- active rules exactly once and independently inspectable;
-- four choices + free input reachable;
-- no raw internal IDs or private-app institutional source;
-- relevant MM, if present, stays in the same committed reality and does not convert compliance into desire.
-
-Do not rerun broad History/mobile/Weak/M1/M3/M5/W5/named-Strong lanes absent a new contradiction.
-
----
-
-# 10. Stop / safety law
+# 7. Stop / safety law
 
 At first deterministic P0/P1 product defect:
-
 - STOP immediately;
 - preserve fresh game read-only;
-- no retry/resample/hotfix;
-- terminal `CSA_FINAL_MANDATORY_SEMANTIC_LANES_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`.
+- no retry/resample/hotfix in the same live run;
+- terminal `CSA_S7_SELECTOR_TRANSPORT_OR_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`.
 
-At unrecovered browser observation failure:
+Browser observability failure after an action:
+- never resend/reclick the action;
+- read-only job/context may classify its footprint;
+- at most one read-only reattachment to the same game;
+- if visible state cannot be reconstructed, STOP blocked without another product patch.
 
-- STOP without product patch;
-- terminal `CSA_FINAL_MANDATORY_SEMANTIC_LANES_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`.
-
-Missing any supported S1, unsupported S1, or S7/S4 mandatory lane is not success.
-
-Forbidden throughout:
-
-- source/test/content/prompt/provider/model/config/secret/timeout edits;
-- API/frontend redeploy;
-- DB schema/migration/ledger/history repair/backfill;
-- direct DB gameplay mutation;
-- `supabase db push`;
+Forbidden:
 - Production access/deploy;
+- API redeploy;
+- DB schema/migration/history repair/backfill/direct gameplay mutation;
+- `supabase db push`;
+- provider/model/config/secret/timeout changes;
 - previous evidence-game access/mutation/reset;
 - gameplay retry/regeneration/sample-until-pass;
 - direct API gameplay substitution;
@@ -295,57 +288,35 @@ Forbidden throughout:
 
 ---
 
-# 11. Terminal report contract
+# 8. Terminal report contract
 
-Report exactly:
-
+Report:
 - start/final main SHA;
-- current task blob at lease + final lifecycle blob;
-- source freeze proof against `f607e4e...`;
-- TEST API/frontend versions and redeploy count = 0;
-- pre-game browser readiness evidence;
-- validated Setup values;
+- implementation SHA;
+- final CURRENT_TASK blob;
+- exact changed files;
+- deterministic selector-coherence root cause and repair;
+- focused/full/syntax/catalog/diff results;
+- API version unchanged;
+- frontend old/new TEST Worker versions;
+- deploy counts;
+- browser readiness;
 - fresh game ID;
-- S1 activation exact pair, turn number, +1 result, active readback;
-- supported literal + exact Story/authority/actor result;
-- unsupported literal + proof S1 did not make it mandatory;
-- S7 exact trainer/trainee + follow-up, or S4 fallback with explicit precondition-only reason;
-- final active-rule state + refresh duplicate result;
-- MM/private-app/compliance-vs-feeling result;
-- browser observation failures if any, read-only footprint classification, reattachment count, resend count;
-- source/test/content/provider/model/config writes = 0;
-- DB schema/migration/history-repair/direct writes = 0;
+- exact S7 visible trainer/trainee/scopes and staged/Network operation evidence;
+- S7 +1 Story/Observer/commit result;
+- ordinary follow-up result;
+- refresh/re-entry duplicate + selector reconstruction result;
+- source boundaries respected;
+- DB/schema/migration/history writes = 0;
 - Production = 0;
 - preserved evidence access/mutation = 0;
-- fresh games = exactly 1 after readiness PASS, or 0 if readiness failed before Setup;
+- browser reattachment count and gameplay resend count;
 - P0/P1/P2/P3 findings.
 
 Success:
-`CSA_FINAL_MANDATORY_SEMANTIC_LANES_CLOSED_AWAITING_OPERATOR_REVIEW`
+`CSA_S7_SELECTOR_TRANSPORT_FIXED_AND_MANDATORY_CSA_SEMANTICS_CLOSED_AWAITING_OPERATOR_REVIEW`
 
-Product blocked:
-`CSA_FINAL_MANDATORY_SEMANTIC_LANES_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-Browser-control blocked:
-`CSA_FINAL_MANDATORY_SEMANTIC_LANES_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Blocked:
+`CSA_S7_SELECTOR_TRANSPORT_OR_LIVE_ACCEPTANCE_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
-
----
-
-# Lifecycle terminal — 2026-08-25 KST
-
-Terminal classification: `CSA_FINAL_MANDATORY_SEMANTIC_LANES_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-- Execution identity: `company-r3-csa-final-semantic-live-acceptance-browser-recovery-v1` + lease blob `d9e64a85367d2545a283844bd8713448ca7a1ae8` + expected branch `main`.
-- Start/final main SHA: `4636c60ce5470690a3b37b9bfb367955db3a0cc1` (no source descendants or remote delta).
-- Accepted executable frozen at `f607e4e868e18bde61ba8c46d508d3a502551c6f`; TEST API `769cd525-7b56-40cf-ad0b-f6c2132b9802`; TEST frontend `9bb754d0-632c-42e5-83b1-441ce6079688`; redeploy count `0`.
-- Browser readiness passed before Setup: DOM read, screenshot, Setup-field reads, and bounded repeat DOM read all succeeded.
-- Exactly one fresh disposable game: `babfa5a6-719b-4dbe-a392-cb2c62cc1faa`. Setup values were visibly validated as name `김도현`, age `30`, height `180`, weight `75`, penis length `15`, with the visible valid defaults `브랜드전략팀 (히로인 5명)`, `인턴 (신입 관찰)`, `균형 잡힌 체형`, and `정중한 존댓말`. Opening was exactly once and returned Turn 0, four choices, free input, and enabled controls.
-- S1 prerequisite: one visible APPLY, subject/instructed employee `서원희`, counterparty `박정우`, target scope `여성 직원`, counterparty scope `남성 직원`; one committed Story turn (+1), Turn 1; active S1 read back exactly once in the visible app.
-- Supported literal submitted once through visible free input: `서원희 차장이 박정우 팀장에게 키스하도록 업무지시한다.` It committed as Turn 2. Visible Story preserved the player as issuer, `서원희` as instructed employee, `박정우` as counterparty, and the kiss action; no actor reversal, family substitution, generic rule confirmation, or feeling/consent rewrite.
-- Unsupported literal submitted once through visible free input: `서원희 차장에게 성적인 노래를 부르라고 업무지시한다.` Play Record visibly preserved the literal as Turn 3 input. Story did not make singing institutionally mandatory and did not convert it to a supported family; it showed ordinary reaction/document follow-up. Turn 3 committed and returned four choices/free input.
-- S7 valid operation: visible Strong `성적 업무 교육·훈련 지정권`, trainer `서원희`, trainee `윤민아`, exact selected registered adults and non-swapped roles. After exactly one visible APPLY, the UI reported `입력이 서버에 전송되거나 저장되지 않았습니다. 내용을 확인한 뒤 직접 다시 제출할 수 있습니다.` The game remained at Turn 3; no S7 +1 commit occurred. This is a deterministic failure of a valid S7 operation, so S4 fallback was not attempted.
-- Final browser state before handoff: Turn 3, no duplicate Story/Commit, active S1 still visible once before the S7 attempt, four choices/free input reachable, Mind Monitor showed no information for the turn, and no raw internal IDs or private-app institutional source was observed. No refresh/re-entry was performed because the first valid S7 failure required immediate stop. Browser observation failures `0`; read-only reattachments `0`; action resends `0`; dev logs `[]`.
-- Mutations forbidden by task: source/test/content/provider/model/config writes `0`; DB schema/migration/history-repair/direct gameplay writes `0`; Production access/deploy `0`; preserved-evidence access/mutation `0`; fresh games exactly `1`.
-- Findings: P0 `0`; P1 `1` — valid S7 APPLY did not send/store and did not produce the required committed turn; P2 `0`; P3 `0`.
