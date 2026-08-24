@@ -2,9 +2,10 @@
 
 Status: **OWNER_ACCEPTED / BINDING**  
 Accepted: 2026-08-24 KST  
+Revised: 2026-08-24 KST — Owner CSA redesign promoted from Draft PR #103  
 Product: `company-v1 / 상식개변: 회사편`
 
-This file is the consolidated forward canon. It supersedes conflicting or incomplete product/design wording in historical Company v1/v2 tasks, draft PR #95/#96 documents, old Issue comments, tests, and current implementation details. Those remain evidence/provenance only.
+This file is the consolidated forward canon. It supersedes conflicting or incomplete product/design wording in historical Company v1/v2 tasks, draft PR #95/#96 documents, old Issue comments, tests, and current implementation details. Draft PR #103 is retained as design provenance; the product-law portions explicitly promoted below are now binding here and no longer depend on that draft branch.
 
 `docs/ops/CURRENT_TASK.md` is execution authority only. It may implement this canon but may not reinterpret, narrow, or supersede it.
 
@@ -36,11 +37,12 @@ Adult romantic/intimate/sexual play between adult characters is a normal support
 
 The player privately possesses an unfamiliar app/tool called `상식개변` and initially does not remember installing it. Merely possessing/opening it changes nothing.
 
-APPLY of an accepted CSA preset causes that preset to become a **newly issued official company/institutional rule, notice, policy, or equivalent authority defined by the preset**.
+APPLY of an accepted CSA preset causes that preset to become a **newly issued official company/institutional rule, notice, policy, delegated authority, or equivalent institutional fact defined by the preset**. CHANGE is an official amendment/reassignment; REMOVE is an official cancellation/revocation.
 
 Binding semantics:
 
 - NPCs do not know the private app exists and do not sense a supernatural activation aura.
+- A rule change is learned through an ordinary institutional channel such as a phone notice, company monitor, intranet/company messenger, HR notice, employment-rule notice, regulator notice, or another grounded channel appropriate to the preset.
 - The new rule does **not** retroactively rewrite memory into “this has always been normal.”
 - NPCs may notice that the rule is new and react with surprise, confusion, embarrassment, disbelief, annoyance, awkwardness, questions, reluctance, or other character-specific reactions.
 - When the rule actually applies to them, scoped NPCs ultimately follow the authoritative rule.
@@ -129,6 +131,8 @@ Choices must be meaningfully different directions, not four paraphrases or four 
 
 If valid Story exists but choice projection fails, Story still commits and free input remains available. No stale previous choices and no second Story call.
 
+A committed CSA rule-change Story turn follows the same Story-owned four-choice convention for its resulting scene. The structured rule transaction itself is not rewritten into a free-text choice.
+
 ## P-SCENE-001 — Minimal immediate continuity
 
 Initial structural scene authority remains:
@@ -136,7 +140,7 @@ Initial structural scene authority remains:
 - current registered location;
 - present registered actor IDs;
 - one bounded replaceable natural-language `scene_note` for immediate physical/spatial/ongoing-interaction continuity;
-- four-slot clothing only because retained CSA clothing rules require exact continuity.
+- four-slot clothing because retained/new clothing CSA presets require exact continuity.
 
 Do not add a generic posture/contact/action ontology “just in case.” Add structure only after a concrete owner-visible failure proves a smaller solution insufficient.
 
@@ -146,7 +150,7 @@ Important prior conversations, promises, refusal, conflict, pressure, help, humi
 
 One later sentence such as “불이익은 없어” or an apology does not automatically reset prior tension/history.
 
-Preserve this first through committed Story + grounded chronological memory. Do **not** introduce a generic relation/consent/emotion matrix, affinity engine, pressure meter, or event ledger merely to emulate another platform.
+Preserve this first through committed Story + grounded chronological memory. Do **not** introduce a generic relation/consent/emotion matrix, affinity engine, pressure meter, corruption/adaptation meter, or event ledger merely to emulate another platform.
 
 If long play proves a specific missing structured fact is necessary, propose the smallest field tied to that concrete failure.
 
@@ -162,38 +166,111 @@ Mind Monitor is a core presentation surface for relevant NPC internal perspectiv
 - no private-app/supernatural awareness unless Story canonically established it (normally it must not);
 - failure is local and never destroys valid Story.
 
-**MM must describe the same committed reality as Story.** Its role is to deepen why a character acts as shown, not create a second world that contradicts Story. A newly issued CSA rule may legitimately produce surprise/awkwardness in MM while Story shows rule compliance; that is not a contradiction when both describe the same new-policy situation.
+**MM must describe the same committed reality as Story.** Its role is to deepen why a character acts as shown, not create a second world that contradicts Story. A newly issued/changed/removed CSA rule may legitimately produce surprise, embarrassment, resistance-as-feeling, or awkwardness in MM while Story shows institutional compliance; that is not a contradiction when both describe the same policy situation.
 
-Prior MM itself is not durable world truth and does not control next Story. The same committed events and character canon provide continuity.
+A rule-change Story turn should expose same-turn MM for relevant affected characters when the observer can ground it. Prior MM itself is not durable world truth and does not control next Story. The same committed events and character canon provide continuity.
 
-## P-CSA-001 — Exactly nine active MVP templates
+## P-CSA-001 — Three-tier curated CSA catalog, 7 presets per tier
 
-Active first-product catalog remains exactly 9 templates.
+The old exact-nine R3 catalog is superseded. The binding MVP product shape is **three visible strength tiers with seven curated finite presets in each tier: 약함 / 중간 / 강함 (21 product slots total).**
 
-Weak:
-- `no_panties_under_work_clothes`
-- `no_bra_under_work_clothes`
-- `target_places_requester_hand_on_waist_or_thigh`
+The `W1..W7`, `M1..M7`, `S1..S7` labels below are binding product-design slots. Runtime `template_id` values are lower-level implementation IDs and must map one-to-one to these slots in one canonical repository CSA catalog; they must not create a second semantic catalog.
 
-Medium:
-- `work_nude`
-- `masturbate_for_recipient`
-- `work_in_underwear_only`
+### Weak / 약함 — company practice and etiquette
 
-Strong:
-- `vaginal_sex_with_recipient`
-- `player_request_executes_immediately`
-- `continue_until_recipient_orgasm`
+Authority presentation is normally `사내 운영지침`, `인사팀 운영지침`, or equivalent company practice.
 
-Apply/change/remove is a non-Story transaction and does not consume an ordinary gameplay turn. Subject/counterparty scope uses finite shared canonical scope data, not a generic execution DSL.
+- **W1 노브라 근무** — female employees work in normal work clothes without a bra.
+- **W2 노팬티 근무** — female employees work in normal work clothes without panties.
+- **W3 가슴골 노출 근무** — female employees wear their normal shirt/blouse with the upper opening deep enough that cleavage is visibly exposed.
+- **W4 무릎 위에서 얼굴을 마주 보고 대화** — in qualifying 1:1 conversation/report situations, the female employee sits on the counterparty’s lap facing them while the conversation continues.
+- **W5 가슴을 만진 상태로 대화** — in qualifying conversation, the configured counterparty may keep a hand on the female employee’s breast while the conversation continues.
+- **W6 엉덩이를 만지며 대화** — in qualifying conversation, the configured counterparty may touch the female employee’s buttocks while the conversation continues.
+- **W7 말끝마다 가볍게 입맞춤** — conversation between scoped employees includes recurring light kisses at sentence/turn endings as a conversational norm. This is **not** literal wall-clock counting or a “kiss every N seconds” timer.
 
-### Rule-9 exact semantic boundary
+### Medium / 중간 — company-wide mandatory employment rules
 
-`continue_until_recipient_orgasm` means the qualifying **current sexual action is already underway** and, when its request condition is met, that current action must continue until the specified end condition.
+Authority presentation is normally `전사 취업규칙`, `전사 준수규정`, or equivalent mandatory company rule.
 
-It does **not** authorize starting a new sexual act merely because the player requests one when no qualifying current sexual action exists.
+- **M1 속옷 근무** — female employees treat underwear-only clothing as normal work attire while on duty.
+- **M2 나체 근무** — female employees treat full nudity as normal work attire while on duty.
+- **M3 가슴으로 사정 지원** — when the rule’s explicit configured adult supporter/recipient condition is met, the supporter uses her breasts to stimulate the adult male recipient’s penis to ejaculation as defined company support work.
+- **M4 손으로 사정 지원** — when the rule’s explicit configured adult supporter/recipient condition is met, the supporter manually stimulates the adult male recipient’s penis to ejaculation as defined company support work.
+- **M5 정액은 피로회복 방법** — within the rule’s adult scope, consuming semen is treated by the institution as an unusually effective fatigue/stress-recovery practice. It is a world-norm premise that may combine with other presets; it is not a vague hidden trigger engine.
+- **M6 성기 직접 검사** — within the configured adult scope, direct manual genital inspection/stimulation is treated as a mandatory company physical examination.
+- **M7 가슴·유두 직접 검사** — within the configured adult scope, direct breast/nipple inspection/stimulation is treated as a company physical examination.
 
-Fix this preset narrowly. Do not create a generic sexual-action execution/consent DSL.
+Medium presets should use direct, LLM-readable institutional wording. Do not weaken them into vague semantic prerequisites such as “when concentration is low” or “when stress is high” unless that prerequisite is itself an explicit finite product rule.
+
+### Strong / 강함 — player-delegated institutional authority
+
+Strong is differentiated primarily by **bounded player authority over the adult sexual-work system**, not by seven increasingly explicit standalone sex acts. Authority presentation is normally `관계당국 의무지침`, `법령에 따른 특별업무 권한`, or equivalent delegated authority.
+
+- **S1 성적 업무지시권** — the player may issue supported sexual-work instructions to scoped adult employees and the supported instruction is treated as an official work order. The exact executable action families must be finite and explicit in the canonical catalog/runtime; this does **not** authorize an unrestricted generic execution DSL.
+- **S2 플레이어 전담 성적 업무지원 직원 지정권** — the player may designate/revoke a named adult employee as the player’s dedicated sexual-work support employee; the designation is an observable institutional assignment.
+- **S3 회사 공용 성적 업무지원 담당 지정권** — the player may designate/revoke a named adult employee as a company-wide sexual-work support employee for scoped adult coworkers.
+- **S4 공동 참여 승인권** — the player may approve additional scoped adult participants in a current sexual-work interaction. Bystanders are never auto-injected merely because this authority exists; participation follows the player’s actual approval/direction and scene reality.
+- **S5 성적 업무 대상자 지정권** — the player may designate/revoke a named adult employee as the official target/assignee for a supported sexual-work assignment; the designation itself is an observable institutional event.
+- **S6 성적 업무 공식 평가권** — the player may issue an official evaluation of a supported employee’s sexual-work performance. This remains narrative/institutional consequence, not an affinity/obedience/corruption stat engine.
+- **S7 성적 업무 교육·훈련 지정권** — the player may designate a qualified scoped adult employee as trainer and direct training of another scoped adult employee, enabling grounded NPC-to-NPC scenes.
+
+### Scope / selector law
+
+CSA is **semi-free through per-preset bounded selectors**, not a generic DSL.
+
+- each preset declares its valid subject scopes;
+- each preset declares its valid counterparty/recipient/designation scopes where needed;
+- named-adult employee selectors are used for designation presets where the product meaning requires them;
+- direction-sensitive presets expose only meaningful direction combinations;
+- the UI must not expose raw `trigger/action/duration/modifier` composition, internal IDs, revision numbers, or arbitrary JSON;
+- multiple compatible active presets may combine; **simple finite rules + interesting combinations** is the target interaction model.
+
+### Legacy R3 nine-item disposition
+
+The previous exact-nine catalog is no longer product authority.
+
+- `no_bra_under_work_clothes` semantics survive as W1.
+- `no_panties_under_work_clothes` semantics survive as W2.
+- `work_in_underwear_only` semantics survive as M1.
+- `work_nude` semantics survive as M2.
+- `target_places_requester_hand_on_waist_or_thigh` is retired/replaced.
+- `masturbate_for_recipient` is retired as a primary preset.
+- `vaginal_sex_with_recipient` is retired as a standalone strong-tier slot; strong tier is authority-oriented.
+- `player_request_executes_immediately` is retired in its generic form and replaced by bounded S1/S2-S7 authority semantics.
+- `continue_until_recipient_orgasm` is retired as a required standalone catalog slot. Persistence/termination semantics, where needed, must be defined narrowly by the concrete supported rule/scene and may not grow into a generic sexual-action engine.
+
+Historical persisted IDs/rows may be kept only as proven compatibility/evidence readers. Do not rewrite preserved evidence games merely to rename catalog history, and do not expose retired items as new selectable product rules.
+
+## P-CSA-002 — APPLY / CHANGE / REMOVE are dedicated Story turns
+
+The previous zero-turn CSA bridge is superseded.
+
+APPLY / CHANGE / REMOVE are **major in-world rule-change events that consume exactly one gameplay Story turn when successfully committed**. They are not ordinary free-text player actions and Story may not reinterpret which rule/scope operation occurred.
+
+Binding flow:
+
+1. UI submits a structured `rule_change_turn` (or equivalent server-owned structured event) containing the exact validated operation and bounded preset scope.
+2. The turn kernel reserves/fences that logical turn using the same server-owned correctness guarantees as ordinary play.
+3. The rule-change transaction is staged authoritatively; the prior rule state remains canonical until the rule-change Story turn successfully commits.
+4. Story is called once with the exact structured rule-change event, current scene, relevant registered character canon, and prior/next rule authority needed to dramatize the institutional announcement.
+5. Story visibly shows the grounded announcement channel and immediate same-turn reactions. It does not invent private-app awareness or supernatural propagation.
+6. The one existing post-Story observer may project same-turn MM and other accepted grounded fields.
+7. On successful atomic Commit, the new active-rule state and the rule-change Story turn become canonical together. A failed Story/observer-local failure must not leave a half-applied rule state.
+8. Later ordinary turns continuously receive all active rule premises/scopes until changed/removed. The announcement turn does not consume, satisfy, or finish the active rule itself.
+
+A rule change therefore remains Story -> one Observer at the LLM layer, not “transaction Story + reaction Story” and not a second aftereffect engine.
+
+## P-CSA-003 — CSA reaction/adaptation separation
+
+Every rule-change acceptance must preserve these separations:
+
+- new institutional rule vs retroactive memory rewrite;
+- authoritative compliance vs private liking/consent-as-feeling/desire/arousal;
+- immediate surprise/embarrassment/reluctance vs later character-specific adaptation;
+- institutional designation/authority vs generic relationship or obedience score;
+- rule scope vs unrelated characters/scenes.
+
+Do not add `타락도`, corruption, sexual-adaptation, obedience, generic consent, or relationship meters to represent this arc.
 
 ## P-MEDIA-001 — Image/TTS are grounded presentation sidecars
 
@@ -209,9 +286,18 @@ The canonical media catalog contract is `MEDIA_CATALOG_CONTRACT.md`.
 
 Retain Story/current stream, History, full four choices + compact short action buttons, free input, current scene/character, Mind Monitor, player profile/state, company map, `상식개변` app, image/media, TTS, download, feedback, reset, and responsive/mobile access as applicable.
 
+CSA app MVP surface is:
+
+- `약함 | 중간 | 강함` as the three primary tabs;
+- roughly seven rule cards per selected tier, with no extra category navigation;
+- human-readable rule text and authority label;
+- a `설정` flow that renders only selectors valid for that preset;
+- separate active-rule visibility with `변경` / `해제`;
+- no player-facing `template_id`, trigger enum, execution kind, revision, R3 identifier, JSON, or generic DSL fields.
+
 Technical implementation vocabulary (`r3_*`, `revision`, `Commit`, internal retry jargon) should not appear as normal player-facing game language.
 
-Mobile priority: Story -> full choices/compact actions/free input -> secondary insight/tools. Media/state/tools must not dominate reading flow.
+Mobile priority: Story -> full choices/compact actions/free input -> secondary insight/tools. Media/state/tools must not dominate reading flow. CSA configuration must remain reachable without replacing Story as the primary reading surface.
 
 ## P-REMOVED-001 — Do not restore removed complexity
 
@@ -224,12 +310,13 @@ Do not reintroduce without new owner decision:
 - generic physical posture/contact ontology;
 - dynamic player arousal/erection/ejaculation gameplay gauge;
 - sexual-event ledger supporting such a gauge;
+- generic corruption/sexual-adaptation/obedience meter;
 - arbitrary LLM save-patch authority;
 - automatic Story retry/regenerate-until-lucky;
 - separate choice LLM;
 - separate MM LLM;
 - generic CSA execution DSL;
-- historical 44-rule CSA catalog as active runtime.
+- historical 44/60+ rule CSA catalogs as active runtime.
 
 ## P-QUALITY-001 — Player acceptance outranks structural green
 
@@ -251,6 +338,8 @@ Canonical semantic sources remain repository content. Runtime/frontend/SQL/tests
 
 Character cards in `content/characters.json` must be enriched in-place (or through one clearly named canonical character-content source) with dramatizable material required by `P-CHARACTER-001`, while keeping stable IDs/names and without creating a second character authority.
 
+The 21-slot CSA product semantics above must have **one forward canonical repository catalog source** containing stable runtime IDs, tier, human rule text, authority presentation, supported subject/counterparty selectors, and only the bounded implementation metadata required by each preset. The next implementation may adapt an existing canonical catalog file or create one clearly named source; it may not leave catalog meaning duplicated across frontend/runtime/SQL.
+
 Forward image catalog semantic source is governed by `MEDIA_CATALOG_CONTRACT.md`.
 
 The historical complete Company UI remains the high-parity presentation donor, but donor naming/implementation is not product authority. Full Story choices + compact short action buttons are explicitly retained.
@@ -261,39 +350,48 @@ The historical complete Company UI remains the high-parity presentation donor, b
 
 ## Kinds of truth
 
-**Static content truth:** registered characters, locations, setup catalogs, active 9-rule CSA catalog, media catalog metadata.
+**Static content truth:** registered characters, locations, setup catalogs, the active 21-slot three-tier CSA catalog and per-preset selector contracts, media catalog metadata.
 
-**Narrative truth:** committed literal player action + committed Story. This owns dialogue, rejection/acceptance, open-ended social/intimate consequences, promises, conflicts, and scene events.
+**Narrative truth:** committed literal player action + committed Story, plus committed structured rule-change Story events. This owns dialogue, rejection/acceptance, open-ended social/intimate consequences, promises, conflicts, immediate rule-announcement reactions, and scene events.
 
-**Structural/mechanical truth:** validated player profile, time, current location, present actors, one `scene_note`, active CSA rule instances/scope/lifecycle, four-slot clothing.
+**Structural/mechanical truth:** validated player profile, time, current location, present actors, one `scene_note`, active CSA rule instances/scope/lifecycle/designations, four-slot clothing, and the minimum finite fields proven necessary by specific S2-S7 designation/authority presets.
 
 **Presentation/interpretation:** MM, player-thought projection, four extracted choices/compact labels, media hint/image, TTS, focal/display character. These may fail locally and do not redefine narrative truth.
 
 ## Story context
 
-Story receives exact literal action, relevant profile, current scene/time, relevant registered character canon, active CSA premises/scope, clothing where relevant, recent raw committed turns, older grounded chronological memory.
+Ordinary Story receives exact literal action, relevant profile, current scene/time, relevant registered character canon, all applicable active CSA premises/scopes/designations, clothing where relevant, recent raw committed turns, and older grounded chronological memory.
+
+Rule-change Story receives the exact structured operation and bounded scope directly from the server-owned event; Story does not infer or rewrite the CSA transaction from natural-language prose.
 
 Character context is a **bounded projection** of canonical content. Story receives only fields useful for acting the currently relevant characters; it does not receive whole `characters.json` records or unrelated private/body/catalog data merely because they exist.
 
 Opening context follows the same relevance principle. Physical co-location does not require every co-located heroine’s full prompt card to be focal in the first scene. Opening should project a small natural focal cast sufficient to create a living interaction while preserving broader world/presence truth separately.
 
-Story does not receive a precomputed success verdict, relationship stage, consent matrix, generic action taxonomy, physical execution plan, dynamic sexual meter, or historical non-MVP CSA semantics.
+Story does not receive a precomputed success verdict, relationship stage, consent matrix, generic action taxonomy, generic physical execution plan, dynamic sexual/corruption meter, or historical non-canonical CSA semantics.
 
-## CSA zero-turn event bridge
+## CSA rule-change Story-turn bridge
 
-CSA APPLY/CHANGE/REMOVE remains a **zero-ordinary-turn system transaction**. It may create one bounded canonical system event describing that a rule was newly issued, changed, or removed, including its activation timing/scope. The next ordinary Story receives that event as context so it can naturally show first reaction or changed authority while still processing the player’s actual literal action. The app operation itself must not masquerade as an ordinary player Story turn.
+The canonical CSA bridge is now a **dedicated structured Story turn**, not zero-turn.
 
-This bridge is not a second Story call, generic aftereffect engine, relation engine, or consent DSL. Once the next Story has incorporated the event as recent context, normal committed history/memory carries any meaningful consequences forward.
+- APPLY/CHANGE/REMOVE consumes one gameplay turn only on successful commit.
+- one structured operation maps to one Story generation and one observer pass;
+- active-rule state and the rule-change turn commit atomically;
+- same-turn Story dramatizes institutional announcement and immediate reactions;
+- same-turn MM may show grounded affected-character internal response;
+- subsequent ordinary Story receives the active rule continuously;
+- removal/change preserves committed history while changing future authority;
+- no generic aftereffect engine, relation engine, consent DSL, corruption meter, or extra reaction LLM is added.
 
 ## One post-Story observer
 
 Keep one small observer after Story. It may project only accepted structural/presentation fields such as elapsed time, location/presence evidence, replacement scene_note, clothing evidence, four copied choices, summary, Mind Monitor, grounded player-thought if any, safe dialogue/speaker presentation metadata, and a minimal optional media hint.
 
-Observer failure is fail-open. No second Story generation.
+Observer failure is fail-open. No second Story generation. For rule-change turns, the observer may observe the committed Story reality but may not rewrite the authoritative structured CSA operation/scope.
 
 ## Memory
 
-Recent turns remain raw. Older memory remains chronological and grounded in committed Story. Memory prioritizes facts/events that alter future interpretation, including promises, refusal/conflict, pressure/help, intimacy, and CSA adaptation, without turning them into generic numeric relation state.
+Recent turns remain raw. Older memory remains chronological and grounded in committed Story. Memory prioritizes facts/events that alter future interpretation, including promises, refusal/conflict, pressure/help, intimacy, CSA issuance/change/removal, immediate reactions, and gradual CSA adaptation, without turning them into generic numeric relation/adaptation state.
 
 ---
 
@@ -312,11 +410,11 @@ Company high-parity presentation/content
 + optional nonblocking media/TTS sidecars
 ```
 
-Normal ordinary turn remains two LLM calls: Story -> Observer.
+Normal ordinary turn remains two LLM calls: Story -> Observer. A CSA rule-change turn uses the same one-Story/one-observer architecture with a structured server-owned input event; it does not add a second Story or separate MM/reaction generator.
 
 Do not redesign the engine because product output is currently weak. First fix content, prompt/context projection, observer contract, memory projection, media projection, and presentation at their owning boundaries.
 
-The browser submits one literal action and renders streamed/committed context; it never owns Story -> Observer -> Commit orchestration.
+The browser submits one literal ordinary action or one validated structured CSA operation and renders streamed/committed context; it never owns Story -> Observer -> Commit orchestration.
 
 ---
 
@@ -324,7 +422,9 @@ The browser submits one literal action and renders streamed/committed context; i
 
 - Draft PR #95: product-first redesign provenance.
 - Draft PR #96: A′ architecture provenance.
+- Draft PR #103: Owner CSA redesign provenance. Its promoted product-law decisions are now binding in this canon; the draft branch itself remains non-authoritative and should not be merged as if it were the canon.
 - Issue #102 Crack review: benchmark/reference evidence only. Do not copy Crack stats, keyword-book, hidden architecture, prompt-length quotas, or inferred platform behavior. Its useful lesson is that richer dramatizable character material and context continuity help realize laws already defined here.
 - Issue #68 browser product audit terminal `5394232327`: current implementation defect evidence.
+- Issue #68 Stage-A terminal `5396213794` / review `5396294637`: accepted narrative/MM/recovery implementation evidence.
 
 Any future product-law change requires explicit owner decision, canon document update first, then implementation task registration.
