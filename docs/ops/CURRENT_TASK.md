@@ -259,6 +259,8 @@ Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITI
 
 `IMAGE_MEDIA_LIVE_ACCEPTANCE_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
+`OUTCOME: SUPERSEDED_BY_OWNER_PRIORITY_CORE_P1_REVIEW`
+
 - Start/final main SHA: `3ffc6abc8ae258f9483a74f4560b1add0390429f` / `3ffc6abc8ae258f9483a74f4560b1add0390429f`. No source, runtime, frontend, content, test, prompt, provider, model, config, secret, deploy, DB, or storage drift occurred; only this lifecycle file was changed.
 - TEST executable: API `game-proxy-company-r3` `4f8e8697-7b9e-4d91-8a50-35463309ce4a`; frontend `gamebuilder-company-r3` `af6c13bf-ef57-40cb-a4f0-e3569b301bc5`. Deploy count: 0.
 - Preflight: public frontend DOM and screenshot usable; CDP Network observation usable; `/api/r3/catalogs` read-only check was 200 with 102 entries (5 general + 97 sex). Browser readiness passed before game creation.
@@ -273,4 +275,4 @@ Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITI
 - M-CATALOG-002: remains a known P2 quality gap; current manifest has one general image per heroine. Opening used the manifest-backed `heroine5` general image; no variety conclusion was drawn.
 - Browser recovery: timeout/reattach/resend counts `0 / 1 / 0` (one read-only reattach, no action resend or retype). DOM, screenshot, and network tooling remained available; therefore this is PRODUCT_BLOCKED, not browser-control blocked.
 - Forbidden operations: source/content/test/config/provider/model edits `0`; deploys `0`; DB/schema/RPC/migration/history writes `0`; storage mutations `0`; Production access/deploy `0`; existing/preserved-game access or reset `0`; direct API gameplay substitute `0`; second fresh game `0`; retry/regeneration/sample-until-pass `0`; new branch/PR/CURRENT_TASK `0`; OWNER_READY `0`; intentional TTS toggle/call/replay `0` (TTS not judged).
-- Findings: P1 deployed TEST `/turn` action submission remains unresolved/pending and does not produce a committed turn; P2 M-CATALOG-002 one-general-image-per-heroine quality gap; P0/P3 none. Fresh game is preserved read-only for operator review.
+- Findings: the observed pending TEST `/turn` behavior and P2 M-CATALOG-002 gap are partial evidence only. The terminal decision is owner-review supersession, not a GREEN claim and not permission to continue media lanes. The later Issue #68 operator intervention requires this safe stop because current-main review identified core P1 defects in navigation actor binding, active-CSA ordinary literal agency, institutional rule-change announcement/source semantics, unsupported S1 action agency, and CSA compatibility/precedence. No source patch is authorized in this acceptance task. P0/P3: none asserted by this run. Fresh game is preserved read-only for operator review.
