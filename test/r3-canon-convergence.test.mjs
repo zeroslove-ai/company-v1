@@ -40,6 +40,21 @@ test('R3 malformed mind monitor fields do not become empty committed projections
   assert.ok(normalized.warnings.includes('mind_monitor_projection_dropped'));
 });
 
+test('R3 Mind Monitor follows the exact post-Story actor membership', () => {
+  const name = content.characters.heroine2.name;
+  const state = createInitialState({ name: 'R3 player' }, 'brand_strategy_office', ['heroine1']);
+  const story = `${name} enters the scene and looks toward the player.`;
+  const normalized = normalizeObserver({
+    present_actor_ids: ['heroine2'],
+    mind_monitor: {
+      heroine1: { surface: 'stale', subconscious: 'stale' },
+      heroine2: { surface: 'current', subconscious: 'current' }
+    }
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.mind_monitor, { heroine2: { surface: 'current', subconscious: 'current' } });
+  assert.ok(normalized.warnings.includes('mind_monitor_projection_dropped'));
+});
+
 test('R3 media hint reaches sex presentation only from committed exact evidence and refuses stale/refused sex routing', () => {
   const name = content.characters.heroine1.name;
   const state = createInitialState({ name: 'R3 player' }, 'brand_strategy_office', ['heroine1']);

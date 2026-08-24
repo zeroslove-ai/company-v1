@@ -242,7 +242,7 @@ async function processFeedback({ store, provider, content, gameId, attempt, snap
       const text = String(delta); storyText += text; emit('story_delta', { text });
     }
     mark('story_complete');
-    let rawObserver = {}; let observerFailed = false; let observerFailureCode = null; mark('observer_start');
+    let rawObserver = {}; let observerFailed = false; let observerFailureCode = null; let observerFailureWarnings = []; let observerFailureEvidence = {}; mark('observer_start');
     try { rawObserver = await provider.observe({ context: before, literalAction, storyText, content }); mark('observer_complete'); }
     catch (error) { observerFailed = true; const failure = observerFailureState(error); observerFailureCode = failure.code; observerFailureWarnings = failure.warnings; observerFailureEvidence = failure.evidence; mark('observer_failed', { observer_error_code: observerFailureCode, ...observerFailureEvidence }); }
     const normalized = normalizeObserver(rawObserver, { storyText, literalAction, content, currentState: before.state.state });

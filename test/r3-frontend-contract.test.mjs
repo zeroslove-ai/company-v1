@@ -134,10 +134,10 @@ test('R3 action panel reserves its controls above the audio bar after bootstrap'
 test('R3 failed job exposes editable literal and an explicit retry-only control', () => {
   assert.match(app, /context\?\.job\?\.status === 'failed'/);
   assert.match(app, /context\.job\.literal_action/);
-  assert.match(app, /Retry failed action/);
+  assert.match(app, /이번 행동 다시 시도/);
   assert.match(app, /retryFailed = false/);
   assert.match(app, /payload\.retry_failed = true/);
-  assert.match(app, /use the explicit retry control/);
+  assert.match(app, /playerFacingStatus/);
   assert.match(app, /recovery-action.*submit\(null, \{ retryFailed: true \}\)/s);
   assert.doesNotMatch(app, /loadContext[\s\S]{0,500}retryFailed: true/);
 });

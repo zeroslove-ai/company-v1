@@ -146,6 +146,29 @@ test('R3 feedback Story failure keeps the existing projection and only fails the
   assert.equal(store.feedbackAttempts.get(`${gameId}:ffffffff-ffff-4fff-8fff-ffffffffffff`).status, 'failed');
 });
 
+test('R3 feedback Observer failure remains fail-open and commits the revised Story', async () => {
+  const calls = { story: [], observe: [] };
+  const base = deterministicRevisionProvider(calls);
+  const provider = {
+    story: base.story,
+    async observe(args) {
+      calls.observe.push(args);
+      if (args.storyText.startsWith('Revised Story')) throw new Error('private observer failure');
+      return { choices: [...choices], turn_summary: 'bounded summary', mind_monitor: {} };
+    }
+  };
+  const store = new InMemoryR3Store();
+  const worker = createR3Worker({ store, provider, content, gameAccessSecret: GAME_ACCESS_SECRET });
+  const { gameId } = await committedOrdinaryTurn(worker);
+  const result = await events(await request(worker, `/api/r3/games/${gameId}/feedback`, { method: 'POST', body: { revision_request_id: '56565656-5656-4565-8565-565656565656', expected_turn: 1, expected_state_revision: 1, feedback_text: '관찰 실패여도 Story를 저장해 주세요.' } }));
+  const terminal = result.at(-1).data;
+  assert.equal(terminal.status, 'committed');
+  assert.equal(terminal.context.turns.at(-1).revision, 2);
+  assert.ok(terminal.context.turns.at(-1).warnings.includes('observer_failed'));
+  assert.ok(terminal.context.turns.at(-1).warnings.includes('r3_observer_unknown'));
+  assert.equal(store.feedbackAttempts.get(`${gameId}:56565656-5656-4565-8565-565656565656`).status, 'committed');
+});
+
 test('R3 feedback commit fence failure keeps the existing projection and state', async () => {
   const calls = { story: [], observe: [] };
   class FenceStore extends InMemoryR3Store {

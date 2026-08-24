@@ -8,6 +8,7 @@ import { reconcileTurnTransport } from './turn-transport.js';
 import { resolveR3ApiBase } from './r3-config.js';
 import { createR3MediaUi } from './media.js';
 import { createCompanyTts } from './tts.js';
+import { playerFacingStatus } from './status.js';
 
 // R3 controller: one context load, one literal action, one server-owned SSE
 // turn. Product rendering lives in the transplanted donor-style modules above.
@@ -26,7 +27,7 @@ function setHidden(id, hidden) { const node = $(id); if (node) node.hidden = hid
 function setBootFailure(error) {
   const fallback = $('boot-fallback');
   const message = $('boot-fallback-message');
-  if (message) message.textContent = `게임 화면을 불러오지 못했습니다: ${error?.message ?? '알 수 없는 오류'}`;
+  if (message) message.textContent = playerFacingStatus(error, '게임 화면을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
   if (fallback) fallback.hidden = false;
 }
 function replaceGameUrl(gameId) {
@@ -83,8 +84,8 @@ function renderContext(context) {
     recovery.textContent = pending ? '진행 중인 Story 복구' : '';
   }
   if (failedJob) {
-    if (recovery) recovery.textContent = 'Retry failed action';
-    setStatus('r3_turn_failed: edit the action and retry explicitly', true);
+    if (recovery) recovery.textContent = '이번 행동 다시 시도';
+    setStatus(playerFacingStatus(context.job.error_code, '이번 장면을 저장하지 못했습니다. 입력을 확인한 뒤 다시 시도해 주세요.'), true);
   }
   const hasStory = Boolean(view.story);
   const ttsToggle = $('tts-toggle'); if (ttsToggle) { ttsToggle.disabled = !hasStory; ttsToggle.setAttribute('aria-pressed', ttsUi.state.enabled ? 'true' : 'false'); }
@@ -145,7 +146,7 @@ function handleFeedbackEvent(event, data) {
       if (status) status.textContent = '새 revision이 저장되었습니다.';
       setStatus('피드백 revision이 저장되었습니다.');
       setHidden('feedback-overlay', true);
-    } else if (status) status.textContent = data.error_code ?? '피드백 revision이 저장되지 않았습니다.';
+    } else if (status) status.textContent = playerFacingStatus(data.error_code, '장면 수정을 저장하지 못했습니다. 기존 장면은 유지됩니다.');
   }
 }
 
@@ -166,7 +167,7 @@ async function submitFeedback(event) {
     await consumeR3Sse(response, handleFeedbackEvent);
   } catch (error) {
     const code = error.terminal?.error_code ?? error.message;
-    if (status) status.textContent = code;
+    if (status) status.textContent = playerFacingStatus(code, '장면 수정을 저장하지 못했습니다. 기존 장면은 유지됩니다.');
   } finally {
     state.feedbackBusy = false;
     syncActionControls();
@@ -188,15 +189,15 @@ async function recoverPendingTurn() {
         return true;
       }
       if (context.job.status === 'failed') {
-        setStatus(context.job.error_code ?? 'r3_stream_failed', true);
+        setStatus(playerFacingStatus(context.job.error_code, '이번 장면을 저장하지 못했습니다. 입력을 확인한 뒤 다시 시도해 주세요.'), true);
         return false;
       }
       await new Promise(resolve => setTimeout(resolve, RECOVERY_POLL_MS));
     }
-    setStatus('r3_stream_reconnect_required', true);
+    setStatus(playerFacingStatus('r3_stream_reconnect_required'), true);
     return false;
   } catch (error) {
-    setStatus(error.message, true);
+    setStatus(playerFacingStatus(error, '서버 연결을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'), true);
     return false;
   } finally {
     state.busy = false;
@@ -208,7 +209,7 @@ async function resetGame() {
   if (state.busy || state.feedbackBusy || !state.gameId || !state.context || state.context.job?.status === 'processing') return;
   if (typeof globalThis.confirm === 'function' && !globalThis.confirm('현재 게임을 초기화하고 Opening부터 다시 시작할까요?')) return;
   const expectedStateRevision = Number(state.context.state?.revision);
-  if (!Number.isInteger(expectedStateRevision) || expectedStateRevision < 0) { setStatus('r3_reset_revision_invalid', true); return; }
+  if (!Number.isInteger(expectedStateRevision) || expectedStateRevision < 0) { setStatus(playerFacingStatus('r3_reset_revision_invalid'), true); return; }
   state.busy = true;
   $('current-story')?.replaceChildren();
   $('story-history')?.replaceChildren();
@@ -219,7 +220,7 @@ async function resetGame() {
     setStatus('Opening부터 새 게임을 시작합니다.');
   } catch (error) {
     try { renderContext(await client.context(state.gameId)); } catch { /* preserve the last accepted local context */ }
-    setStatus(error.terminal?.error_code ?? error.message, true);
+    setStatus(playerFacingStatus(error, '현재 장면을 다시 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.'), true);
   } finally {
     state.busy = false;
     if (state.context) renderContext(state.context); else syncActionControls();
@@ -235,13 +236,13 @@ async function openOpening() {
   state.busy = true; syncActionControls();
   setStatus('오프닝을 불러오는 중입니다.'); state.busy = true;
   try { await consumeR3Sse(await client.opening(state.gameId), handleEvent); setStatus('다음 행동을 직접 입력하거나 제안 중 하나를 고르세요.'); }
-  catch (error) { setStatus(error.message, true); } finally { state.busy = false; refreshChoices(); }
+  catch (error) { setStatus(playerFacingStatus(error, 'Opening을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'), true); } finally { state.busy = false; refreshChoices(); }
 }
 
 async function submit(value = null, { retryFailed = false, csaOperation = null } = {}) {
   if (state.busy || !state.gameId) return { kind: 'not_sent' };
   if (state.context?.job?.status === 'failed' && !retryFailed) {
-    setStatus('r3_turn_failed: use the explicit retry control', true);
+    setStatus(playerFacingStatus(state.context.job.error_code, '이번 장면을 저장하지 못했습니다. 입력을 확인한 뒤 다시 시도해 주세요.'), true);
     return { kind: 'not_sent' };
   }
   const input = $('player-action'); const literalAction = value ?? input?.value ?? '';
@@ -288,7 +289,7 @@ async function setup(event) {
   try {
     const created = await client.setup(checked.player); state.gameId = created.game?.game_id ?? created.game_id;
     replaceGameUrl(state.gameId); setHidden('player-setup-overlay', true); await loadContext();
-  } catch (error) { const status = $('setup-status'); if (status) status.textContent = error.message; setBootFailure(error); }
+  } catch (error) { const status = $('setup-status'); if (status) status.textContent = playerFacingStatus(error, '프로필을 만들지 못했습니다. 입력을 확인해 주세요.'); setBootFailure(error); }
 }
 
 async function loadContext() {
@@ -310,6 +311,6 @@ $('send-feedback')?.addEventListener('click', openFeedback);
 $('feedback-close')?.addEventListener('click', closeFeedback);
 $('feedback-form')?.addEventListener('submit', submitFeedback);
 $('reset-game')?.addEventListener('click', resetGame);
-loadCatalogs().catch(error => { setStatus(error.message, true); setBootFailure(error); });
+loadCatalogs().catch(error => { setStatus(playerFacingStatus(error, '게임 화면을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'), true); setBootFailure(error); });
 
 async function loadCatalogs() { renderCatalogs(await client.catalogs()); await loadContext(); }

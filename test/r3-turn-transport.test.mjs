@@ -55,7 +55,7 @@ test('transport failure with failed context preserves explicit retry-only state'
   assert.equal(result.kind, 'failed');
   assert.equal(h.calls.context, 1);
   assert.equal(h.calls.cleared, 0);
-  assert.deepEqual(h.calls.statuses[0], { message: 'r3_story_failed', error: true });
+  assert.deepEqual(h.calls.statuses[0], { message: '이번 장면을 저장하지 못했습니다. 입력을 확인한 뒤 한 번만 다시 시도해 주세요.', error: true });
 });
 
 test('context reconciliation failure keeps the original transport error and literal', async () => {
@@ -64,5 +64,5 @@ test('context reconciliation failure keeps the original transport error and lite
   assert.equal(result.kind, 'unknown');
   assert.equal(h.calls.context, 1);
   assert.equal(h.calls.cleared, 0);
-  assert.deepEqual(h.calls.statuses[0], { message: 'Failed to fetch', error: true });
+  assert.deepEqual(h.calls.statuses[0], { message: '서버 연결을 확인하지 못했습니다. 입력은 그대로 남아 있습니다.', error: true });
 });

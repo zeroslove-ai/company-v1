@@ -94,7 +94,7 @@ test('R3 choice tail accepts only the evidenced symmetric number-token emphasis 
   for (const candidate of malformed) assert.equal(normalizeObserver({ choices }, { storyText: candidate.join('\n'), content }).choices, null);
 });
 
-test('R3 mind monitor accepts pre-turn actors and grounded same-turn entrants only', () => {
+test('R3 mind monitor accepts exact post-turn actors and grounded same-turn entrants only', () => {
   const [currentActor, entrant, offsceneActor] = Object.values(content.characters);
   const locationId = currentActor.default_location_id;
   const state = createInitialState({ name: 'Player' }, locationId, [currentActor.character_id]);
@@ -110,13 +110,13 @@ test('R3 mind monitor accepts pre-turn actors and grounded same-turn entrants on
     }
   }, { storyText: story, content, currentState: state });
   assert.deepEqual(normalized.entered, [{ actor_id: entrant.character_id, quote: `${entrant.name} enters the meeting room.` }]);
-  assert.deepEqual(Object.keys(normalized.mind_monitor).sort(), [currentActor.character_id, entrant.character_id].sort());
+  assert.deepEqual(Object.keys(normalized.mind_monitor), [entrant.character_id]);
   assert.equal(normalized.mind_monitor[entrant.character_id].surface, 'entrant surface');
   assert.equal(normalized.mind_monitor[offsceneActor.character_id], undefined);
   assert.ok(normalized.warnings.filter(warning => warning === 'mind_monitor_projection_dropped').length >= 2);
 });
 
-test('R3 mind monitor does not infer actor transitions from player movement or Observer present IDs', () => {
+test('R3 mind monitor does not infer actor transitions from player movement and accepts exact Observer present IDs', () => {
   const [currentActor, entrant, unrelatedActor] = Object.values(content.characters);
   const state = createInitialState({ name: 'Player' }, currentActor.default_location_id, [currentActor.character_id]);
   const story = 'Player moves to the lobby while the meeting continues.';
@@ -130,7 +130,7 @@ test('R3 mind monitor does not infer actor transitions from player movement or O
     }
   }, { storyText: story, content, currentState: state });
   assert.deepEqual(normalized.entered, []);
-  assert.deepEqual(Object.keys(normalized.mind_monitor), [currentActor.character_id]);
+  assert.deepEqual(Object.keys(normalized.mind_monitor), [unrelatedActor.character_id]);
   assert.ok(normalized.warnings.includes('entered_projection_dropped'));
   assert.ok(normalized.warnings.includes('mind_monitor_projection_dropped'));
 });

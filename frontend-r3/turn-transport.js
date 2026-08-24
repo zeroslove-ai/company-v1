@@ -1,3 +1,5 @@
+import { playerFacingStatus } from './status.js';
+
 function committedLiteral(context, expectedTurn, literalAction) {
   return (context?.turns ?? []).some(turn =>
     Number(turn.turn_number) === expectedTurn && turn.literal_action === literalAction
@@ -29,7 +31,7 @@ export async function reconcileTurnTransport({
     }
 
     if (context?.job?.status === 'failed') {
-      setStatus(context.job.error_code ?? 'r3_stream_failed', true);
+      setStatus(playerFacingStatus(context.job.error_code, '이번 장면을 저장하지 못했습니다. 입력을 확인한 뒤 한 번만 다시 시도해 주세요.'), true);
       return { kind: 'failed', context };
     }
 
@@ -42,7 +44,7 @@ export async function reconcileTurnTransport({
     setStatus('입력이 서버에 전송되거나 저장되지 않았습니다. 내용을 확인한 뒤 직접 다시 제출할 수 있습니다.');
     return { kind: 'not_sent', context };
   } catch {
-    setStatus(originalError?.message ?? 'r3_stream_reconnect_required', true);
+    setStatus(playerFacingStatus(originalError, '서버 연결을 확인하지 못했습니다. 입력은 그대로 남아 있습니다.'), true);
     return { kind: 'unknown' };
   }
 }

@@ -132,7 +132,11 @@ export function normalizeObserver(input, { storyText = '', literalAction = '', c
   }
   if (Array.isArray(observer.present_actor_ids)) {
     const valid = observer.present_actor_ids.filter(id => actors.has(id));
-    if (valid.length === observer.present_actor_ids.length) normalized.present_actor_ids = [...new Set(valid)];
+    if (valid.length === observer.present_actor_ids.length) {
+      normalized.present_actor_ids = [...new Set(valid)];
+      for (const actorId of normalized.present_actor_ids) eligibleMonitorActors.add(actorId);
+      for (const actorId of actors) if (!normalized.present_actor_ids.includes(actorId)) eligibleMonitorActors.delete(actorId);
+    }
     else warnings.push('present_actor_projection_dropped');
   }
   const postStoryPresentActors = new Set(normalized.present_actor_ids ?? [...eligibleMonitorActors]);
@@ -158,7 +162,7 @@ export function normalizeObserver(input, { storyText = '', literalAction = '', c
   if (Number.isInteger(elapsed) && elapsed >= 0) normalized.elapsed_minutes = Math.min(elapsed, 1440);
   const monitor = observer.mind_monitor && typeof observer.mind_monitor === 'object' ? observer.mind_monitor : {};
   for (const [actorId, value] of Object.entries(monitor)) {
-    if (!eligibleMonitorActors.has(actorId) || !directory[actorId] || !value || typeof value !== 'object') { warnings.push('mind_monitor_projection_dropped'); continue; }
+    if (!postStoryPresentActors.has(actorId) || !directory[actorId] || !value || typeof value !== 'object') { warnings.push('mind_monitor_projection_dropped'); continue; }
     const surface = text(value.surface).slice(0, 600); const subconscious = text(value.subconscious).slice(0, 600);
     if (!surface || !subconscious) { warnings.push('mind_monitor_projection_dropped'); continue; }
     normalized.mind_monitor[actorId] = { surface, subconscious };
