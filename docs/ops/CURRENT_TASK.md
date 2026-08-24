@@ -341,3 +341,58 @@ Browser-control blocked terminal:
 `CSA_MANDATORY_SEMANTIC_LANES_BROWSER_CONTROL_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal to Issue #68, then STOP. Do not self-register another task.
+
+---
+# Lifecycle — valid Setup recovery / mandatory CSA semantic lanes
+
+Status transition: READY -> WAITING_REVIEW
+
+Task identity:
+- TASK_ID: `company-r3-csa-mandatory-semantic-lanes-valid-setup-recovery-v1`
+- CURRENT_TASK_BLOB_SHA at lease: `4cc100dfbae2264c2906e1d3919b26381283acd4`
+- EXPECTED_BRANCH: `main`
+- START_MAIN_SHA: `9026bc7e2117f41114ebc3a6793e910d030dfc60`
+- STARTED lease: Issue #68 `5399634234`
+- terminal: `CSA_MANDATORY_SEMANTIC_LANES_PRODUCT_BLOCKED_AWAITING_OPERATOR_REVIEW`
+- FINAL_MAIN_SHA: recorded by this lifecycle update commit
+
+Read-only preflight:
+- Accepted executable `206bb957abbcdf621c22a6355bf9576610416bdd` -> start main `9026bc7e2117f41114ebc3a6793e910d030dfc60` compared as docs-only: `docs/ops/CURRENT_TASK.md` only; executable/runtime/frontend/content remained frozen.
+- TEST frontend: `gamebuilder-company-r3 / 9bb754d0-632c-42e5-83b1-441ce6079688`.
+- TEST API: `game-proxy-company-r3 / cbfb8900-1ba9-4886-9405-452e7ae760db`.
+- Read-only deployment listing matched both accepted 100% versions; no schema drift was changed or repaired.
+- Local watcher workspace had no Git checkout; no uncommitted source mutation was present.
+
+Browser/setup:
+- Fresh public TEST DOM inspection and exactly one screenshot succeeded.
+- Setup values were validated before submit: name `김도현` (3 Unicode codepoints, non-empty, <=20), age `30`, height `180` cm, weight `75` kg, penis length `15` cm; all numeric values were within 18..70, 140..220, 40..180, 5..30; visible catalog IDs were `brand_strategy`, `intern`, `balanced`, `polite`.
+- Exactly one visible `설정 완료` submission was made after validation. It succeeded and created exactly one fresh disposable game: `1ef46111-5a09-43cd-b61e-c0d36df04d12`.
+- Opening was invoked once and committed at Turn 0. No second game, reset, regeneration, or alternate fixture was used.
+
+M5:
+- Visible Medium selector: `정액은 피로회복 방법`; supporter-side `서원희 / heroine1`, recipient-side `박정우 / general_park_jungwoo`; visible scopes `female_employee` -> `male_employee`.
+- APPLY committed exactly +1 gameplay turn, Turn 1, with a grounded company-monitor announcement. Story preserved the direct meaning that semen consumption itself is institutionally treated as an unusually effective fatigue/stress recovery method; private-app cause was not exposed. NPC reactions showed surprise/awkwardness without private desire/consent rewrite.
+- Ordinary visible follow-up Turn 2 explicitly asked whether the rule treats semen consumption itself as the fatigue/stress-recovery practice; Story answered that exact meaning.
+- Read-only visible active-state inspection showed `현재 활성 규칙 1개` with M5 active.
+
+S1 supported boundary attempt:
+- Visible Strong selector: `성적 업무지시권`; designated employee `서원희 / heroine1`, counterparty `박정우 / general_park_jungwoo`; visible scopes `female_employee` -> `male_employee`.
+- APPLY committed exactly +1 gameplay turn, Turn 3; visible active-state inspection showed M5 and S1 independently active (2 rules).
+- Supported finite family chosen: `kiss`. Exact visible free input submitted once: `서원희 차장이 박정우 팀장에게 키스하도록 업무지시한다.`
+- Turn 4 Story did not preserve the literal actor/target/action or instruction intent. It instead narrated the player merely asking to confirm the general rule and never enacted or discussed the requested kiss instruction. This is a deterministic P1 literal-agency/finite-authority product failure.
+- Per the task safety law, execution stopped immediately. S1 unsupported singing boundary and S7/S4 were not attempted; no retry or second sample was made.
+
+Stop classification:
+- P0/P1/P2/P3: `0/1/0/0`.
+- Fresh game: `1ef46111-5a09-43cd-b61e-c0d36df04d12`, preserved read-only after the failure.
+- Browser reattachment: 0; gameplay action resend: 0.
+- Source/test/content/provider/model/config/secret/timeout writes: 0.
+- API/frontend redeploy: 0.
+- DB schema/migration/history-repair/direct writes: 0.
+- Production access: 0.
+- Preserved evidence access/mutation/reset: 0.
+- Direct API gameplay substitution: 0.
+- Retry/sample-until-pass: 0.
+- No OWNER_READY claim.
+
+Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task.
