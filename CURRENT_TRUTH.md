@@ -13,8 +13,9 @@ Before any Company implementation/review/deploy decision, read:
 3. `docs/redesign/COMPANY_CANON.md`
 4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
 5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
-6. `docs/redesign/MEDIA_CATALOG_CONTRACT.md` when media/image work is involved
-7. `docs/ops/CURRENT_TASK.md`
+6. `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`
+7. `docs/redesign/MEDIA_CATALOG_CONTRACT.md` when media/image work is involved
+8. `docs/ops/CURRENT_TASK.md`
 
 Do not rely on memory or a historical Issue/PR when current repository authority is available.
 
@@ -24,6 +25,7 @@ Do not rely on memory or a historical Issue/PR when current repository authority
 - Product authority: `docs/redesign/COMPANY_CANON.md`.
 - CSA compatibility/authority specialized product authority: `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`.
 - Live acceptance authority: `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`.
+- Mandatory post-live whole-canon audit authority: `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`.
 - Media catalog authority: `docs/redesign/MEDIA_CATALOG_CONTRACT.md`.
 - Runtime architecture remains A′: high-parity Company presentation/content + thin client + server-owned turn kernel + Story LLM + one post-Story observer + isolated R3 persistence + optional sidecars.
 - Current implementation may be defective or obsolete; implementation/tests/live DB do not redefine the product.
@@ -71,6 +73,21 @@ Before resuming Image/TTS acceptance, current work must close the specialized CS
 
 Issue #68 operator intervention `5402446281`, next-task spec `5402491879`, and canonization note `5402495785` are durable review evidence; current repository contracts are the authority.
 
+### Post-live whole-canon review law — 2026-08-25 owner decision
+
+Every actual deployed live/browser test is followed by an **independent whole-canon divergence audit** before the next CURRENT_TASK is chosen.
+
+- Task compliance review and independent product audit are separate jobs.
+- Re-read current canon/contracts at review time; do not review only against the task's narrow acceptance bullets.
+- Inspect representative chains as `literal/operation -> Story -> observer raw -> observer applied -> durable state -> next Story/context -> UI`.
+- Look for both `Story correct / state wrong` and `state correct / Story-MM-UI wrong` failures.
+- Inspect high-value negative/cross-boundary interactions: other-actor movement, unsupported actions, refusal/stop/change, CSA residue, conflicting rules, named-role propagation, institutional-vs-private-app source, refresh/history/memory effects, and internal-copy leakage where applicable.
+- Systematic fail-open drop surfaces such as MM must be measured when practical; surviving Story alone does not make the feature product-green.
+- Every live terminal review must state a `WHOLE_CANON_AUDIT_*` conclusion before registering the next lane.
+- A narrow live PASS may still reorder the roadmap if the whole-canon audit finds a more important P0/P1 or contaminating P2 integrity defect.
+
+The binding procedure is `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`.
+
 ### Other binding corrections
 
 - Character source must be dramatizable; internal profile labels must not leak as dossier prose.
@@ -93,6 +110,8 @@ Issue #68 operator intervention `5402446281`, next-task spec `5402491879`, and c
 ## Execution law
 
 `docs/ops/CURRENT_TASK.md` is execution authority only. It MUST cite and preserve the current canon and specialized contracts. It may not change product meaning to make implementation/tests easier.
+
+After any actual deployed live/browser campaign, **do not mechanically register the roadmap's next task from the narrow terminal result**. First complete `POST_LIVE_CANON_AUDIT_CONTRACT.md`, record its whole-canon conclusion, and then choose/reorder the next task.
 
 Product-law change protocol:
 
