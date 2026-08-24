@@ -18,7 +18,27 @@ function scopeLabel(scope) {
     female_employee: '여성 직원',
     male_employee: '남성 직원',
     company_employee: '회사 직원 전체'
-  }[scope] ?? scope ?? '미지정';
+  }[scope] ?? '미지정';
+}
+
+const PLAYER_FACING_TIER_LABELS = Object.freeze({ weak: '약함', medium: '중간', strong: '강함' });
+const PLAYER_FACING_S1_ACTION_LABELS = Object.freeze({
+  kiss: '키스',
+  sexual_touch: '성적 접촉',
+  genital_exposure: '성기 노출',
+  genital_touch: '성기 접촉',
+  oral: '구강 자극',
+  penetration: '삽입 행위'
+});
+
+export function playerFacingTierLabel(value) {
+  return PLAYER_FACING_TIER_LABELS[value] ?? '규칙';
+}
+
+export function playerFacingS1ActionLabels(values) {
+  return (Array.isArray(values) ? values : [])
+    .map(value => PLAYER_FACING_S1_ACTION_LABELS[value])
+    .filter(Boolean);
 }
 
 function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
@@ -168,7 +188,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
 
   function actorField(label, value, onChange, disabled = false) {
     const actors = (catalog().actors ?? []).filter(actor => actor?.id && actor.id !== 'player');
-    return catalogField(label, [{ id: '', label: '대상 선택', disabled: true }, ...actors.map(actor => ({ id: actor.id, label: actor.name ?? actor.id }))], value, onChange, disabled);
+    return catalogField(label, [{ id: '', label: '대상 선택', disabled: true }, ...actors.map(actor => ({ id: actor.id, label: actor.name ?? '직원' }))], value, onChange, disabled);
   }
 
   function operationLiteral(operation) {
@@ -176,7 +196,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     const verb = { activate: '상식개변 적용', update: '상식개변 변경', deactivate: '상식개변 해제' }[operation?.operation] ?? '상식개변';
     const subject = operation?.subject_scope ? `대상 ${scopeLabel(operation.subject_scope)}` : '';
     const counterparty = operation?.counterparty_scope ? ` · 상대 ${scopeLabel(operation.counterparty_scope)}` : '';
-    return `${verb}: ${item?.label ?? operation?.template_id ?? operation?.id ?? '규칙'}${subject ? ` · ${subject}` : ''}${counterparty}`;
+    return `${verb}: ${item?.label ?? '규칙'}${subject ? ` · ${subject}` : ''}${counterparty}`;
   }
 
   async function applyDraft() {
@@ -266,7 +286,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     const operation = pending?.id === rule.id && pending.operation === 'update' ? pending : null;
     const pendingItem = operation && operation.template_id !== rule.template_id ? itemFor(operation.template_id) : null;
     const card = el(documentRef, 'article'); card.className = `csa-app-effect-card${isRemove ? ' pending-delete' : ''}`;
-    card.append(el(documentRef, 'strong', item?.label ?? rule.template_id), el(documentRef, 'p', isRemove ? '해제 예정 · 아직 서버에 반영되지 않음' : (rule.content ?? item?.content_template ?? '')));
+    card.append(el(documentRef, 'strong', item?.label ?? '규칙'), el(documentRef, 'p', isRemove ? '해제 예정 · 아직 서버에 반영되지 않음' : (rule.content ?? item?.content_template ?? '')));
     if (!isRemove && item) {
       const subject = operation?.subject_scope ?? rule.subject_scope ?? item.default_subject_scope;
       const counterparty = operation?.counterparty_scope ?? rule.counterparty_scope ?? item.default_counterparty_scope;
@@ -275,7 +295,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     }
     if (pendingItem) {
       card.classList.add('pending-update');
-      card.children[0].textContent = `${item?.label ?? rule.template_id} → ${pendingItem.label}`;
+      card.children[0].textContent = `${item?.label ?? '규칙'} → ${pendingItem.label ?? '규칙'}`;
       card.children[1].textContent = pendingItem.content_template ?? '';
       while (card.children.length > 2) card.removeChild(card.lastElementChild);
       const pendingSubject = operation.subject_scope ?? pendingItem.default_subject_scope;
@@ -283,7 +303,6 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
       card.append(selectField('\uB300\uC0C1 \uBC94\uC704', pendingItem.subject_scopes, pendingSubject, value => stage({ operation: 'update', id: rule.id, template_id: pendingItem.id, subject_scope: value, counterparty_scope: pendingCounterparty })));
       if (pendingItem.counterparty_scopes.length) card.append(selectField('\uC0C1\uB300\uBC29 \uBC94\uC704', pendingItem.counterparty_scopes, pendingCounterparty, value => stage({ operation: 'update', id: rule.id, template_id: pendingItem.id, subject_scope: pendingSubject, counterparty_scope: value })));
       card.append(el(documentRef, 'p', `\uBCC0\uACBD \uC608\uC815: ${pendingItem.label}`));
-      card.append(el(documentRef, 'p', `${pendingItem.strength ?? '\uADDC\uCE59'} · ${pendingItem.category ?? 'world_behavior'}`));
     }
     const replacementItems = replacementPresetItems({ activeRules: activeRules(), catalogItems: catalog().items, rule });
     const replacementOptions = [{ id: '', label: '\uADDC\uCE59 \uBCC0\uACBD \uD504\uB9AC\uC14B \uC120\uD0DD', disabled: Boolean(pendingItem) }, ...replacementItems.map(candidate => ({ id: candidate.id, label: candidate.label }))];
@@ -299,10 +318,11 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
   function presetCard(item) {
     const pending = operationFor(item.id); const active = activeFor(item.id); if (pending?.operation === 'update') return null; if (active && !pending) return null;
     const card = el(documentRef, 'article'); card.className = 'csa-app-card';
-    card.append(el(documentRef, 'strong', `${item.strength ?? '규칙'} · ${item.label}`), el(documentRef, 'p', item.content_template ?? ''));
+    card.append(el(documentRef, 'strong', `${playerFacingTierLabel(item.tier ?? item.strength)} · ${item.label ?? '규칙'}`), el(documentRef, 'p', item.content_template ?? ''));
     const subject = pending?.subject_scope ?? item.default_subject_scope;
     const counterparty = pending?.counterparty_scope ?? defaultCounterpartyScope(item);
-    if (item.supported_action_families?.length) card.append(el(documentRef, 'small', `지원 행동군: ${item.supported_action_families.join(', ')}`));
+    const actionLabels = playerFacingS1ActionLabels(item.supported_action_families);
+    if (actionLabels.length) card.append(el(documentRef, 'small', `지원 범위: ${actionLabels.join(', ')}`));
     if (item.selector_schema === 'named_actor' || item.selector_schema === 'actor_pair') card.append(actorField('지정 직원', pending?.subject_actor_id ?? '', value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: value })));
     if (item.selector_schema === 'actor_pair') card.append(actorField('상대 직원', pending?.counterparty_actor_id ?? '', value => stage({ operation: 'activate', template_id: item.id, subject_scope: subject, counterparty_scope: counterparty, subject_actor_id: pending?.subject_actor_id, counterparty_actor_id: value })));
     card.append(selectField('대상 범위', item.subject_scopes, subject, value => stage({ operation: 'activate', template_id: item.id, subject_scope: value, counterparty_scope: counterparty })));
@@ -320,7 +340,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     const current = el(documentRef, 'section'); current.append(el(documentRef, 'h4', `현재 활성 규칙 ${rules.length}개`));
     if (rules.length) rules.forEach(rule => current.append(activeCard(rule)));
     else current.append(el(documentRef, 'p', '현재 활성 규칙이 없습니다.'));
-    body.append(current, el(documentRef, 'h4', '21-slot canonical catalog'));
+    body.append(current, el(documentRef, 'h4', '상식개변 규칙'));
     const tierTabs = el(documentRef, 'nav'); tierTabs.className = 'csa-tier-tabs';
     for (const value of ['weak', 'medium', 'strong']) { const button = el(documentRef, 'button', { weak: '약함', medium: '중간', strong: '강함' }[value]); button.type = 'button'; button.dataset.tier = value; button.setAttribute('aria-selected', value === tier ? 'true' : 'false'); button.addEventListener('click', () => { tier = value; render(); }); tierTabs.append(button); }
     body.append(tierTabs);
@@ -329,7 +349,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
 
   function renderManual() {
     body.append(el(documentRef, 'h3', '매뉴얼'));
-    ['현재 제공되는 것은 9개 프리셋 규칙뿐입니다.', '편집은 명시적으로 적용하기 전까지 로컬 초안입니다.', '적용·변경·해제는 각각 정확히 한 번의 Story 턴을 사용합니다.', '이 앱은 선택 사항이며 일반 플레이를 대신하지 않습니다.'].forEach(text => body.append(el(documentRef, 'p', text)));
+    ['약함·중간·강함 세 단계에 각 7개씩, 총 21개의 규칙을 제공합니다.', '편집은 명시적으로 적용하기 전까지 로컬 초안입니다.', '적용·변경·해제는 각각 정확히 한 번의 Story 턴을 사용합니다.', '이 앱은 선택 사항이며 일반 플레이를 대신하지 않습니다.'].forEach(text => body.append(el(documentRef, 'p', text)));
   }
 
   function render() {

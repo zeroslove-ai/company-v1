@@ -6,6 +6,7 @@ import { applyR3Csa, buildRuleChangeStoryBinding, createR3CsaCatalog, R3_CSA_TEM
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { createCsaDraft, csaDraftOperation, stageCsaOperation } from '../frontend-r3/csa-draft.js';
+import { playerFacingS1ActionLabels, playerFacingTierLabel } from '../frontend-r3/csa.js';
 
 const content = loadCanonicalCompanyR3Content();
 const GAME_ACCESS_SECRET = 'r3-test-secret';
@@ -226,6 +227,25 @@ test('frontend W5 selector handoff preserves both actor ids through draft and tu
 test('frontend CSA exposes the three canonical tiers and no exact-nine label', () => {
   const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8');
   assert.match(source, /csa-tier-tabs/); assert.match(source, /dataset\.tier/); assert.match(source, /약함/); assert.match(source, /중간/); assert.match(source, /강함/); assert.doesNotMatch(source, /9-rule/);
+});
+
+test('player-facing CSA projection localizes finite S1 families and hides internal fallbacks', () => {
+  assert.deepEqual(playerFacingS1ActionLabels(['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration']), ['키스', '성적 접촉', '성기 노출', '성기 접촉', '구강 자극', '삽입 행위']);
+  assert.deepEqual(playerFacingS1ActionLabels(['future_internal_family']), []);
+  assert.equal(playerFacingTierLabel('weak'), '약함');
+  assert.equal(playerFacingTierLabel('medium'), '중간');
+  assert.equal(playerFacingTierLabel('strong'), '강함');
+  assert.equal(playerFacingTierLabel('future_internal_tier'), '규칙');
+  const renderedActionText = playerFacingS1ActionLabels(['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration']).join(', ');
+  assert.doesNotMatch(renderedActionText, /sexual_touch|genital_exposure|genital_touch|\boral\b|\bpenetration\b/);
+});
+
+test('player-facing CSA copy does not expose stale or technical presentation metadata', () => {
+  const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8');
+  assert.match(source, /지원 범위/);
+  assert.match(source, /상식개변 규칙/);
+  assert.match(source, /총 21개의 규칙/);
+  assert.doesNotMatch(source, /21-slot canonical catalog|world_behavior|9개 프리셋 규칙/);
 });
 
 test('Story/Observer boundary states that compliance does not prove private positive emotion', () => {
