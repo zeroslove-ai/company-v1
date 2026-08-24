@@ -1,7 +1,8 @@
 # Company Live Acceptance Matrix
 
 Status: **OWNER_ACCEPTED / BINDING L1**  
-Accepted: 2026-08-24 KST
+Accepted: 2026-08-24 KST  
+Revised: 2026-08-24 KST — three-tier CSA / rule-change Story-turn acceptance
 
 Automated tests protect catastrophic invariants. **Actual deployed browser play is the product gate.**
 
@@ -29,7 +30,8 @@ Across acceptance campaigns include:
 - multi-NPC reaction;
 - movement between distinct locations;
 - work context without making work the mandatory objective;
-- CSA apply/change/remove with unrelated turns between;
+- CSA APPLY/CHANGE/REMOVE through the visible three-tier app, including rule-change Story turns and later ordinary turns under active authority;
+- compatible multi-rule combinations;
 - refresh/re-entry;
 - History and mobile inspection.
 
@@ -73,12 +75,12 @@ Opening feels like entering a living Company scene. Characters are introduced th
 
 ## A-CHOICE-001
 
-Every ordinary Story normally authors four literal choices. They must be meaningfully different directions.
+Every ordinary Story normally authors four literal choices. A committed CSA rule-change Story turn should also end in the normal four-choice Story convention for the resulting scene. Choices must be meaningfully different directions.
 
 The intended UI is:
 
 - four full choices visible with the Story;
-- four separate compact 5-character buttons;
+- four separate compact roughly-5-character buttons;
 - button click submits the full corresponding literal.
 
 Do not report the two-layer design as duplication. Fail only for correspondence/submission/layout problems or semantically collapsed choices.
@@ -91,8 +93,9 @@ For meaningful heroine interaction:
 - only relevant/current actors normally appear;
 - content is first-person character thought, not action narration;
 - Story and MM describe the same world;
-- new CSA rule surprise/awkwardness is allowed;
-- supernatural/private-app awareness is not;
+- new/changed/removed CSA rule surprise, embarrassment, reluctance or awkwardness is allowed;
+- same-turn MM on a rule-change Story must correspond to the actual announced rule and affected actor;
+- supernatural/private-app awareness is not allowed;
 - compliance is not rewritten as desire/consent-as-feeling.
 
 Track both raw and applied observer when MM is empty/suspicious.
@@ -103,27 +106,91 @@ Use 20+ turns when validating long memory. Establish at least one distinctive ea
 
 Pass only if later reaction reflects the grounded prior context without inventing a numeric relationship stage or forgetting because an optional summary failed.
 
-## A-CSA-001 — New rule / reaction / adaptation
+CSA issuance/change/remove and character-specific adaptation should remain interpretable later without a corruption/adaptation meter.
 
-APPLY a visibly disruptive valid rule. Observe:
+## A-CSA-001 — Three-tier catalog / selector surface
 
-1. the rule becomes a newly issued official rule/notice;
-2. NPC notices/reacts in character;
-3. NPC does not know the private app/supernatural cause;
-4. rule is followed when scoped/applicable;
-5. compliance does not create unrelated desire/romance/comfort;
-6. subsequent turns can show gradual adaptation.
+The visible CSA product must match binding canon:
 
-CHANGE and REMOVE with unrelated turns between. Check stale residue.
+- primary tabs are `약함 | 중간 | 강함`;
+- seven canonical product slots are exposed per tier (21 total), subject only to explicitly documented temporary implementation staging during a non-release development cut;
+- no extra category navigation is inserted merely to mirror internal metadata;
+- each preset exposes only its valid bounded subject/counterparty/designation selectors;
+- direction-sensitive rules do not allow nonsensical reversal;
+- S2/S3/S5/S7 named-role rules provide explicit named-adult employee selection where applicable;
+- raw `template_id`, trigger/action/duration DSL, revision, R3 IDs and JSON are not player-facing;
+- retired exact-nine presets are not silently exposed as new active catalog options.
 
-## A-CSA-002 — Rule 9 exact boundary
+For catalog verification record the visible rule card -> canonical W/M/S slot -> runtime template ID mapping.
 
-Test both cases:
+## A-CSA-002 — Rule-change Story turn / announcement / atomicity
 
-- **No qualifying current sexual action underway:** a player request for a new sexual act must not be forced by `continue_until_recipient_orgasm`.
-- **Qualifying current sexual action already underway:** when the preset request condition applies, the current action may be required to continue until the preset end condition.
+Test APPLY, CHANGE and REMOVE through the visible app.
 
-Do not accept a generic “all sexual commands execute” interpretation.
+For each operation record:
+
+`visible structured selection -> validated rule_change operation -> reserved logical turn -> streamed Story announcement -> observer raw/applied -> active-rule durable state -> next Story/UI`
+
+Pass requires:
+
+1. the operation consumes **exactly one gameplay turn on successful commit**;
+2. it is not serialized as an ordinary free-text player action for Story to reinterpret;
+3. Story visibly dramatizes a grounded institutional announcement (phone/company monitor/intranet/company messenger/HR or equivalent appropriate channel);
+4. NPCs may recognize that the rule is new/changed/removed and react in character;
+5. NPCs do not know the private app/supernatural cause;
+6. same-turn MM, when present, matches the same affected actor/rule reality;
+7. active-rule state and the rule-change Story turn become canonical together — no half-applied rule after a failed Story turn;
+8. no duplicate Story/Commit occurs on refresh/reconnect;
+9. later ordinary turns continue to receive the active rule until CHANGE/REMOVE;
+10. the announcement turn itself does not satisfy/finish the ongoing rule;
+11. CHANGE/REMOVE changes future authority without rewriting committed history.
+
+If Story/provider failure is deliberately or naturally encountered, prove prior rule state remains canonical unless the rule-change turn successfully committed.
+
+## A-CSA-003 — Reaction / compliance / adaptation separation
+
+Across at least one disruptive Weak/Medium rule and one Strong authority rule verify:
+
+- new official institutional rule, not retroactive “always normal” memory;
+- immediate surprise/confusion/embarrassment/annoyance/reluctance can coexist with compliance;
+- compliance does not create unrelated attraction, romance, comfort, arousal, loyalty or private consent-as-feeling;
+- later turns can show character-specific adaptation without a numeric corruption/adaptation/obedience system;
+- unrelated characters or scenes are not forced by out-of-scope rules.
+
+## A-CSA-004 — Finite rule-specific semantics
+
+Do not accept “the catalog loaded” as semantic acceptance. Exercise representative slots across all three tiers.
+
+Minimum owner-ready representative set:
+
+- Weak clothing: W1 or W2;
+- Weak recurring conversation/contact: one of W4-W7, including W7 recurring conversational behavior without wall-clock timer logic;
+- Medium clothing: M1 or M2;
+- Medium direct physical/sexual institutional rule: one of M3/M4/M6/M7;
+- Medium world-norm combination: M5 combined coherently with another compatible rule when practical;
+- Strong direct bounded authority: S1;
+- Strong named designation: at least one of S2/S3/S5;
+- Strong multi-NPC capability: S4 or S7;
+- Strong evaluation consequence: S6 when practical.
+
+For S1, verify only catalog-supported finite action families receive institutional authority. A free-form unsupported action must not become mandatory merely because S1 exists.
+
+For S4, verify bystanders are not auto-injected; an additional adult joins only when the player actually approves/directs participation and scene reality permits it.
+
+For S6, verify evaluation changes narrative/institutional context without creating a hidden numeric affinity/obedience score.
+
+## A-CSA-005 — Multi-rule combination and residue
+
+Create at least one compatible two-rule combination and one three-rule combination during extended acceptance.
+
+Pass requires:
+
+- each active rule remains independently inspectable;
+- Story can apply multiple compatible premises without collapsing them into one generic sexual mode;
+- CHANGE/REMOVE of one rule does not erase or corrupt unrelated active rules;
+- no stale enforcement remains after REMOVE;
+- no historical retired rule is resurrected as a side effect;
+- combination handling does not require a player-facing generic DSL.
 
 ## A-MEDIA-001
 
@@ -145,8 +212,9 @@ Desktop plus at least 390x844 mobile:
 - streaming does not blank/cover reading surface in a jarring blocking way;
 - full choices + compact buttons + free input reachable;
 - right-side/secondary panels do not dominate mobile reading;
+- CSA `약함/중간/강함` tabs, rule cards, bounded selectors and active-rule change/remove controls remain usable on mobile without hiding the Story flow;
 - technical `r3_*`/`revision`/`Commit` jargon is not normal game copy;
-- History chronology is understandable;
+- History chronology is understandable, including rule-change Story turns;
 - feedback/TTS availability is explicit rather than looking randomly broken.
 
 ## A-QA-PERMANENT-001 — Permanent lanes
@@ -157,12 +225,14 @@ Every owner-ready claim must have evidence across separate lanes:
 2. adult/intimate;
 3. semantic agency/refusal/change-of-mind;
 4. movement/alone/multi-NPC continuity;
-5. CSA lifecycle + rule-specific semantics;
-6. MM/player-thought;
-7. memory beyond recent raw window;
-8. media/TTS/feedback/History;
-9. desktop/mobile;
-10. refresh/reconnect/duplicate-submit structural integrity.
+5. CSA three-tier catalog + bounded selectors;
+6. CSA APPLY/CHANGE/REMOVE Story turns + announcement/MM/atomicity;
+7. representative Weak/Medium/Strong rule semantics + multi-rule combinations;
+8. MM/player-thought;
+9. memory beyond recent raw window including CSA adaptation;
+10. media/TTS/feedback/History;
+11. desktop/mobile;
+12. refresh/reconnect/duplicate-submit structural integrity.
 
 A four-turn P0/P1 smoke can be a deploy sanity check but can never produce `OWNER_READY` by itself.
 
