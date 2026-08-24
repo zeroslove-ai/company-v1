@@ -154,4 +154,5 @@ test('frontend CSA exposes the three canonical tiers and no exact-nine label', (
 test('Story/Observer boundary states that compliance does not prove private positive emotion', () => {
   const provider = fs.readFileSync(new URL('../runtime-r3/server/provider.js', import.meta.url), 'utf8');
   assert.match(provider, /pending_csa_operation/); assert.match(provider, /Compliance with an institutional rule/); assert.match(provider, /independent Story\/character evidence/);
+  assert.match(provider, /Never narrate the private app screen/); assert.match(provider, /grounded institutional announcement/); assert.match(provider, /Keep the private app unknown to NPCs/);
 });
