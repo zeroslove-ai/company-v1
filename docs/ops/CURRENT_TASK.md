@@ -1,350 +1,281 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Terminal result: CROSS_BOUNDARY_CORE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW
-Terminal blocker: fresh deployed-browser W3↔M1 rejection preserved durable state and did not consume a turn, but the deployed frontend surfaced only the generic unsent-input message and did not show the conflicting visible rule names required by the P1 compatibility gate.
-Task ID: company-r3-cross-boundary-core-p1-correction-v1
-Mode: OWNER-PRIORITY CORE PRODUCT CORRECTION — NAVIGATION / RULE-CHANGE ANNOUNCEMENT / CSA LITERAL AGENCY / FINITE COMPATIBILITY
-Updated: 2026-08-25 07:47 KST
+Status: READY
+Task ID: company-r3-csa-conflict-copy-core-p1-continuation-v1
+Mode: TARGETED P1 CONTINUATION — STRUCTURED CSA CONFLICT ERROR ENVELOPE / PLAYER-FACING COPY / DEFERRED CORE ACCEPTANCE
+Updated: 2026-08-25 08:27 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `ca943a418cab10b8af89720450be53f2736c2a18`
-Previous task: `company-r3-image-media-live-acceptance-v2`
-Previous terminal: Issue #68 `5402499548`
-Operator review: Issue #68 `5402535927`
-Owner intervention: Issue #68 `5402446281`
-Persistent correction spec: Issue #68 `5402491879`
-Canonization note: Issue #68 `5402495785`
-Binding specialized contract: `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
-Binding specialized contract commit: `14167976a00500a42a1eb591c76471a7d1ce477d`
-Binding specialized contract blob: `8c13e52f01e6f5d1682648d977a67bcd89e5c130`
-Current-truth routing commit: `ca943a418cab10b8af89720450be53f2736c2a18`
+Registration base main before this overwrite: `362c3762f183c03fb832c1502951749ed48c40cf`
+Previous task: `company-r3-cross-boundary-core-p1-correction-v1`
+Previous terminal: Issue #68 `5402820678`
+Operator + whole-canon review: Issue #68 `5402873107`
+Whole-canon conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE`
+Accepted partial implementation SHA: `02f87e8c2ffe728f1eb2602344b202acc88fc839`
+Accepted TEST API from previous terminal: `game-proxy-company-r3` / `cda59b9b-68da-4e84-ac7f-7aca7c1b946b`
+Accepted TEST frontend from previous terminal: `gamebuilder-company-r3` / `be422eae-d701-4068-bcda-53d2856d0df7`
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
-Target success terminal:
-`CROSS_BOUNDARY_CORE_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+Success terminal:
+`CSA_CONFLICT_COPY_CORE_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`CROSS_BOUNDARY_CORE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CSA_CONFLICT_COPY_CORE_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
 - Work on `main` only.
-- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Overwrite it in place for lifecycle state.
-- Do NOT create a new CURRENT_TASK file, branch, ops branch, feature branch, or implementation PR.
-- Mandatory read order before edit:
+- Reuse this exact `docs/ops/CURRENT_TASK.md` path. Never create another CURRENT_TASK file, branch, ops branch, implementation branch, or PR.
+- Mandatory read order before any edit:
   1. `AGENTS.md`
   2. `CURRENT_TRUTH.md`
   3. `docs/redesign/COMPANY_CANON.md`
   4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
   5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
-  6. current `content/csa_catalog.json`
-  7. Issue #68 owner intervention `5402446281`
-  8. Issue #68 correction spec `5402491879`
-  9. previous terminal `5402499548`
-  10. operator review `5402535927`
-  11. this CURRENT_TASK
-- Current binding canon/specialized contract outrank old accepted tests, prior green terminals, live DB state, and old implementation.
-- Preserve A′/R3: server-owned turn kernel + Story LLM + one post-Story observer + atomic Commit + optional sidecars.
-- This is not a redesign task. Fix the earliest broken existing boundary for each proven defect.
+  6. `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`
+  7. previous terminal `5402820678`
+  8. operator/whole-canon review `5402873107`
+  9. this task
+- Preserve A′/R3: server-owned turn kernel + one Story + one post-Story observer + atomic Commit + optional sidecars.
+- Preserve the accepted implementation at `02f87e8...`; do not redesign or reopen already-passed NAV/S7/S1 semantics without new evidence.
+- No product-law change is authorized or needed. Current canon/contracts already define the expected conflict behavior.
 
-### Preserved evidence — READ ONLY, never reset/retry/mutate
+### Preserved evidence — READ ONLY
 
-- `ab44e91c-5eaa-4fb1-9396-138073ec5257` — navigation false-positive and rule lifecycle residue evidence.
-- `b91607f4-6945-44eb-87a3-6f2b2d6e1834` — S7 trainer/trainee + ordinary literal agency + rule-change announcement evidence.
-- `babfa5a6-719b-4dbe-a392-cb2c62cc1faa` — S1 announcement and unsupported-action agency evidence.
-- `ebc440ea-5f2e-41dc-8333-12cedc1ad772` — superseded media task fresh game; preserve read only.
-- Any other game already marked preserved in Issue #68 remains read only.
+Never reset/retry/mutate:
+- `4261b592-e6b9-44cb-a5a7-05057a22ee83` — previous core-P1 fresh browser campaign and W3↔M1 UI-copy blocker.
+- `ab44e91c-5eaa-4fb1-9396-138073ec5257`
+- `b91607f4-6945-44eb-87a3-6f2b2d6e1834`
+- `babfa5a6-719b-4dbe-a392-cb2c62cc1faa`
+- `ebc440ea-5f2e-41dc-8333-12cedc1ad772`
+- every other game already marked preserved in Issue #68.
 
-## 1. Why this task exists
+## 1. Exact goal
 
-Recent DB/live review found a class of defects that previous narrow green tests did not catch:
+Close the one remaining reproducible P1 from terminal `5402820678`:
 
-- Story and Observer can be correct while deterministic postconditions corrupt durable state.
-- CSA role IDs can remain correct while Story substitutes the requested actor/action.
-- Rule state can commit correctly while the mandatory in-world issuance scene is missing or private-app/supernatural framing leaks in.
-- A finite S1 boundary can correctly reject institutional authority while Story erases the unsupported literal action entirely.
-- Multi-rule persistence can be structurally green while two active rules are physically contradictory.
+- backend compatibility validation already safely rejects W3↔M1 before turn reservation;
+- no contradictory durable state is created;
+- no Story turn is consumed;
+- but the deployed player UI loses the exact compatibility error and shows only generic transport/unsent copy.
 
-Therefore this task may not declare success from isolated unit contracts. Each decisive live probe must trace the whole product chain.
+The player must receive clear visible conflict information naming the conflicting player-visible rules, with no internal IDs/R3 jargon.
 
-## 2. P1-A — player navigation actor binding / durable scene authority
+After that fix, complete the portions of the previous core cross-boundary acceptance that were skipped solely because the first-P1 stop rule fired.
 
-Read current `runtime-r3/domain/navigation.js`, reducer/callers, observer normalization, and scene commit path first.
+## 2. First broken boundary to prove before patching
 
-Known exact evidence from `ab44...` Turn 9:
+Do not assume the catalog/reducer is wrong. Reproduce the error propagation with deterministic worker-level tests first.
 
-`서원희 차장과 박정우 팀장이 회의실로 이동한 뒤에도 나는 윤민아 대리에게 업무와 무관하게 점심 메뉴를 물으며 일상 대화를 이어간다.`
+Current source evidence to verify:
 
-Observed evidence:
-- Story: 서원희 + 박정우 move to meeting room; player remains in office with 윤민아.
-- Observer: `brand_strategy_office`, 윤민아/김제나 present.
-- durable state after reducer: `meeting_room`, `present_actor_ids=[]`.
+1. `runtime-r3/domain/csa.js` throws a bounded error shaped like:
+   `r3_csa_compatibility_conflict:<catalog-owned player-facing message>`
+   before reservation/mutation.
+2. `runtime-r3/server/http.js` can encode a caught conflict into HTTP 400 JSON.
+3. `frontend-r3/r3-client.js` already attempts to preserve non-OK `/turn` `data.code`.
+4. `frontend-r3/status.js` already maps the compatibility code/message.
+5. However `createR3Worker.fetch()` currently returns the async `/turn` handler from inside `try` without proving the rejected promise is caught by that `try/catch`. Establish whether a rejection from `startTurn()` escapes the structured `errorResponse()` envelope.
+6. `frontend-r3/csa.js` also collapses any non-committed `onOperation` result to a generic draft notice. Even after transport is fixed, the exact conflict must remain visible in the CSA surface instead of being overwritten by generic copy.
 
-Current main source has movement-word + location matching without player/self actor binding, then navigation postcondition overwrites observer state.
+Required proof before implementation:
+- a worker-level request using the real `createR3Worker.fetch()` path for an incompatible CSA turn;
+- expected response must be HTTP 400 with exact `data.code` beginning `r3_csa_compatibility_conflict:`;
+- reserve/Story/observer/commit counts remain zero for the rejected operation.
 
-Required fix:
-- `player_navigation` exists only when the literal actually binds movement/destination to the player/self.
-- movement performed only by named NPC(s) must not become player movement.
-- when there is no valid player navigation intent, grounded Story/observer scene projection remains authoritative.
-- true explicit player movement remains deterministic.
-- do not remove navigation postconditions wholesale if they remain needed for true player movement.
+If the first broken boundary is different, fix the earliest proven existing boundary and record why. Do not add a new protocol layer.
 
-Required deterministic regressions:
-1. exact Turn-9 style NPC-only movement + player stays/talks => no player navigation.
-2. `나는 회의실로 이동한다.` => player navigation to meeting room.
-3. registered heroine destination probe where player explicitly goes to that heroine/location => preserved.
-4. sentence containing both NPC movement and later explicit player movement => player clause wins only when explicit.
-5. refresh/re-entry of committed scene must reproduce same durable location/presence.
+## 3. Required implementation behavior
 
-Forbidden for this fix:
-- fuzzy NER;
-- nearest-name repair;
-- generic Korean semantic parser generation;
-- LLM navigation classifier;
-- trusting literal keywords over actor binding.
+### A. Server error envelope
 
-## 3. P1-B — rule-change official announcement must be structurally observable
+- An incompatible APPLY/UPDATE validation rejection must become a deterministic non-2xx HTTP response that reaches the browser with the exact bounded conflict code/message.
+- The rejection must happen before reservation, Story, observer and durable rule mutation.
+- Do not turn a pre-reservation compatibility rejection into a failed gameplay job or committed Story turn.
+- Do not retry/reconnect a deterministic compatibility rejection.
+- Preserve existing handling for genuine transport uncertainty/reconnect cases.
 
-Read current rule-change route, structured operation projection, provider request, Story streaming/commit path, observer, and rule-state atomic commit.
+### B. Frontend transport classification
 
-Evidence:
-- `babfa5a6...` S1 APPLY committed active S1 but Turn 1 Story had no S1 official issuance/announcement/first reaction; Turn 2 nevertheless enforced S1.
-- `b91607f4...` S7 APPLY narrated private-app activation/flash and an NPC seemingly sensing activation while the actual company notice was vague and did not clearly expose exact trainer/trainee identities.
-- Existing provider prompt already forbids private-app institutional knowledge, so prompt-only hard wording is proven insufficient.
+- Preserve exact server compatibility code/message through `r3-client` -> `submit` -> CSA UI.
+- A deterministic server conflict must never be reclassified as ambiguous transport failure.
+- No automatic reconcile/resend for this conflict.
+- Ordinary network uncertainty must still use existing transport recovery behavior.
 
-Required product behavior:
-- successful APPLY / CHANGE / REMOVE remains exactly one structured rule-change gameplay turn.
-- active-rule state and committed rule-change turn remain atomic.
-- the committed visible turn MUST contain a grounded official institutional/company/public-authority issuance channel appropriate to the rule.
-- material exact scope/designations must be knowable from that channel. For S7 the official announcement must identify the configured trainer and trainee, not only say `some training procedure applies`.
-- private `상식개변` app may remain a private player UI tool but is never the source of NPC knowledge.
-- no app flash / supernatural aura / NPC sensing activation as causal explanation.
-- first affected-character reaction can remain Story-authored and character-specific.
+### C. Player-facing CSA copy
 
-Implementation boundary:
-- Do not add a second Story or reaction LLM.
-- Do not add hidden semantic retry/regenerate-until-valid.
-- Do not change provider/model/temperature/token limits.
-- Do not add a generic verifier that retries Story.
-- Use the smallest deterministic/server-owned presentation boundary necessary so an exact validated structured rule-change operation cannot commit without the official issuance being observably represented. The LLM still writes the natural reaction/narrative around that institutional fact.
-- Do not serialize the structured operation back into an ordinary free-text player action for Story inference.
+For W3 `가슴골 노출 근무` active + M1 `속옷 근무` attempted on overlapping scope, the visible result must clearly name the conflicting visible rules or reproduce the catalog-owned conflict message, e.g. equivalent to:
 
-Required deterministic contracts:
-- S1 APPLY exact official rule/scope announcement survives even if mocked Story omits it.
-- S7 APPLY exact trainer/trainee announcement survives even if mocked Story omits or misstates the assignment.
-- CHANGE announces changed authority and commits only new canonical state.
-- REMOVE announces revocation and commits removal.
-- provider/Story failure leaves previous rule state canonical; no half-apply.
-- exactly one Story call and one observer pass per successful rule-change turn.
-- no private-app/supernatural wording is injected by deterministic rule-change presentation.
+`가슴골 노출 근무와 속옷 근무는 같은 여성 직원 범위에서 동시에 적용할 수 없습니다.`
 
-## 4. P1-C — active-CSA ordinary literal agency
+Requirements:
+- no `r3_*`, runtime ID, slot-only ID, JSON, revision, Commit jargon;
+- draft remains available for user correction/revert where current UI normally preserves a failed draft;
+- the CSA overlay/draft notice must not overwrite the exact conflict with generic `변경이 적용되지 않았습니다` copy;
+- the global status banner may show the same player-facing conflict, but at least one immediately visible CSA-related surface must preserve the exact conflict meaning.
 
-Trace ordinary literal -> provider request construction -> active CSA context -> Story -> observer -> durable state.
+## 4. Freeze already-passed core corrections
 
-### S7 exact failure
+The following evidence from `5402820678` is accepted and must stay green:
 
-Evidence game `b91607f4...`:
-- active S7 trainer = 서원희, trainee = 윤민아.
-- literal: `서원희 차장님, 윤민아 대리에게 오늘 지정된 성적 업무 교육을 어떻게 시작할지 차분히 설명해 주세요.`
-- actual Story redirected the scene so the player was asked to explain the notice instead of 서원희 explaining to 윤민아.
+- NPC-only movement does not become player navigation.
+- explicit player movement still updates durable location.
+- successful S7 rule-change Story visibly announces exact trainer/trainee through an official channel.
+- S7 ordinary literal preserves trainer -> trainee action/topic.
+- successful S1 rule-change Story visibly announces exact scope/designation.
+- supported S1 literal preserves exact actor/target and finite authority.
+- unsupported S1 literal remains an ordinary visible request and is not erased.
+- W3↔M1 backend rejection leaves active state unchanged and consumes no turn.
+- exactly one Story + one observer per successful rule-change turn.
 
-Required:
-- actor = 서원희, target = 윤민아, requested action/topic = explain how to begin designated training.
-- Story may choose wording/reaction/outcome but may not redirect explanatory duty to the player or substitute another task.
+Add regression coverage only where necessary to ensure the targeted transport/copy fix does not break these accepted boundaries. Do not rewrite their architecture.
 
-### S1 unsupported-action exact failure
+## 5. Deterministic tests
 
-Evidence game `babfa5a6...` Turn 3:
-- active S1 finite supported families are `kiss`, `sexual_touch`, `genital_exposure`, `genital_touch`, `oral`, `penetration`.
-- literal asks 서원희 to sing a sexual song.
-- singing is correctly outside S1 mandatory authority, but actual Story erased the request and continued the prior kiss event.
+Before deploy, add/adjust the smallest tests proving:
 
-Required:
-- outside supported S1 family = not institutionally mandatory.
-- the literal action remains an ordinary request/instruction and must stay visible in Story semantics.
-- NPC may refuse, question, react, or voluntarily comply according to ordinary scene/character logic, but the game may not pretend the request was never made.
-- supported S1 family within exact configured scope must still receive the accepted institutional authority.
+1. real worker.fetch incompatible `/turn` returns structured HTTP 400 conflict code/message rather than escaping as transport failure;
+2. rejected incompatibility causes reserve count 0, Story count 0, observer count 0, committed-turn delta 0, active-rule state unchanged;
+3. r3-client preserves the exact conflict code from a non-OK turn response;
+4. submit path classifies it as deterministic CSA conflict, never transport-reconcile;
+5. CSA UI keeps exact conflict meaning/names instead of replacing it with generic failure copy;
+6. generic network failure still follows existing transport recovery copy/logic;
+7. minimum finite conflict pairs remain present and safe;
+8. one known compatible pair still passes deterministic validation;
+9. existing NAV/S7/S1 focused regressions remain green.
 
-Required deterministic regressions:
-- exact S7 trainer/trainee literal preserves actor, target, action/topic.
-- unsupported S1 literal is preserved but not marked mandatory.
-- supported S1 literal remains mandatory within scope.
-- unsupported classification must not rewrite actor/target/action.
-- active CSA context ordering must not shadow the exact literal action.
+Then:
+- changed JS syntax checks;
+- JSON sanity only if JSON changes (JSON/catalog changes are not expected);
+- `git diff --check`;
+- focused affected tests;
+- full repository `npm test` exactly once after focused green.
+
+No provider/model/config/secret changes.
+
+## 6. DB / migration policy
+
+This continuation should require no DB/schema/RPC/migration change.
 
 Forbidden:
-- generic action execution DSL;
-- broad action taxonomy beyond existing finite S1 families;
-- semantic retry;
-- second Story;
-- relation/consent/corruption engine.
+- migration apply/db push;
+- migration history repair/rewrite;
+- gameplay data backfill;
+- preserved game mutation;
+- schema workaround for a frontend/server error-envelope defect.
 
-## 5. P1/P2-D — finite contradictory CSA compatibility
+If a DB change appears necessary, STOP blocked and explain why the existing pre-reservation rejection cannot be represented without it.
 
-Binding contract requires catalog-owned finite incompatibility, not a generic physical solver.
+## 7. TEST deploy
 
-Audit current `content/csa_catalog.json`, `runtime-r3/domain/csa.js`, server validation and frontend APPLY/CHANGE presentation.
+After source/tests land on `main`:
 
-Minimum binding incompatible pairs for overlapping female scope:
-- W3 `cleavage_exposed_work` ↔ M1 `work_in_underwear_only`.
-- W3 ↔ M2 `work_nude`.
-- W1 `no_bra_under_work_clothes` ↔ M1 because M1 requires underwear top worn.
-- W2 `no_panties_under_work_clothes` ↔ M1 because M1 requires underwear bottom worn.
-
-Also inspect direct finite `execution.required_state` contradictions among current curated clothing presets and add only directly proven finite pairs. Do not infer a generic ontology.
-
-Required behavior:
-- incompatible APPLY on overlapping scope cannot silently leave both active.
-- choose the smallest coherent product path supported by current UI/runtime: either clear rejection before rule-change turn or explicit replacement/CHANGE. Do not invent silent precedence.
-- player-facing conflict copy must identify the conflicting visible rules, not internal IDs/R3 jargon.
-- compatible combinations still work and remain independently inspectable.
-- no migration should be required merely to express finite catalog compatibility if current state can represent rejection/replacement.
-
-Required deterministic tests:
-- all minimum conflict pairs rejected/replaced as designed.
-- same rules on genuinely non-overlapping scopes may coexist only if current selector model can represent that distinction correctly; otherwise do not fake scope separation.
-- one known compatible pair continues to apply/persist.
-- failed incompatible APPLY does not consume a Story turn if operation validation rejects it before reservation; if existing contract requires a structured failed operation presentation, STOP and request operator review rather than inventing new product law.
-
-## 6. Out of scope for this task — preserve evidence for next P2 integrity lane
-
-Do not broaden implementation into these unless a core P1 fix necessarily touches the exact same boundary:
-
-- removed-rule ghost/current-authority residue after CHANGE/REMOVE;
-- high Mind Monitor projection drop rate / legacy string-shaped MM output;
-- player-facing CSA `rule_text` leaking developer phrases (`숨은 트리거 엔진`, `장면을 만들 수 있다`, etc.);
-- image catalog variety/routing acceptance;
-- TTS acceptance.
-
-These are already binding follow-ups in `CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md` and will receive a separate P2 task after this core P1 terminal is reviewed.
-
-## 7. Deterministic validation before TEST deploy
-
-1. Add focused regressions for every changed boundary above.
-2. Run changed JS syntax checks and JSON parse/catalog sanity.
-3. Run `git diff --check`.
-4. Run focused R3 tests for navigation + CSA + rule-change + provider/turn-kernel affected boundaries.
-5. Run the full repository suite exactly once after focused tests are green and before deploy.
-6. Inspect diff for accidental provider/model/config/secret/migration/schema changes.
-7. Verify preserved evidence games were not mutated.
-
-If a DB schema change appears genuinely necessary, STOP `CROSS_BOUNDARY_CORE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW` and explain the smallest missing schema contract. Do not perform `supabase db push`, migration repair, history mutation, or broad schema work in this task.
-
-## 8. TEST deployment
-
-After reviewed source/tests land on `main`:
-
-- verify local/remote main equality;
-- read-only verify current TEST target/schema compatibility;
-- deploy only the TEST Worker(s) whose executable source changed;
-- record exact Worker versions and source SHA;
-- frontend deploy only if frontend source actually changed;
+- verify local main == remote main;
+- deploy API TEST only if server executable source changed;
+- deploy frontend TEST only if frontend executable source changed;
+- record exact Worker version IDs and source SHA;
 - no Production.
 
-Do not alter provider/model/config/secret settings to improve Story compliance.
+Do not alter provider/model/temperature/token/config/secret settings.
 
-## 9. Fresh deployed-browser cross-boundary campaign
+## 8. Fresh deployed-browser continuation campaign
 
-Use the actual deployed TEST browser UI. No direct gameplay API substitute.
+Use the real deployed TEST frontend. Do not mutate the preserved game `4261...`.
 
-Create **exactly one new adult-profile game** after browser DOM/screenshot readiness. Do not create a second game for pass-seeking.
+Create exactly one new adult-profile TEST game through visible Setup after browser readiness is confirmed. No second game, reset, regenerate, direct gameplay API substitute, or sample-until-pass.
 
-Target 12–15 committed turns. Use natural bridging turns as needed, but deliberately cover all four repaired P1 families in one continuous product reality.
+Target roughly 9–12 committed turns plus one rejected conflict attempt. Natural bridging turns are allowed.
 
-Required lanes:
+Mandatory integrated probes:
 
-### NAV lane
-- reproduce an NPC-only movement sentence structurally equivalent to the exact `ab44...` Turn 9 failure while player stays with another heroine/topic.
-- inspect Story, observer raw/applied, durable scene, refresh/re-entry.
-- then perform one true explicit player movement to a different registered location/heroine and prove navigation still works.
+### Core smoke preservation
+- one NPC-only movement literal where player explicitly remains with another character -> no false player movement;
+- one explicit player movement -> durable location changes correctly.
 
-### RULE-CHANGE ANNOUNCEMENT lane
-- APPLY one named-role rule, preferably S7, and prove exact official channel exposes trainer/trainee identities.
-- no private-app institutional source and no supernatural sensing.
-- later ordinary turn proves active rule persists.
-- perform one CHANGE or REMOVE if practical to ensure the deterministic issuance mechanism also works beyond APPLY; do not turn this into the separate residue/P2 campaign.
+### S7 / S1 preservation
+- APPLY S7 with exact named trainer/trainee -> one official announcement Story turn;
+- one ordinary trainer->trainee explanation literal -> actor/target/action preserved;
+- APPLY S1 with exact bounded pair -> official announcement;
+- one unsupported S1 ordinary request -> request remains visible and is not treated as mandatory or erased.
 
-### S7 AGENCY lane
-- with trainer=서원희 and trainee=윤민아 when reachable, submit the exact semantic request asking 서원희 to explain to 윤민아 how to start the training.
-- Story must preserve actor/target/action.
+A second supported S1 adult action is optional because it already passed in the preserved campaign; use it only if needed to prove no regression without inflating the run.
 
-### S1 SUPPORTED/UNSUPPORTED lane
-- activate S1 with a clear exact bounded pair.
-- execute one supported family instruction once; prove institutional authority applies to the exact actors.
-- then issue one clearly unsupported instruction outside the six families, e.g. the sexual-song request.
-- Story must preserve the unsupported literal as an ordinary request while withholding S1 mandatory force.
-- no alternate unsupported sample if it fails.
+### Compatibility blocker closure
+- APPLY W3 on an overlapping female scope;
+- attempt incompatible M1 through the visible CSA app;
+- PASS only if:
+  - exact player-facing conflict meaning/names are visibly shown;
+  - no Story is generated;
+  - committed turn does not increment;
+  - W3 remains active;
+  - M1 does not appear in active state;
+  - no retry/reconcile/resend occurs.
 
-### COMPATIBILITY lane
-- visibly attempt one minimum incompatible pair on overlapping scope.
-- prove clear rejection/replacement behavior and no contradictory active state/Story turn.
-- then prove one compatible two-rule combination still works.
+### Deferred compatibility lifecycle
+After the rejected attempt:
+- apply one known compatible second rule and prove both remain independently active;
+- perform one visible CHANGE or REMOVE of that compatible rule and confirm canonical active state changes exactly once;
+- do not classify known removed-rule Story/MM residue as fixed merely from state readback; if a removed-rule ghost appears in Story/MM, record it as the already-known P2 and continue unless it escalates into active enforcement/P1.
 
-### REFRESH
-- one deliberate read-only refresh/re-entry after several probes.
-- no duplicate Story/Commit; durable location/rule state matches committed reality.
+### Refresh/re-entry
+- one deliberate read-only refresh/re-entry after the final committed state;
+- no duplicate Story/Commit;
+- active-rule state reconstructs correctly;
+- conflict attempt is not resurrected as a failed/pending gameplay turn;
+- input/choices/CSA controls remain usable.
 
-For decisive probes record:
-`literal or structured operation -> provider input/validated operation -> Story -> observer raw -> observer applied -> reducer/postcondition -> durable state -> next Story/UI`
+Stop at the first new reproducible P0/P1. Do not patch during the same live campaign.
 
-At first reproducible unrelated P0/P1 that invalidates the campaign, preserve the game read-only and STOP. Do not broaden the task or sample another game.
+## 9. Whole-canon observations to record, not broaden into implementation
 
-## 10. Success gate
+The following known P2 items remain next-lane candidates and must be reported if observed:
 
-Success requires all of the following:
+1. removed/replaced CSA rule treated as still-current authority in Story/MM;
+2. Mind Monitor raw -> applied projection drop/reliability problem;
+3. player-facing CSA developer-language leakage. Current main still contains known examples such as M5 `숨은 트리거 엔진...` and S7 `장면을 만들 수 있다.`
 
-- NPC-only movement no longer moves player durable location.
-- true player navigation still works.
-- every tested successful rule-change turn visibly contains grounded official issuance with exact material scope/designation.
-- private app/supernatural activation is not used as NPC authority source.
-- S7 ordinary literal preserves trainer -> trainee -> requested explanation/action.
-- S1 supported instruction receives authority; unsupported instruction remains ordinary literal and is not erased.
-- minimum contradictory pair cannot silently coexist; compatible pair still can.
-- no duplicate Story/Commit/retry.
-- focused + full deterministic gates pass.
-- exact TEST deployment/browser evidence is recorded.
-- no new reproducible P0/P1 in these core lanes.
+Do not fix them in this task unless the targeted conflict-copy change necessarily touches the exact same line and can be separated without scope expansion. They belong to the next P2 integrity task after this P1 is accepted.
 
-Do NOT claim `OWNER_READY`. Media/TTS remains intentionally deferred. P2 integrity lane remains after this review.
+Media/TTS owner-readiness acceptance remains paused.
 
-## 11. Forbidden
+## 10. Forbidden
 
-Counts must remain zero unless explicitly required above:
+Counts must remain zero:
+- new branch/PR/CURRENT_TASK file;
 - Production access/deploy;
-- provider/model/temperature/token/config/secret changes;
-- hidden retry/regeneration/sample-until-pass;
-- second Story/choice/MM/media LLM;
-- fuzzy/NER/nearest actor repair;
-- new parser generation;
-- generic relation/emotion/consent/obedience/corruption engine;
-- generic posture/contact/physical/sexual ontology;
-- generic CSA execution DSL;
-- migration-history repair;
-- `supabase db push` as prerequisite;
-- preserved evidence-game mutation/reset/retry;
-- new branch/PR/CURRENT_TASK file.
+- provider/model/temperature/token/config/secret workaround;
+- semantic retry/regeneration/sample-until-pass;
+- second Story/observer/reaction LLM;
+- fuzzy NER/new parser;
+- generic CSA DSL;
+- generic physical/sexual/consent/relation/corruption engine;
+- preserved-game mutation/reset;
+- migration repair/db push/backfill;
+- OWNER_READY claim.
 
-## 12. Terminal report
+## 11. Terminal report contract
 
-On success:
-`CROSS_BOUNDARY_CORE_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
-
-On blocker:
-`CROSS_BOUNDARY_CORE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-Terminal report must include:
-- start/final main SHA and final CURRENT_TASK blob;
-- exact changed files and why each owns the defect;
-- focused/full test counts;
-- deploy versions/counts;
-- preserved-game mutation count;
-- fresh game ID and exact 12–15-turn chronology;
-- decisive NAV/S7/S1/announcement/compatibility chains;
-- refresh/re-entry result;
-- all forbidden counts;
+Report:
+- start/implementation/final main SHA and changed files;
+- exact first broken boundary proven for the conflict transport;
+- worker.fetch conflict HTTP status/body and reserve/Story/observer/commit counts;
+- focused/full test results and CI if available;
+- TEST API/frontend version IDs and deploy counts;
+- fresh game ID;
+- each mandatory browser chain with literal/structured operation -> Story/response -> durable state -> UI;
+- exact visible conflict copy for W3↔M1;
+- rejected conflict committed-turn delta and active-rule state;
+- compatible pair result;
+- CHANGE/REMOVE result;
+- refresh/re-entry duplicate count;
 - P0/P1/P2/P3 findings;
-- explicit statement that Media/TTS was not resumed.
+- known P2 observations for removed-rule residue/MM/text leakage if encountered;
+- all forbidden counts.
 
-Then change only this same CURRENT_TASK lifecycle to `WAITING_REVIEW`, post one terminal Issue #68 comment, and STOP. Do not self-register the P2 task.
+Success:
+`CSA_CONFLICT_COPY_CORE_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+Blocked:
+`CSA_CONFLICT_COPY_CORE_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task. The operator must run the mandatory post-live whole-canon audit before choosing the following lane.
