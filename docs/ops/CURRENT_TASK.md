@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-company-map-presence-truth-p1-correction-v1
 Mode: TARGETED FRONTEND P1 — COMPANY MAP CURRENT PRESENCE / DEFAULT LOCATION TRUTH
 Updated: 2026-08-25 KST
@@ -225,3 +225,16 @@ On blocker/failure:
 
 Declared terminal = STOP.
 Do not self-register setup/world-definition, CSA, S1, MM, Media/TTS, or any later lane. Operator must perform the independent post-live whole-canon review first.
+
+## 11. Execution record — 2026-08-25
+
+- Execution identity: `company-r3-company-map-presence-truth-p1-correction-v1` / task blob `8174645857c76529a3bf5c95062840e018a89b52` / expected branch `main`.
+- STARTED lease: Issue #68 comment `5408864704`; start head `251688e1cca5e08a78794d388be40f5658319a3c`.
+- Implementation pushed on `main`: `9b3f4f26c97828ec18e05f29f8df7f18df4bbe81` (HEAD equals `origin/main`).
+- Changed files: `frontend-r3/company-map.js`, `frontend-r3/company-map.css`, `test/r3-frontend-contract.test.mjs`.
+- Root cause repaired: current presence now comes from `scene.present_actor_ids`; absent/default placement carries explicit reference provenance, visible non-current labeling/style, and the renderer/CSS contracts now agree on `is-in-scene` and `is-player-here`. Existing location/NPC literal-fill affordances remain covered.
+- Tests: changed-file syntax checks PASS; focused `test/r3-frontend-contract.test.mjs` PASS (17/17); broader relevant frontend/R3 set PASS (239/239); exactly one full `npm.cmd test` PASS (597/597); `git diff --check` PASS.
+- TEST deploy: frontend only, `gamebuilder-company-r3` at `https://gamebuilder-company-r3.zeroslove.workers.dev`, version `94bdf291-739a-4452-bcb4-e35ec6b96f5d`, source SHA `9b3f4f26c97828ec18e05f29f8df7f18df4bbe81`. API was not deployed.
+- Fresh live QA: exactly one disposable adult-profile game, `8a61332b-8365-4655-97c4-754332407948`, preserved READ ONLY. Opening Turn 0 showed one `is-player-here` place, six `is-in-scene` actors, and seven `is-reference` actors. A natural UI-submitted literal completed I메이's departure to `2층 공용 회의실` while PLAYER stayed; Turn 1 saved Story removed I메이 from current presence and left five current actors. A neutral second UI turn committed Turn 2. One deliberate reload restored Turn 2 Story/history/map truth with one current place, five current actors, seven references, and no duplicate commit.
+- No Production, DB write/read, migration, reset, retry-until-pass, provider/model/config, API/runtime, or preserved-game mutation occurred.
+- Independent whole-canon audit conclusion: `WHOLE_CANON_AUDIT_CLEAR_FOR_NEXT_LANE` for this map-presence target; no new issue was registered and no next task was generated. Await operator review before any later lane.
