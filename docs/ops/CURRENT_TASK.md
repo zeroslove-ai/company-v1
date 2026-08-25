@@ -1,28 +1,27 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-story-no-invented-player-travel-p1-correction-v1
-Mode: TARGETED CORE P1 — STORY PLAYER MOVEMENT / BRIDGING-ACTION AUTHORITY
+Status: READY
+Task ID: company-r3-opening-no-invented-player-action-p1-correction-v1
+Mode: TARGETED CORE P1 — OPENING PLAYER AGENCY BEFORE FIRST LITERAL
 Updated: 2026-08-25 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `dd5a8f3efea948b98c07f67fd134a599ca23623a`
-Previous task: `company-r3-observer-scene-reentry-presence-p1-correction-v1`
-Previous terminal: Issue #68 `5405147548`
-Operator / whole-canon review: Issue #68 `5405212633`
+Registration base main: `77da2f869b5ff67589359847f986b56402323cbd`
+Previous task: `company-r3-story-no-invented-player-travel-p1-correction-v1`
+Previous terminal: Issue #68 `5405323516`
+Operator / whole-canon review: Issue #68 `5405358834`
 Whole-canon conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE`
+Preserve accepted player-movement implementation: `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`
 Preserve Observer re-entry implementation: `ae27e7805065118657869ba90a7cf52bc3890982`
-Preserve accepted navigation/self-stay implementation: `bdd7a99e2a9a6762f6fb1e315d38b6496d22390a`
-Preserve accepted scene reconciliation implementation: `d5a841bb37c8340e40ee421d806bdb37436fcbc4`
-Fresh decisive evidence game: `59b3fd24-5889-4d59-a1a9-5ceddb427b72` — READ ONLY
+Fresh decisive evidence game: `f235369d-ae36-46fe-abfa-3e4a1d0e65c1` — READ ONLY
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 Operator-approved TEST catalog artifact: Issue #68 `5404426864`
 
 Success terminal:
-`STORY_NO_INVENTED_PLAYER_TRAVEL_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`OPENING_NO_INVENTED_PLAYER_ACTION_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`STORY_NO_INVENTED_PLAYER_TRAVEL_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`OPENING_NO_INVENTED_PLAYER_ACTION_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
@@ -35,8 +34,8 @@ Mandatory read order before implementation:
 4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
 5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
 6. `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`
-7. terminal `5405147548`
-8. operator whole-canon review `5405212633`
+7. terminal `5405323516`
+8. operator whole-canon review `5405358834`
 9. this CURRENT_TASK.
 
 Preserve A′/R3 exactly: server-owned turn kernel -> one Story LLM -> one post-Story Observer -> atomic Commit + optional sidecars.
@@ -46,114 +45,109 @@ Do NOT access Production.
 Do NOT mutate/reset/retry any preserved evidence game.
 
 At minimum preserve READ ONLY:
+- `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`
 - `59b3fd24-5889-4d59-a1a9-5ceddb427b72`
-- `9fcd03d0-4daf-4fb2-8ae8-fc438a46d6cf`
 - `98e070d9-b491-47a9-881b-45dc496a4046`
 - all other games already marked preserved in Issue #68.
 
-## 1. Why this task exists — reproducible P1
+## 1. Why this task exists — fresh reproducible P1
 
-Fresh game `59b3fd24-5889-4d59-a1a9-5ceddb427b72`:
+Fresh game `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`, Opening / Turn 0 has no submitted player literal.
 
-Turn 2 literal:
-`나는 자리에 그대로 남은 채 서원희 차장과 박정우 팀장이 브랜드전략팀 회의실로 이동하는 모습을 지켜본다.`
+Actual Story nevertheless says:
+`서류 뭉치 사이에 스마트폰을 내려놓는 순간, 화면에 익숙하지 않은 아이콘이 하나 떠 있다.`
 
-Turn 2 correctly leaves PLAYER in `brand_strategy_office` while the NPC pair moves to the meeting room.
+That authors a voluntary PLAYER touching/placing action before the player has chosen anything.
 
-Turn 3 literal:
-`나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.`
+Binding canon says Opening does not speak for the player beyond validated setup facts. Current `OPENING_STORY_SYSTEM_PROMPT` already says passive app exposure is allowed but explicitly forbids voluntary player speech/reply, nod/gesture, movement, touching, clicking, typing, opening/closing/hiding the app, drinking/eating, reviewing/working, acknowledging, deciding, accepting/refusing, or another intentional player action.
 
-This literal contains the instruction only. It does not choose PLAYER standing, following, walking, entering, approaching the meeting-room door, or knocking.
+Therefore this is not new product law. It is a current implementation / Story-contract failure under `P-OPENING-001` and `P-AGENCY-001`.
 
-Actual Story nevertheless authored all of these before delivering the instruction:
-- `당신은 자리에서 일어났다.`
-- `당신은 회의실 유리문 앞으로 걸어갔다.`
-- `당신이 문을 두드리자...`
-
-The supported S1 kiss then executed, but the player action was silently enlarged into a voluntary trip to the remote NPCs. Observer prose consequently described a fabricated player return from the meeting room while durable canonical location stayed the office.
-
-This is a direct P1 under P-AGENCY-001 and the accepted NPC-movement boundary. Remote target location / narrative convenience is not authority to invent PLAYER movement.
+The private unfamiliar app must still be discoverable in the Opening. The app can already be present, visible, appear on a screen, or otherwise be passively available to notice. Story may not cause the player to manipulate the phone/app or perform another voluntary action merely to reveal it.
 
 ## 2. First owning boundary / required correction
 
 Inspect first:
-- `runtime-r3/domain/memory.js` `PLAYER_AGENCY_CONTRACT` and Story context construction;
-- `runtime-r3/server/provider.js` `STORY_SYSTEM_PROMPT`, `STORY_NPC_MOVEMENT_PROMPT`, Story request construction/callers;
-- existing `runtime-r3/domain/navigation.js` only to preserve accepted explicit-player-navigation behavior, not to create another parser;
-- focused R3 agency/navigation/S1 tests.
+- `runtime-r3/server/provider.js` — `OPENING_STORY_SYSTEM_PROMPT`, `OPENING_PRODUCT_PROMPT`, Opening request construction/order;
+- `runtime-r3/domain/memory.js` / opening Story context only if the current request payload needs an explicit structured opening-agency field;
+- `runtime-r3/server/opening.js` and callers only to confirm the first-literal boundary and one-Story architecture;
+- focused Opening / source-correction tests.
 
-Current source already says remote target / NPC-only movement does not authorize PLAYER follow, but live evidence shows two ambiguous allowances are not sufficiently ordered:
-- generic Story consequences may occur `around or after` the chosen beat;
-- `npc_movement_boundary` allows an `independently grounded external consequence` exception without explicitly distinguishing an externally caused displacement from a newly authored voluntary PLAYER walk/follow/approach.
+Current prompt contains the right law but live behavior shows that the no-action constraint is not sufficiently dominant/reliably represented at the actual Opening Story boundary.
 
-Correct the existing Story authority precedence narrowly:
+Correct narrowly so the actual Opening request expresses, with unambiguous precedence:
 
-1. The submitted literal is the sole authority for **voluntary PLAYER movement** in the current Story turn.
-2. Story may not add standing-up-to-go, following, walking, approaching, entering, accompanying, returning, knocking/door interaction, or another voluntary locomotion/bridge action merely to make a remote target reachable or to deliver a request/instruction.
-3. A remote actor/location, NPC movement, prior scene state, S1 authority, or narrative convenience never implies PLAYER follows.
-4. `external consequence` may not be interpreted as permission for Story-authored voluntary PLAYER movement. If a truly external world event physically displaces the player without player choice, that is a different externally caused consequence; do not use this exception to author voluntary travel.
-5. A remote-target instruction must preserve the instruction without moving PLAYER. Story may use a grounded remote communication channel, allow the target NPC(s) to move/return naturally, or narrate another consequence consistent with canon — but it may not substitute a PLAYER trip.
-6. True literal explicit PLAYER navigation remains supported exactly as already accepted.
-7. Do not solve this by post-Story deletion/rewrite. Story itself must obey the boundary before Observer.
+1. Before the first submitted literal, **PLAYER voluntary-action authority is empty**. Opening owns world/NPC presentation, not player choices.
+2. Validated setup facts such as player name/department/rank/first-arrival status may be stated as facts. They are not permission to invent a new voluntary action.
+3. Passive perception/exposure is allowed: the unfamiliar private app may already be visible/present/available to notice.
+4. Story must not make the player place/pick up/hold/manipulate/tap/open/close/hide the phone or app, move voluntarily, speak/reply, gesture/nod, eat/drink, work/review, decide/accept/refuse, or perform another intentional action before literal input.
+5. NPCs may move/speak/initiate normally. The player remains free at the end of Opening with four Story choices + free input.
+6. Do not replace the live Story with a deterministic prose template. Story remains the one Story LLM.
+7. Do not solve this after generation. The Story request itself must own the correction before Observer.
 
-A narrow structured Story-context field / prompt precedence clarification is allowed. Prefer an explicit player-movement authority contract over more vague prose if it fits the existing context design.
+A narrow structured `opening_player_agency_contract` or equivalent existing-context field is allowed if it makes this precedence explicit. Prefer that over simply adding another vague sentence if current source already contains the same sentence-level prohibition.
 
-Do **not** build a new semantic movement parser to decide whether movement exists. Existing navigation logic may be preserved/reused where already authoritative, but must not become a new generic classifier or a hard false-negative gate on free-form player movement.
-
-If source proof identifies an even earlier existing Story request boundary, fix that instead and explain it in the terminal.
+If source proof identifies an earlier existing Opening request boundary, fix that instead and explain in the terminal.
 
 ## 3. Preserve accepted behavior
 
 Do not regress:
-- `bdd7a99e...` exact self-stay / NPC-only movement does not become canonical player navigation;
-- `d5a841b...` Observer grounded entry/exit reconciliation;
-- `ae27e780...` prior membership is baseline-only and Observer must recompute post-Story co-location;
+- private unfamiliar `상식개변` app premise and passive discovery;
+- NPC ignorance of the private app unless the player later reveals it;
+- first-day / first-arrival / selected department and rank identity;
+- rich living Company Opening with NPC initiative;
+- exactly four full Story choices + free input;
+- `bd643fa...` no-invented voluntary PLAYER travel on ordinary turns;
+- accepted explicit player navigation and self-stay behavior;
+- `ae27e780...` Observer scene re-entry correction;
 - temporal `clock_24h` continuity;
-- private-app rule-change context isolation;
+- private-app rule-change isolation;
 - official announcement ownership;
 - S1 closed-world unsupported behavior;
 - PLAYER sole issuer and exact S1 subject/counterparty direction;
-- supported S1 kiss same-turn execution;
 - S7 / compatibility / exact conflict-copy accepted behavior;
 - one Story + one Observer only.
 
-The preserved S1 `성기를 직접 검사 -> genital_touch` semantic-grounding P1 remains open but is not this task.
-The Observer re-entry P1 correction remains live-unproven; preserve it for opportunistic proof in this campaign, but do not broaden implementation into it.
+Known separate P1, **not this implementation**:
+- fresh Turn 3 in `f235369d...` shows supported S1 `kiss` did not execute same turn for a remote pair; Story stopped at `지금, 뭐라고 하셨죠?`.
+- Preserve this as the next known P1 after Opening is live-clean. Do not modify S1 semantics in this task.
+
+Observer re-entry remains live-unproven. Do not broaden into it.
 
 ## 4. Forbidden approaches
 
 Do NOT add:
-- a new Korean movement/action parser, NER, fuzzy matcher, embeddings classifier, semantic router, or second parser generation;
-- post-Story regex/keyword deletion of player movement;
-- narrative rewrite after Story;
-- a generic scene graph / movement engine / physical ontology;
-- a second Story, second Observer, verifier LLM, reaction LLM, repair LLM;
-- semantic retry/regeneration/sample-until-pass;
+- post-Story regex/keyword deletion or rewriting of player actions;
+- a generic action/movement parser, classifier, NER, fuzzy matcher, embeddings router, or semantic validator;
+- a deterministic replacement Opening story/template;
+- a second Story, second Observer, verifier/repair/reaction LLM;
+- retry/regeneration/sample-until-pass;
 - provider/model/temperature/token/secret/config workaround;
-- S1 family expansion or generic sexual executor;
+- generic scene/physical/relation/consent/emotion engine;
+- S1 semantic changes in this task;
 - DB/schema/RPC/migration/backfill;
 - Production;
-- frontend changes unless directly proven necessary (not expected);
+- frontend executable changes unless directly proven necessary (not expected);
 - preserved-game mutation;
 - new branch/PR/task file;
 - OWNER_READY.
 
 ## 5. Deterministic regressions
 
-Add the smallest regressions at the Story request/contract boundary.
+Add the smallest regressions at the actual Opening Story request/contract boundary.
 
 Required before deploy:
-1. Story context explicitly states that voluntary PLAYER movement requires the submitted literal; remote target/NPC location/narrative convenience is not movement authority.
-2. The `external consequence` wording cannot be read as permission to invent voluntary PLAYER follow/walk/approach.
-3. Regression fixture for the decisive shape: current player location office, S1 pair remote in meeting room, literal only instructs 서원희 -> 박정우 kiss. Story contract/request must require PLAYER to remain at canonical location unless the literal itself moves them.
-4. Supported S1 same-turn execution remains mandatory; fixing movement must not turn the kiss into confirmation/future deferral.
-5. True explicit player navigation fixture remains allowed and existing navigation postcondition stays green.
-6. Exact self-stay + NPC pair movement remains allowed and produces no player navigation.
-7. `ae27e780...` Observer re-entry request/normalization tests remain green.
-8. temporal/private-app/official-announcement/S1 closed-world/S7/compatibility/conflict-copy focused regressions remain green.
+1. Actual Opening request/context has an explicit first-literal agency boundary: no voluntary PLAYER action is authorized before player input.
+2. Passive app discovery remains explicitly allowed without player manipulation.
+3. The decisive bad shape is explicitly forbidden at the contract level: Story may not make PLAYER put down/pick up/manipulate the phone merely to expose the app.
+4. NPC speech/movement/initiative remain allowed.
+5. Validated setup identity / first-arrival facts remain allowed without becoming invented action authority.
+6. Four Story choices + free input remain unchanged.
+7. Ordinary-turn `player_movement_authority_contract` from `bd643fa...` stays green and is not weakened.
+8. temporal/private-app-rule-change/official-announcement/S1 closed-world/S7/compatibility/conflict-copy/Observer-reentry focused regressions remain green.
 9. No second Story/Observer/verifier/retry path exists.
 
-Do not make tests green by introducing a deterministic parser that claims arbitrary free-form literals contain/no-contain movement.
+Do not make tests green with a post-generated Story keyword scanner.
 
 Then run:
 - `node --check` for changed JS/MJS;
@@ -183,74 +177,54 @@ Use the real deployed TEST frontend/UI. Create exactly ONE fresh disposable adul
 No second game, reset, regenerate, direct gameplay API substitute, semantic retry, or sample-until-pass.
 Preserve the game READ ONLY after the campaign.
 
-Target 4–6 committed turns. Stop at the first reproducible P0/P1.
+Target 2–4 committed turns. Stop at the first reproducible P0/P1.
 
-### A. Opening
-- normal first arrival;
-- record canonical location/time;
-- no invented voluntary player action.
-
-### B. S1 APPLY preservation
-Through visible CSA UI activate canonical S1 for exact pair 서원희 -> 박정우.
-
-PASS:
-- one official institutional announcement;
-- no private-app source/NPC awareness;
-- exact PLAYER issuer and actor direction;
-- temporal continuity;
-- one Story / one Observer / one Commit.
-
-### C. NPC pair leaves / PLAYER self-stay
-Submit exactly:
-`나는 자리에 그대로 남은 채 서원희 차장과 박정우 팀장이 브랜드전략팀 회의실로 이동하는 모습을 지켜본다.`
-
-PASS:
-- PLAYER stays in `brand_strategy_office`;
-- if Story moves the pair, durable post-Story membership excludes them;
-- no `canonical_navigation_applied` false positive.
-
-If Story does not move the pair, do not retry. Record coverage and continue only if the next beat is coherent without forcing a sample.
-
-### D. Decisive remote-target supported S1 probe
-If the pair is remote after C, submit exactly:
-`나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.`
+### A. Opening — decisive gate
 
 PASS requires simultaneously:
-- supported kiss begins/executes in the same Story turn;
-- exact subject/counterparty preserved;
-- Story does **not** invent PLAYER standing to follow, walking to the meeting room, approaching/entering the meeting room, knocking, accompanying, returning from the meeting room, or any other voluntary bridge travel/action not chosen by the literal;
-- canonical PLAYER location remains the office unless the literal explicitly changed it (it does not);
-- Story/Observer prose must not claim a fabricated PLAYER trip.
+- normal first arrival / selected identity / registered Company scene;
+- unfamiliar private app is passively present/discoverable;
+- NPCs may initiate/speak/move;
+- Story does **not** author any voluntary PLAYER action before the first literal, including phone placement/pickup/manipulation, tapping/opening, voluntary movement, speech/reply, gesture/nod, work/review, eating/drinking, decision/accept/refuse;
+- no private player thought/decision is invented as visible Story fact;
+- four meaningful full choices + free input are available.
 
-NPCs may remain remote and execute after grounded remote delivery, or may themselves return/move naturally. Do not force either outcome.
+Record the exact Opening Story and inspect it semantically. Do not claim PASS merely because no movement occurred.
 
-### E. Opportunistic Observer re-entry proof
-Only if Story D naturally brings 서원희/박정우 physically back into the player's office scene:
-- inspect existing read-only evidence path for Observer raw -> applied -> durable membership;
-- raw `present_actor_ids` must include both returned actors;
-- grounded `entered` should agree when exact evidence exists;
-- applied/durable presence and scene_note must describe the same reality.
+### B. One ordinary player-chosen action
 
-If Story keeps the pair remote, do NOT retry to obtain re-entry coverage. Record `OBSERVER_REENTRY_LIVE_UNPROVEN` for the mandatory operator audit; that does not by itself fail this no-invented-player-travel task.
+Only if Opening passes, submit one simple explicit ordinary/social free input or native choice.
 
-### F. Refresh/re-entry
+PASS:
+- Story preserves the actual chosen action;
+- the Opening no-action contract does not leak into ordinary turns and block legitimate player action;
+- `bd643fa...` ordinary no-invented-travel authority remains intact.
+
+### C. Optional S1 APPLY preservation sanity
+
+Only if no P0/P1 and practical within the same game, activate canonical S1 through visible CSA for 서원희 -> 박정우.
+
+This step is only a preservation sanity check for official issuance / exact direction / private-app isolation. **Do not run the known remote supported-kiss probe in this task.** It is already preserved as the next separate P1 and must not be mixed into this implementation task.
+
+### D. Refresh/re-entry
+
 Only if no P0/P1:
 - one deliberate refresh/re-entry;
 - no duplicate Story/Commit;
-- canonical player location and active S1 reconstruct once;
+- Opening/committed turn history reconstructs once;
 - input/choices remain usable.
 
 For decisive turns record:
-`literal/operation -> Story -> observer raw -> observer applied -> navigation intent/postcondition -> durable scene -> next context/UI`.
+`literal/operation -> Story -> observer raw -> observer applied -> durable scene -> next context/UI`.
 
 ## 8. Whole-canon observations — measure, do not broaden
 
 During the campaign record but do not fix:
 - MM raw -> applied retention/drop;
 - player_inner_thought invention/drop;
-- exact entered/exited evidence drops;
+- dialogue projection drops;
 - Story/current-state disagreement;
-- player-facing/internal CSA text leakage if visible;
+- player-facing/internal CSA text leakage if naturally visible;
 - removed/replaced-rule residue only if naturally encountered.
 
 Known P2 MM reliability remains open. Media/TTS remain paused.
@@ -259,15 +233,16 @@ Known P2 MM reliability remains open. Media/TTS remain paused.
 
 After terminal, operator must perform the mandatory independent whole-canon audit before selecting anything.
 
-If this P1 is closed and no earlier P0/P1 appears:
-- if Observer re-entry remains unproven, likely next is a deploy/live acceptance continuation for preserved `ae27e780...`;
-- if re-entry is decisively proven in this campaign, likely next P1 is preserved `성기를 직접 검사 -> genital_touch` semantic-grounding / same-turn authority.
+If Opening is live-clean and no earlier P0/P1 appears, the currently known next P1 is:
+`remote supported S1 same-turn execution` — exact `kiss` for the active 서원희 -> 박정우 pair must actually execute in the same Story turn while PLAYER remains remote/stationary; instruction delivery/questioning alone is not execution.
 
-Only after P1 closure return to P2 integrity:
-1. removed/replaced current-authority ghosts;
-2. MM projection reliability;
-3. player-facing/internal CSA text separation;
-then image/media and TTS acceptance.
+After core P1 closure:
+- decisive Observer re-entry live proof if still unproven;
+- preserved `성기를 직접 검사 -> genital_touch` semantic-grounding if still independently failing;
+- then P2 integrity: removed-rule ghosts -> MM reliability -> player-facing/internal CSA text separation;
+- then image/media and TTS acceptance.
+
+Do not mechanically register this roadmap; whole-canon audit chooses the next lane.
 
 ## 10. Stop / terminal law
 
@@ -282,52 +257,10 @@ At first reproducible P0/P1:
 On success:
 - set this same file to `WAITING_REVIEW`;
 - post exactly one terminal:
-`STORY_NO_INVENTED_PLAYER_TRAVEL_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`OPENING_NO_INVENTED_PLAYER_ACTION_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 - STOP.
 
 On blocker/failure:
-`STORY_NO_INVENTED_PLAYER_TRAVEL_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`OPENING_NO_INVENTED_PLAYER_ACTION_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the next task. After any deployed browser campaign, operator performs `POST_LIVE_CANON_AUDIT_CONTRACT` before the next CURRENT_TASK.
-
-## 11. Terminal report — 2026-08-25 KST
-
-Terminal:
-`STORY_NO_INVENTED_PLAYER_TRAVEL_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
-
-Execution identity:
-- TASK_ID: `company-r3-story-no-invented-player-travel-p1-correction-v1`
-- CURRENT_TASK blob SHA at lease: `9f7b4cf2b457ed978141348a82a016a7bef4edf1`
-- expected branch: `main`
-- reviewed executable / starting HEAD: `7a63f2886ea693aa0616ad9fa0913ed56e714f7b`
-- implementation commit: `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`
-- terminal control-file commit: this `WAITING_REVIEW` commit, reported with its final SHA in Issue #68
-
-Implementation and validation:
-- Narrow Story authority correction in `runtime-r3/domain/memory.js` and `runtime-r3/server/provider.js`; deterministic contract regressions in `test/r3-opening-contract.test.mjs` and `test/r3-source-correction.test.mjs`.
-- Focused affected tests: 39 passed, 0 failed.
-- Broader focused canon/CSA/turn-kernel/navigation/Observer set: 96 passed, 0 failed.
-- Exactly one full `npm.cmd test`: 583 passed, 0 failed.
-- `node --check` passed for all changed JS/MJS files; `git diff --check` passed.
-- Changed files are limited to the four files above.
-
-TEST/live evidence:
-- TEST API deployed only through the unchanged contract-gated R3 path from implementation SHA `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`.
-- TEST Worker: `game-proxy-company-r3`; version `34658b2e-aafa-4b8a-a70b-179c5b29ebb8`.
-- Frontend executable source was unchanged; no frontend deploy.
-- Exactly one fresh disposable adult-profile browser game: `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`; preserved READ ONLY after the campaign. No reset, second game, direct gameplay API substitute, retry, or regeneration.
-- Opening: Day 1 · 09:05, Turn 0; normal first-arrival office scene with free input and four choices; no invented voluntary player movement observed.
-- S1 activation: visible CSA UI applied exact `서원희` -> `박정우` pair; official announcement appeared; the committed Turn 1 advanced to Day 1 · 09:10 with `저장되었습니다.`.
-- Self-stay literal on Turn 2: `나는 자리에 그대로 남은 채 서원희 차장과 박정우 팀장이 브랜드전략팀 회의실로 이동하는 모습을 지켜본다.`
-  - Story: the NPC pair moved into the meeting room; player remained in the office and no player standing/following/walking/approach/entry/knock/returning bridge was authored.
-  - Next committed UI: Day 1 · 09:12, Turn 2; Mind Monitor retained only the remaining office actors, consistent with the pair leaving the scene.
-- Remote-target literal on Turn 3: `나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.`
-  - Story: the instruction was delivered and the supported kiss probe began in the same committed turn; the pair remained in the remote meeting-room context.
-  - Story did not invent player standing, following, walking, approaching, entering, knocking, accompanying, returning, or another voluntary bridge action; player remained at the office.
-  - Next committed UI: Day 1 · 09:15, Turn 3 with four choices and free input; no fabricated player trip was visible.
-- `OBSERVER_REENTRY_LIVE_UNPROVEN`: the pair remained remote, so the optional raw -> applied -> durable re-entry proof was not forced or retried.
-- No P0/P1 was reproduced in this campaign. Preserved games and prior evidence were not modified.
-
-Operational boundary:
-- No DB write, schema/RPC/migration/backfill, Production access, provider/model/config change, or frontend executable change.
-- Stop here for independent operator whole-canon audit; do not select or register the next task in this session.
