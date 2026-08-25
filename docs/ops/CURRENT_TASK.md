@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-story-no-invented-player-travel-p1-correction-v1
 Mode: TARGETED CORE P1 — STORY PLAYER MOVEMENT / BRIDGING-ACTION AUTHORITY
 Updated: 2026-08-25 KST
@@ -289,3 +289,45 @@ On blocker/failure:
 `STORY_NO_INVENTED_PLAYER_TRAVEL_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the next task. After any deployed browser campaign, operator performs `POST_LIVE_CANON_AUDIT_CONTRACT` before the next CURRENT_TASK.
+
+## 11. Terminal report — 2026-08-25 KST
+
+Terminal:
+`STORY_NO_INVENTED_PLAYER_TRAVEL_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+Execution identity:
+- TASK_ID: `company-r3-story-no-invented-player-travel-p1-correction-v1`
+- CURRENT_TASK blob SHA at lease: `9f7b4cf2b457ed978141348a82a016a7bef4edf1`
+- expected branch: `main`
+- reviewed executable / starting HEAD: `7a63f2886ea693aa0616ad9fa0913ed56e714f7b`
+- implementation commit: `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`
+- terminal control-file commit: this `WAITING_REVIEW` commit, reported with its final SHA in Issue #68
+
+Implementation and validation:
+- Narrow Story authority correction in `runtime-r3/domain/memory.js` and `runtime-r3/server/provider.js`; deterministic contract regressions in `test/r3-opening-contract.test.mjs` and `test/r3-source-correction.test.mjs`.
+- Focused affected tests: 39 passed, 0 failed.
+- Broader focused canon/CSA/turn-kernel/navigation/Observer set: 96 passed, 0 failed.
+- Exactly one full `npm.cmd test`: 583 passed, 0 failed.
+- `node --check` passed for all changed JS/MJS files; `git diff --check` passed.
+- Changed files are limited to the four files above.
+
+TEST/live evidence:
+- TEST API deployed only through the unchanged contract-gated R3 path from implementation SHA `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`.
+- TEST Worker: `game-proxy-company-r3`; version `34658b2e-aafa-4b8a-a70b-179c5b29ebb8`.
+- Frontend executable source was unchanged; no frontend deploy.
+- Exactly one fresh disposable adult-profile browser game: `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`; preserved READ ONLY after the campaign. No reset, second game, direct gameplay API substitute, retry, or regeneration.
+- Opening: Day 1 · 09:05, Turn 0; normal first-arrival office scene with free input and four choices; no invented voluntary player movement observed.
+- S1 activation: visible CSA UI applied exact `서원희` -> `박정우` pair; official announcement appeared; the committed Turn 1 advanced to Day 1 · 09:10 with `저장되었습니다.`.
+- Self-stay literal on Turn 2: `나는 자리에 그대로 남은 채 서원희 차장과 박정우 팀장이 브랜드전략팀 회의실로 이동하는 모습을 지켜본다.`
+  - Story: the NPC pair moved into the meeting room; player remained in the office and no player standing/following/walking/approach/entry/knock/returning bridge was authored.
+  - Next committed UI: Day 1 · 09:12, Turn 2; Mind Monitor retained only the remaining office actors, consistent with the pair leaving the scene.
+- Remote-target literal on Turn 3: `나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.`
+  - Story: the instruction was delivered and the supported kiss probe began in the same committed turn; the pair remained in the remote meeting-room context.
+  - Story did not invent player standing, following, walking, approaching, entering, knocking, accompanying, returning, or another voluntary bridge action; player remained at the office.
+  - Next committed UI: Day 1 · 09:15, Turn 3 with four choices and free input; no fabricated player trip was visible.
+- `OBSERVER_REENTRY_LIVE_UNPROVEN`: the pair remained remote, so the optional raw -> applied -> durable re-entry proof was not forced or retried.
+- No P0/P1 was reproduced in this campaign. Preserved games and prior evidence were not modified.
+
+Operational boundary:
+- No DB write, schema/RPC/migration/backfill, Production access, provider/model/config change, or frontend executable change.
+- Stop here for independent operator whole-canon audit; do not select or register the next task in this session.
