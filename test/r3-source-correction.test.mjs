@@ -246,6 +246,9 @@ test('R3 active S1 adds a finite same-turn authority exception without weakening
   assert.match(context.active_s1_literal_contract.mandatory_supported_action_exception, /same Story turn/i);
   assert.match(context.active_s1_literal_contract.mandatory_supported_action_exception, /does not apply outside the listed families/i);
   assert.equal(context.active_s1_literal_contract.unsupported_literal_remains_ordinary, true);
+  assert.equal(context.active_s1_literal_contract.closed_world_supported_families, true);
+  assert.equal(context.active_s1_literal_contract.positive_supported_family_match_required, true);
+  assert.equal(context.active_s1_literal_contract.ambiguous_or_unmatched_action_is_ordinary, true);
 });
 
 test('R3 scene_note is replaceable and clears when current observation has no useful note', () => {

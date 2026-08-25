@@ -156,6 +156,10 @@ test('server-owned institutional announcement carries exact S7 designation even 
   const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'sexual_work_training_designation', subject_scope: 'female_employee', counterparty_scope: 'female_employee', subject_actor_id: 'heroine1', counterparty_actor_id: 'heroine2' }] });
   const binding = buildRuleChangeStoryBinding({ event: next.last_rule_change, content });
   const announcement = buildRuleChangeInstitutionalAnnouncement({ event: next.last_rule_change, binding });
+  assert.equal(binding.authority.announcement_rendered_before_story_continuation, true);
+  assert.equal(binding.authority.sole_institutional_issuance, true);
+  assert.match(binding.boundary, /already rendered.*single institutional issuance/i);
+  assert.match(binding.boundary, /second notice.*private-app activation spectacle/i);
   assert.match(announcement, /공식 공지/); assert.match(announcement, /서원희/); assert.match(announcement, /윤민아/); assert.match(announcement, /공식 기관 채널/); assert.doesNotMatch(announcement, /앱|초자연/);
 });
 
@@ -173,9 +177,15 @@ test('active S1 projection exposes player authority and exact finite pair bindin
   assert.equal(binding.subject.name, content.characters.heroine5.name);
   assert.equal(binding.counterparty.actor_id, 'general_park_jungwoo');
   assert.equal(binding.counterparty.name, content.generalNpcs.find(actor => actor.id === 'general_park_jungwoo').name);
+  assert.match(binding.subject.role, /지정 수신자/);
+  assert.match(binding.counterparty.role, /지정 상대방/);
   assert.deepEqual(binding.supported_action_families, ['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration']);
   assert.match(binding.direction, /player.*issuer|player.*issues/i);
-  assert.match(binding.unsupported_boundary, /outside.*not mandatory/i);
+  assert.match(binding.direction, /counterparty.*not the issuer/i);
+  assert.equal(binding.closed_world, true);
+  assert.equal(binding.positive_supported_family_match_required, true);
+  assert.equal(binding.unsupported_or_ambiguous_is_ordinary, true);
+  assert.match(binding.unsupported_boundary, /unmatched or ambiguous.*ordinary/i);
   assert.equal(context.literal_action, literalAction);
   assert.equal(context.active_rules[0].selector, undefined);
   assert.equal(binding.immutable, true);
@@ -233,7 +243,7 @@ test('actor-pair Story bindings keep finite direction for W4/W6/W7, M3/M4, and M
     const item = createR3CsaCatalog(content.csaPresets).items.find(candidate => candidate.id === template_id);
     const next = applyR3Csa({ state: { scene: { present_actor_ids: [subject_actor_id, counterparty_actor_id] }, csa_active: [], csa_rules: {}, clothing: {} }, content, rawOperations: [{ operation: 'activate', template_id, subject_scope: item.default_subject_scope, counterparty_scope: item.default_counterparty_scope, subject_actor_id, counterparty_actor_id }] });
     const binding = buildRuleChangeStoryBinding({ event: next.last_rule_change, content });
-    assert.equal(binding.rule.slot, slot); assert.match(binding.direction, expected);
+    assert.equal(binding.rule.slot, slot); assert.match(binding.direction, slot === 'S1' ? /player.*sole issuer/i : expected);
   }
 });
 
@@ -445,4 +455,7 @@ test('Story/Observer boundary states that compliance does not prove private posi
   const provider = fs.readFileSync(new URL('../runtime-r3/server/provider.js', import.meta.url), 'utf8');
   assert.match(provider, /pending_csa_operation/); assert.match(provider, /Compliance with an institutional rule/); assert.match(provider, /independent Story\/character evidence/);
   assert.match(provider, /Never narrate the private app screen/); assert.match(provider, /grounded institutional announcement/); assert.match(provider, /Keep the private app unknown to NPCs/);
+  assert.match(provider, /S1 is closed-world/); assert.match(provider, /positive semantic match/); assert.match(provider, /unmatched or ambiguous action remains ordinary/);
+  assert.match(provider, /official announcement is already rendered/); assert.match(provider, /single institutional issuance/); assert.match(provider, /second notice/); assert.match(provider, /sender\/recipient relabeling/);
+  assert.match(provider, /private app screen opening, flashing, disappearing, activating/);
 });

@@ -108,6 +108,9 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       literal_action: storyLiteralAction,
       preserve_actor_target_action: true,
       supported_families_are_mandatory_only: true,
+      closed_world_supported_families: true,
+      positive_supported_family_match_required: true,
+      ambiguous_or_unmatched_action_is_ordinary: true,
       unsupported_literal_remains_ordinary: true,
       mandatory_supported_action_exception: 'When the exact active S1 subject/counterparty scope matches and the literal is one of the finite supported action families, rule-owned institutional authority takes precedence over the ordinary external-outcome boundary and the supported action must begin in this same Story turn; this exception does not apply outside the listed families.',
       precedence: 'The submitted literal_action is the latest and highest-priority ordinary player intent; active CSA context may classify its finite authority but may not erase, replace, or redirect it.'

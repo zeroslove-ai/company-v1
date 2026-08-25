@@ -162,7 +162,7 @@ const ACTOR_PAIR_ROLES = Object.freeze({
   M5: Object.freeze({ subject: 'configured subject in the recovery-practice pair', counterparty: 'configured counterparty in the recovery-practice pair', direction: (subject, counterparty) => `${subject} and ${counterparty} are the exact configured pair for the institutional recovery-practice premise.` }),
   M6: Object.freeze({ subject: 'person whose genitals are examined', counterparty: 'examiner who examines the subject\'s genitals', direction: (subject, counterparty) => `${counterparty} directly examines ${subject}'s genitals as the configured company examination.` }),
   M7: Object.freeze({ subject: 'person whose breasts and nipples are examined', counterparty: 'examiner who examines the subject\'s breasts and nipples', direction: (subject, counterparty) => `${counterparty} directly examines ${subject}'s breasts and nipples as the configured company examination.` }),
-  S1: Object.freeze({ subject: 'employee receiving the supported sexual-work instruction', counterparty: 'configured adult counterparty in the instruction context', direction: (subject, counterparty) => `${counterparty} gives the supported instruction to ${subject}; the configured pair is not interchangeable.` }),
+  S1: Object.freeze({ subject: '지정 수신자(지원 지시를 받는 직원)', counterparty: '지정 상대방(지원 지시의 상대 직원)', direction: (subject, counterparty) => `The player is the sole issuer: the supported instruction is issued to ${subject}; ${counterparty} is only the bounded adult counterparty in that instruction context and is not the issuer.` }),
   S4: Object.freeze({ subject: 'selected adult participant', counterparty: 'other selected adult participant', direction: (subject, counterparty) => `${subject} and ${counterparty} are the selected participants for the approved joint interaction; no unselected bystander is added.` }),
   S7: Object.freeze({ subject: 'designated trainer', counterparty: 'adult trainee receiving the training', direction: (subject, counterparty) => `${subject} trains ${counterparty} under the configured sexual-work training designation.` })
 });
@@ -207,9 +207,9 @@ export function buildRuleChangeStoryBinding({ event, content } = {}) {
     selected_actor_ids: selectedActors.map(actor => actor.actor_id),
     selected_actors: selectedActors,
     direction,
-    authority: { label: item?.authority_label ?? event.authority_label ?? '', announcement_channel: 'grounded institutional announcement', private_app_is_not_source: true },
+    authority: { label: item?.authority_label ?? event.authority_label ?? '', announcement_channel: 'grounded institutional announcement', private_app_is_not_source: true, announcement_rendered_before_story_continuation: true, sole_institutional_issuance: true },
     supported_action_families: [...(item?.supported_action_families ?? event.supported_action_families ?? [])],
-    boundary: 'The structured operation, selected actors, roles, and direction are immutable Story facts. Dramatize the institutional announcement and immediate grounded reactions without substituting actors, reversing direction, or inventing unselected participants.'
+    boundary: 'The structured operation, selected actors, roles, and direction are immutable Story facts. The server-owned official announcement is already rendered as the single institutional issuance before the Story continuation. Continue with grounded reactions only; do not emit a second notice, pseudo-policy, code block, role relabeling, or private-app activation spectacle.'
   };
 }
 
@@ -219,8 +219,8 @@ export function buildActiveS1StoryBinding({ rule, content, playerIdentity = null
   const item = catalogItem(catalog, rule.template_id);
   if (!item || item.slot !== 'S1') return null;
   const selector = rule.selector ?? {};
-  const subject = actorBinding(selector.subject_actor_id, rule.subject_scope, 'employee receiving the player\'s supported sexual-work instruction', content);
-  const counterparty = actorBinding(selector.counterparty_actor_id, rule.counterparty_scope, 'bounded adult counterparty in the player\'s instruction context', content);
+  const subject = actorBinding(selector.subject_actor_id, rule.subject_scope, '지정 수신자(지원 지시를 받는 직원)', content);
+  const counterparty = actorBinding(selector.counterparty_actor_id, rule.counterparty_scope, '지정 상대방(지원 지시의 상대 직원)', content);
   const families = [...(rule.supported_action_families ?? item.supported_action_families ?? [])];
   const canonicalPlayerName = playerIdentity?.name ?? 'player';
   return {
@@ -232,7 +232,10 @@ export function buildActiveS1StoryBinding({ rule, content, playerIdentity = null
     selected_actor_ids: [subject.actor_id, counterparty.actor_id].filter(Boolean),
     direction: 'The player issues the supported instruction to the selected subject; when the instruction names the counterparty, the subject performs the supported action toward or with that counterparty. The counterparty is not the issuer.',
     supported_action_families: families,
-    unsupported_boundary: 'Only the listed finite supported action families receive mandatory S1 institutional authority. An action outside that list remains an ordinary player request or instruction and is not mandatory merely because S1 is active.',
+    closed_world: true,
+    positive_supported_family_match_required: true,
+    unsupported_or_ambiguous_is_ordinary: true,
+    unsupported_boundary: 'Only a positive semantic match to one of the listed finite supported action families receives mandatory S1 institutional authority. An unmatched or ambiguous action remains an ordinary player request or instruction and is not mandatory merely because S1 is active or the literal uses official/order language.',
     literal_agency_boundary: 'Preserve the player literal actor, target, action, direction, request, and intent; a supported literal may not be replaced with rule discussion, confirmation, future deferral, a different act, or an unrelated participant.',
     authority: { label: item.authority_label ?? '', official_work_order_same_turn: true, compliance_is_not_desire_or_private_consent: true }
   };
