@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-observer-final-presence-evidence-p1-correction-v1
 Mode: TARGETED CORE P1 — COMPLETED STORY -> OBSERVER -> DURABLE NPC PRESENCE AUTHORITY
 Updated: 2026-08-25 KST
@@ -378,3 +378,17 @@ On blocker/failure:
 `OBSERVER_FINAL_PRESENCE_EVIDENCE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the known Company Map task. After any deployed browser campaign, operator must perform the independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing the next CURRENT_TASK.
+
+## 13. Execution record — 2026-08-25
+
+Terminal: `OBSERVER_FINAL_PRESENCE_EVIDENCE_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+- Executed on `main` at source commit `6c14509131564e66d9a57bd6cccc7e70585f6514`.
+- Focused, broader R3, and full suite validation passed: 51/51 focused, 164/164 R3, `npm test` 590/590; syntax and `git diff --check` passed.
+- TEST API was deployed through the unchanged contract-gated R3 path as Worker version `beba5900-7947-48bf-bfa4-833daa21f234`, source `6c14509`. No frontend source changed, so no frontend deployment was performed.
+- Exactly one fresh disposable browser game was created and preserved read-only: `6b5e7941-36a7-4019-94a8-777112824fc9`. No reset, regeneration, retry-until-pass, second game, Production action, migration, or DB write occurred.
+- Browser campaign committed exactly three turns: Opening, a normal first greeting, and one literal departure request. Opening naturally kept the registered cast present; the explicit absent-actor branch was not exercised, as permitted by this task. The departure request did not complete an NPC departure: Story moved PLAYER to `2층 공용 회의실` and showed 윤민아 there, so no departure or return success was claimed and no retry was made.
+- The one deliberate reload restored Turn 2 and the three committed history records without duplication. Visible Story/history/rendered Mind Monitor evidence remained coherent with the completed Story. The UI does not expose Observer raw/applied payloads; those boundaries are covered by the deterministic worker-path regressions above, and no raw/applied evidence was fabricated.
+- Known Company Map default-location false-current behavior remains out of scope and is reported for the independent post-live canon audit; it was not treated as a durable-state failure here.
+
+Operator review is required before any next CURRENT_TASK is registered.
