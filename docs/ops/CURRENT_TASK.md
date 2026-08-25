@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-opening-private-app-provenance-separation-p1-continuation-v1
 Mode: TARGETED CORE P1 — OPENING PRIVATE APP PROVENANCE / SOURCE AUTHORITY SEPARATION
 Updated: 2026-08-25 KST
@@ -272,3 +272,37 @@ On blocker/failure terminal:
 
 After any deployed browser campaign, operator must perform independent whole-canon audit before next task registration.
 Do not self-register the remote S1 task.
+
+## Terminal report — 2026-08-25 KST
+
+Result: `OPENING_PRIVATE_APP_PROVENANCE_SEPARATION_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+Task ID: `company-r3-opening-private-app-provenance-separation-p1-continuation-v1`
+CURRENT_TASK blob SHA: `02d02f154a8d29134d2373f41aa786e530c4387a`
+Expected branch: `main`
+Implementation commit: `dc99a6225bbaa3732ac53a320286fd935001b0ec`
+
+Implemented scope:
+- Split the existing Opening identity/arrival authority from the private-app provenance boundary in `runtime-r3/domain/memory.js` and `runtime-r3/server/provider.js`.
+- Kept the canonical unfamiliar app player-private and passively exposable through player-local device/narrator presentation while NPC/company/HR/security/onboarding/training/general-NPC sources remain ignorant before explicit player reveal.
+- Preserved stationary start, exact identity/rank/agency, ordinary-turn behavior, Story-owned four choices plus free input, Observer re-entry, and ordinary non-app company identity artifacts.
+- No output filtering, app keyword parser/classifier, deterministic Opening, second Story/Observer/verifier, retry, DB/schema/RPC/migration, preserved-game mutation, Production, provider/model/config, frontend, or S1 change.
+
+Verification:
+- `node --check` for changed JS/MJS: PASS.
+- `git diff --check`: PASS.
+- Focused Opening/source-correction tests: 32/32 PASS.
+- Broader R3 tests: 157/157 PASS.
+- Full `npm.cmd test` (PowerShell `npm test` shim was policy-blocked): 583/583 PASS.
+- Unchanged contract-gated TEST deploy: PASS.
+- TEST API: `game-proxy-company-r3`, version `5d4a688c-8ca6-41cc-8fb0-5e56cb235b80`, source `dc99a6225bbaa3732ac53a320286fd935001b0ec`.
+
+Fresh deployed browser campaign (exactly one disposable adult profile, READ ONLY):
+- Game: `bc16b278-2aee-4b3d-abfb-bab104aedf2e`.
+- Profile: `민준`, age 32, `신사업TF`, exact `TF팀장 (조율 권한)`. No preserved game was reset or modified.
+- Opening chain visible in the UI: `literal='' -> Story -> committed Turn 0/rendered UI`. The UI exposed the Story-owned four choices and free input. Raw Observer payload and durable commit fields are not separate UI surfaces.
+- Opening Story: first-day 1층 로비; 오세훈 identifies the player from the ordinary identity artifact and handles normal 출입증 발급. The player's phone passively shows the unfamiliar `상식개변` app; the Story explicitly says nobody else knows it, and 오세훈 does not see it. No NPC/company/HR/security/onboarding source announced, installed, distributed, recommended, recognized, explained, asked about, or substituted a generic employee app.
+- Ordinary Turn 1: selected the visible second choice asking whether department/rank appear on the badge. Story advanced to normal badge/photo procedure and preserved the app as player-private; four choices and free input remained available.
+- Refresh/re-entry: same game URL reconstructed committed Turn 1 once with `연결 완료`, preserved the same Story, choices, free input, and private-app isolation. No duplicate commit or new P0/P1 observed.
+
+Terminal control commit pending: this file will be committed and pushed to `origin/main` before the Issue #68 terminal report.
