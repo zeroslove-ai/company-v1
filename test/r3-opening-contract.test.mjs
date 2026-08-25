@@ -89,13 +89,26 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(openingContext.opening_contract.selected_formal_position_must_be_explicitly_established, true);
   assert.equal(openingContext.opening_contract.selected_formal_position_may_not_be_normalized, true);
   assert.equal(openingContext.opening_contract.first_day_descriptors_may_surround_exact_position, true);
-  assert.equal(openingContext.opening_contract.identity_arrival_and_app_premise_must_be_established_without_player_action, true);
+  assert.equal(openingContext.opening_contract.identity_and_arrival_must_be_established_without_player_action, true);
   assert.equal(openingContext.opening_contract.identity_arrival_establishment_authority, 'narrator_world_artifact_or_npc_initiative');
   assert.equal(openingContext.opening_contract.player_remains_silent_and_action_free_before_first_literal, true);
   assert.equal(openingContext.opening_contract.selected_rank_must_remain_true, true);
   assert.equal(openingContext.opening_contract.no_prior_tenure_or_company_relationships, true);
   assert.equal(openingContext.opening_contract.player_must_discover_private_app, true);
   assert.equal(openingContext.opening_contract.npc_ignorance_until_player_reveals, true);
+  assert.deepEqual(openingContext.opening_private_app_contract, {
+    canonical_app_name: openingContext.product.app_name,
+    player_private_possession_before_reveal: true,
+    authority: 'player_private_device_local_or_narrator_exposure',
+    passive_device_local_or_narrator_exposure_allowed: true,
+    player_manipulation_required: false,
+    npc_ignorance_until_player_reveals: true,
+    npc_company_sources_forbidden_before_player_reveal: [
+      'npc_dialogue', 'company_artifact', 'hr_or_onboarding_notice',
+      'security_or_training_notice', 'generic_company_app_substitute'
+    ],
+    possession_or_notice_alone_changes_reality: false
+  });
   assert.equal(openingContext.next_action_contract.author, 'story');
   assert.equal(openingContext.next_action_contract.count, 4);
   assert.equal(openingContext.next_action_contract.verbatim_observer_copy, true);
@@ -134,7 +147,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(receivedStory, storyText);
   assert.equal(payloads.length, 2, 'one Story request and one Observer request only');
   const storySystem = payloads[0].messages[0].content;
-  assert.match(storySystem, /discover|recognizing.*private app/i);
+  assert.match(storySystem, /privately expose.*canonical unfamiliar app/i);
   assert.match(storySystem, /NPCs remain ignorant/i);
   assert.match(storySystem, /productivity, helpdesk, or chat-assistant/i);
   assert.match(storySystem, /exactly four distinct.*numbered 1 through 4/i);
@@ -174,7 +187,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /without reenacting threshold crossing, arrival, entering, walking in/i);
   assert.match(storySystem, /world or NPC initiative while PLAYER remains stationary and action-free/i);
   assert.match(storySystem, /OPENING FORMAL-IDENTITY PRECEDENCE \+ OPENING PLAYER-AGENCY PRECEDENCE/i);
-  assert.match(storySystem, /single combined Opening boundary owns the validated setup facts and the pre-literal agency boundary together/i);
+  assert.match(storySystem, /single combined Opening boundary owns the validated identity\/arrival setup facts and the pre-literal agency boundary together/i);
   assert.match(storySystem, /exact canonical string.*immutable validated PLAYER setup fact/i);
   assert.match(storySystem, /must be explicitly established at least once in the Opening/i);
   assert.match(storySystem, /use that exact canonical label character-for-character/i);
@@ -189,9 +202,16 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /before the first submitted literal.*voluntary PLAYER action authority is empty/i);
   assert.match(storySystem, /overrides any generic ordinary-turn consequence wording/i);
   assert.match(storySystem, /Validated setup facts.*never permission to invent a player action/i);
-  assert.match(storySystem, /without the player placing.*picking up.*manipulating it/i);
+  assert.match(storySystem, /without (?:the )?player placing.*picking up.*manipulating it/i);
   assert.match(storySystem, /Leave the player choice unmade/i);
   assert.match(storySystem, /passive scene exposure is allowed/i);
+  assert.match(storySystem, /opening_private_app_contract is a separate hard boundary/i);
+  assert.match(storySystem, /initially knowable only by PLAYER/i);
+  assert.match(storySystem, /player-private device-local or narrator presentation/i);
+  assert.match(storySystem, /NPC\/company\/HR\/security\/onboarding\/training\/general-NPC dialogue or company artifacts must not announce, install, distribute, recommend, recognize, explain, ask about/i);
+  assert.match(storySystem, /must not substitute a generic employee app/i);
+  assert.match(storySystem, /Mere possession or notice does not change reality/i);
+  assert.match(storySystem, /private app only through the separate player-private device-local or narrator exposure boundary/i);
   for (const forbidden of ['speech or reply', 'nod or gesture', 'movement', 'touching', 'clicking', 'typing', 'opening, closing, hiding the app', 'drinking, eating', 'reviewing, working', 'acknowledging, deciding', 'accepting, refusing', 'other intentional player action']) {
     assert.match(storySystem, new RegExp(forbidden.replace(/[.*+?^${}()|[\\]\\]/g, '\\\\$&'), 'i'));
   }

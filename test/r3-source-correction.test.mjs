@@ -247,7 +247,7 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   assert.equal(opening.opening_contract.selected_formal_position_must_be_explicitly_established, Boolean(expectedFormalPosition));
   assert.equal(opening.opening_contract.selected_formal_position_may_not_be_normalized, true);
   assert.equal(opening.opening_contract.first_day_descriptors_may_surround_exact_position, true);
-  assert.equal(opening.opening_contract.identity_arrival_and_app_premise_must_be_established_without_player_action, true);
+  assert.equal(opening.opening_contract.identity_and_arrival_must_be_established_without_player_action, true);
   assert.equal(opening.opening_contract.identity_arrival_establishment_authority, 'narrator_world_artifact_or_npc_initiative');
   assert.equal(opening.opening_contract.player_remains_silent_and_action_free_before_first_literal, true);
   assert.equal(opening.opening_contract.selected_rank_must_remain_true, true);
@@ -255,6 +255,11 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   assert.equal(opening.opening_agency_contract.validated_setup_facts_are_not_player_action_authority, true);
   assert.equal(opening.opening_agency_contract.passive_app_discovery_without_player_manipulation, true);
   assert.equal(opening.opening_agency_contract.no_completed_player_action_before_first_literal, true);
+  assert.equal(opening.opening_private_app_contract.canonical_app_name, opening.product.app_name);
+  assert.equal(opening.opening_private_app_contract.authority, 'player_private_device_local_or_narrator_exposure');
+  assert.equal(opening.opening_private_app_contract.player_manipulation_required, false);
+  assert.equal(opening.opening_private_app_contract.npc_ignorance_until_player_reveals, true);
+  assert.equal(opening.opening_private_app_contract.possession_or_notice_alone_changes_reality, false);
 });
 
 test('R3 player inner thought is a bounded committed JSON projection with no migration-shaped state', () => {

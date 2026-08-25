@@ -169,7 +169,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       selected_formal_position_may_not_be_normalized: true,
       first_day_descriptors_may_surround_exact_position: true,
       selected_rank_must_remain_true: true,
-      identity_arrival_and_app_premise_must_be_established_without_player_action: true,
+      identity_and_arrival_must_be_established_without_player_action: true,
       identity_arrival_establishment_authority: 'narrator_world_artifact_or_npc_initiative',
       player_remains_silent_and_action_free_before_first_literal: true,
       no_prior_tenure_or_company_relationships: true,
@@ -179,6 +179,19 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       workplace_and_social_context_required: true,
       never_complete_unrequested_player_action: true,
       end_with_player_agency: true
+    } : null,
+    opening_private_app_contract: opening ? {
+      canonical_app_name: product.app_name,
+      player_private_possession_before_reveal: true,
+      authority: 'player_private_device_local_or_narrator_exposure',
+      passive_device_local_or_narrator_exposure_allowed: true,
+      player_manipulation_required: false,
+      npc_ignorance_until_player_reveals: true,
+      npc_company_sources_forbidden_before_player_reveal: [
+        'npc_dialogue', 'company_artifact', 'hr_or_onboarding_notice',
+        'security_or_training_notice', 'generic_company_app_substitute'
+      ],
+      possession_or_notice_alone_changes_reality: false
     } : null,
     opening_agency_contract: opening ? {
       phase: 'before_first_player_input',
