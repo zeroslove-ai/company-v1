@@ -31,10 +31,14 @@ export function buildCompanyMapModel({ scene = {}, actors = [], locations = [] }
   for (const actor of actorMap.values()) {
     const id = actor.id ?? actor.character_id; const name = identity(actor.name);
     if (!id || !name) continue;
-    const locationId = present.has(id) ? scene.location_id : (actor.default_location_id || defaultLocationByActor.get(id));
+    const presenceKind = present.has(id) ? 'current' : 'default_reference';
+    const locationId = presenceKind === 'current' ? scene.location_id : (actor.default_location_id || defaultLocationByActor.get(id));
     if (!locationId) continue;
     if (!byLocation.has(locationId)) byLocation.set(locationId, []);
-    byLocation.get(locationId).push({ id, name, role: actor.role ?? actor.position ?? '', inScene: present.has(id) });
+    byLocation.get(locationId).push({
+      id, name, role: actor.role ?? actor.position ?? '', inScene: presenceKind === 'current',
+      presenceKind, presenceLabel: presenceKind === 'current' ? '현재 장면' : '기본 위치 참고'
+    });
   }
   const floors = new Map();
   for (const location of locationList) {
@@ -70,12 +74,20 @@ export function renderCompanyMap(container, model, { onFill } = {}) {
     const summary = doc.createElement('summary'); summary.className = 'company-map-floor-summary'; append(summary, 'span', 'company-map-floor-number', floor.label); append(summary, 'span', 'company-map-floor-title', `${floor.icon} ${floor.title}`); details.append(summary);
     const grid = doc.createElement('div'); grid.className = 'company-map-floor-grid';
     for (const place of floor.places) {
-      const card = doc.createElement('article'); card.className = `company-map-place${place.current ? ' is-current-place' : ''}`;
+      const card = doc.createElement('article'); card.className = `company-map-place${place.current ? ' is-player-here' : ''}`;
       const head = doc.createElement('div'); head.className = 'company-map-place-head';
       const button = doc.createElement('button'); button.type = 'button'; button.className = 'company-map-place-name'; button.textContent = place.name; button.title = `${place.name} 입력창에 채우기`; button.addEventListener('click', () => onFill?.(locationPromptText(place.name))); head.append(button); append(head, 'span', 'company-map-place-type', place.type); card.append(head);
       append(card, 'p', 'company-map-place-description', place.description);
       const people = doc.createElement('div'); people.className = 'company-map-people';
-      for (const actor of place.actors) { const person = doc.createElement('button'); person.type = 'button'; person.className = `company-map-npc${actor.inScene ? ' is-present' : ''}`; person.textContent = actor.name; person.title = actor.role || actor.name; person.addEventListener('click', () => onFill?.(npcPromptText(actor.name))); people.append(person); }
+      for (const actor of place.actors) {
+        const person = doc.createElement('button'); person.type = 'button';
+        person.className = `company-map-npc ${actor.presenceKind === 'current' ? 'is-in-scene' : 'is-reference'}`;
+        person.dataset.presenceKind = actor.presenceKind;
+        person.textContent = actor.name; person.title = `${actor.presenceLabel} · ${actor.role || actor.name}`;
+        person.setAttribute('aria-label', `${actor.name} (${actor.presenceLabel})`);
+        person.addEventListener('click', () => onFill?.(npcPromptText(actor.name))); people.append(person);
+        append(people, 'span', `company-map-npc-status ${actor.presenceKind === 'current' ? 'is-current' : 'is-reference'}`, actor.presenceLabel);
+      }
       if (!people.childElementCount) append(people, 'span', 'company-map-no-people', '현재 표시할 인물 없음'); card.append(people); grid.append(card);
     }
     details.append(grid); container.append(details);

@@ -281,6 +281,30 @@
   font-weight: 800;
 }
 
+.company-map-npc.is-reference {
+  border-style: dashed;
+  color: #9aaab5;
+  opacity: 0.82;
+}
+
+.company-map-npc-status {
+  align-self: center;
+  padding: 2px 5px;
+  border-radius: 999px;
+  font-size: 0.55rem;
+  white-space: nowrap;
+}
+
+.company-map-npc-status.is-current {
+  background: rgb(34 197 94 / 14%);
+  color: #a7f3b9;
+}
+
+.company-map-npc-status.is-reference {
+  background: rgb(148 163 184 / 10%);
+  color: #9aaab5;
+}
+
 .company-map-no-people {
   color: #5f7485;
   font-size: 0.59rem;

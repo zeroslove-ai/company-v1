@@ -102,6 +102,61 @@ test('R3 public frontend resolves its split TEST API origin without overriding e
   assert.match(app, /query\.get\('api'\) \|\| resolveR3ApiBase\(\)/);
 });
 
+test('R3 Company Map distinguishes current presence from default reference placement', async () => {
+  const { buildCompanyMapModel, renderCompanyMap, locationPromptText, npcPromptText } = await import('../frontend-r3/company-map.js');
+  const locations = [
+    { location_id: 'brand_strategy_office', name: 'Brand Office', description: 'Current office', floor: 3, location_type: 'department_office', default_npc_ids: ['absent_here'] },
+    { location_id: 'meeting_room', name: 'Meeting Room', description: 'Briefing room', floor: 2, location_type: 'meeting_room', default_npc_ids: ['absent_elsewhere'] }
+  ];
+  const actors = [
+    { id: 'current_actor', name: 'Current Actor', default_location_id: 'meeting_room', role: 'staff' },
+    { id: 'absent_here', name: 'Absent Here', default_location_id: 'brand_strategy_office', role: 'staff' },
+    { id: 'absent_elsewhere', name: 'Absent Elsewhere', default_location_id: 'meeting_room', role: 'staff' }
+  ];
+  const model = buildCompanyMapModel({ scene: { location_id: 'brand_strategy_office', present_actor_ids: ['current_actor'] }, actors, locations });
+  const office = model.floors.flatMap(floor => floor.places).find(place => place.id === 'brand_strategy_office');
+  const meeting = model.floors.flatMap(floor => floor.places).find(place => place.id === 'meeting_room');
+  assert.equal(office.current, true);
+  assert.equal(office.actors.find(actor => actor.id === 'absent_here').presenceKind, 'default_reference');
+  assert.equal(office.actors.find(actor => actor.id === 'current_actor').presenceKind, 'current');
+  assert.equal(meeting.actors.find(actor => actor.id === 'absent_elsewhere').presenceKind, 'default_reference');
+
+  class FakeNode {
+    constructor(tag) { this.tag = tag; this.children = []; this.dataset = {}; this.attributes = {}; this.listeners = new Map(); this.textContent = ''; this.className = ''; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) { this.children = nodes; }
+    setAttribute(name, value) { this.attributes[name] = value; }
+    addEventListener(name, listener) { this.listeners.set(name, listener); }
+    get childElementCount() { return this.children.length; }
+    get ownerDocument() { return fakeDocument; }
+  }
+  const fakeDocument = { createElement: tag => new FakeNode(tag) };
+  const container = new FakeNode('main'); const filled = [];
+  renderCompanyMap(container, model, { onFill: value => filled.push(value) });
+  const nodes = [];
+  const visit = node => { nodes.push(node); for (const child of node.children) visit(child); };
+  visit(container);
+  const currentPlace = nodes.find(node => node.className === 'company-map-place is-player-here');
+  assert.ok(currentPlace);
+  const currentButton = nodes.find(node => node.tag === 'button' && node.textContent === 'Current Actor');
+  const absentHereButton = nodes.find(node => node.tag === 'button' && node.textContent === 'Absent Here');
+  assert.match(currentButton.className, /is-in-scene/);
+  assert.doesNotMatch(currentButton.className, /is-reference/);
+  assert.match(absentHereButton.className, /is-reference/);
+  assert.doesNotMatch(absentHereButton.className, /is-in-scene/);
+  assert.equal(nodes.filter(node => node.className === 'company-map-npc-status is-current').length, 1);
+  assert.equal(nodes.filter(node => node.className === 'company-map-npc-status is-reference').length, 2);
+  currentButton.listeners.get('click')();
+  absentHereButton.listeners.get('click')();
+  assert.deepEqual(filled, [npcPromptText('Current Actor'), npcPromptText('Absent Here')]);
+
+  const exitedModel = buildCompanyMapModel({ scene: { location_id: 'brand_strategy_office', present_actor_ids: [] }, actors, locations });
+  const exitedOffice = exitedModel.floors.flatMap(floor => floor.places).find(place => place.id === 'brand_strategy_office');
+  assert.equal(exitedOffice.actors.find(actor => actor.id === 'absent_here').presenceKind, 'default_reference');
+  assert.equal(exitedOffice.actors.some(actor => actor.presenceKind === 'current'), false);
+  assert.equal(locationPromptText('Brand Office').length > 0, true);
+});
+
 test('R3 free-input submit readiness mirrors the busy and failed guards', () => {
   assert.match(app, /function syncActionControls\(\)[\s\S]*submitAction\.disabled = state\.busy \|\| !state\.gameId \|\| state\.context\?\.job\?\.status === 'failed'/);
   assert.match(app, /state\.busy = true; syncActionControls\(\)/);
