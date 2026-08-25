@@ -1,33 +1,29 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-opening-private-app-provenance-separation-p1-continuation-v1
-Mode: TARGETED CORE P1 — OPENING PRIVATE APP PROVENANCE / SOURCE AUTHORITY SEPARATION
+Status: READY
+Task ID: company-r3-s1-remote-supported-same-turn-execution-p1-correction-v1
+Mode: TARGETED CORE P1 — REMOTE ACTIVE-S1 SUPPORTED SAME-TURN EXECUTION
 Updated: 2026-08-25 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `fc7466c66c7106b4eccefbb24089d7ac882ce1d6`
-Previous task: `company-r3-opening-stationary-start-anchor-p1-continuation-v1`
-Previous terminal: Issue #68 `5406140973`
-Operator / whole-canon review: Issue #68 `5406170563`
-Whole-canon conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE`
-Preserve stationary-start implementation: `e980c721af68afc31a468128ba74fdbbcabb3c81`
-Preserve joint identity+agency implementation: `29457bf9c7a8f00a7b8a701319c3fc73e3f8d24c`
-Preserve exact-rank implementation: `49d12d5e2b4c939d0923c70b31823d39b6b1d13e`
-Preserve Opening no-invented-player-action implementation: `b719831396436913e4a0ea414064c17040cee1c5`
-Preserve ordinary player-movement implementation: `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`
-Preserve Observer scene re-entry implementation: `ae27e7805065118657869ba90a7cf52bc3890982`
-Fresh decisive evidence game: `c2223601-c42c-4de1-accb-d61579a496a3` — READ ONLY
-Prior Opening evidence games: `9601b7cc-fa1f-4410-9d66-18dc151cd28b`, `6eb13fb7-cf0e-4192-b503-5996cd5523e4`, `e5292172-a34e-4be5-972d-a8c48e77d81a` — READ ONLY
-Preserved remote-S1 evidence game: `f235369d-ae36-46fe-abfa-3e4a1d0e65c1` — READ ONLY
+Registration base main: `898a501a37e4022ad307587085430971195f9e36`
+Previous task: `company-r3-opening-private-app-provenance-separation-p1-continuation-v1`
+Previous terminal: Issue #68 `5406292151`
+Operator / whole-canon review: Issue #68 `5406328742`
+Whole-canon conclusion: `WHOLE_CANON_AUDIT_CLEAR_FOR_NEXT_LANE`
+Preserve Opening private-app provenance implementation: `dc99a6225bbaa3732ac53a320286fd935001b0ec`
+Preserve no-invented-player-travel implementation: `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`
+Preserve S1 closed-world / PLAYER-sole-issuer implementation already on main.
+Decisive preserved remote-S1 evidence game: `f235369d-ae36-46fe-abfa-3e4a1d0e65c1` — READ ONLY
+Latest Opening acceptance game: `bc16b278-2aee-4b3d-abfb-bab104aedf2e` — READ ONLY
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 Operator-approved TEST catalog artifact: Issue #68 `5404426864`
 
 Success terminal:
-`OPENING_PRIVATE_APP_PROVENANCE_SEPARATION_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`S1_REMOTE_SUPPORTED_SAME_TURN_EXECUTION_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`OPENING_PRIVATE_APP_PROVENANCE_SEPARATION_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`S1_REMOTE_SUPPORTED_SAME_TURN_EXECUTION_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
@@ -40,269 +36,276 @@ Mandatory read order before implementation:
 4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
 5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
 6. `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`
-7. terminal `5406140973`
-8. operator whole-canon review `5406170563`
+7. terminal `5406292151`
+8. operator whole-canon review `5406328742`
 9. this CURRENT_TASK.
 
 Preserve A′/R3 exactly: server-owned turn kernel -> one Story LLM -> one post-Story Observer -> atomic Commit + optional sidecars.
 
-Do NOT create a new branch, ops branch, PR, CURRENT_TASK file, report-only branch, or task file.
+Do NOT create a new CURRENT_TASK file, branch, ops branch, feature branch, PR, report-only branch, or task file.
 Do NOT access Production.
 Do NOT mutate/reset/retry any preserved evidence game.
 
-## 1. Why this task exists — private app became company/HR-known onboarding software
+## 1. Why this task exists — supported S1 loses mandatory same-turn force when exact pair is remote from PLAYER
 
-Fresh game `c2223601-c42c-4de1-accb-d61579a496a3` Turn 0 has `literal_action=''` and otherwise preserves exact identity (`민준 / 신사업TF / TF팀장`) and a stationary canonical `lobby` start.
+Preserved game `f235369d-ae36-46fe-abfa-3e4a1d0e65c1` proves the defect read-only:
 
-But Story makes general NPC 오세훈 say:
-- `인사팀에서 전달된 건데, 오늘 신규 입사자 대상으로 개인 휴대폰에 앱 하나를 설치하라고 하더라고요.`
-- he asks whether PLAYER already installed it.
+- Active canonical S1: `sexual_work_instruction_authority`.
+- Exact configured pair: subject/recipient `서원희` (`heroine1`) -> counterparty `박정우` (`general_park_jungwoo`).
+- Supported action families are exactly:
+  - `kiss`
+  - `sexual_touch`
+  - `genital_exposure`
+  - `genital_touch`
+  - `oral`
+  - `penetration`
+- Turn 2 literal explicitly keeps PLAYER in `brand_strategy_office` while 서원희 and 박정우 move together to `brand_strategy_meeting_room`.
+- Turn 2 Story/Observer/applied/durable state correctly preserve PLAYER in the office and remove that NPC pair from PLAYER's present-actor set.
+- Turn 3 literal is exact and unambiguous:
+  `나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.`
+- `kiss` is a supported S1 family and the actor/target pair is exact.
+- Actual Turn 3 Story does NOT execute/begin the kiss. It stops at 서원희's `지금, 뭐라고 하셨죠?` and defers the supported act.
+- Observer and durable `scene_note` commit that non-execution reality.
 
-Observer then commits:
-- summary: `인사팀에서 전달된 직원용 앱 설치 안내 메모를 언급했다.`
-- scene_note: the same HR-provided employee-app-install premise.
+This violates existing binding product law; no new owner decision is needed:
+- S1 supported finite family instructions may receive mandatory institutional authority.
+- existing active S1 binding says `official_work_order_same_turn: true`;
+- existing literal boundary says supported literal may not become confirmation/future deferral/substitution;
+- current Story movement boundary correctly says a remote instruction must be delivered without moving PLAYER.
 
-This directly violates binding `P-PREMISE-001` / `P-OPENING-001`:
-- `상식개변` is an unfamiliar private app/tool possessed by PLAYER;
-- NPCs do not know that private app exists until PLAYER reveals it;
-- company/HR/security/onboarding is not the installer, distributor, trainer, recommender, or knowledge source for it;
-- Opening should privately expose/discover the canonical `상식개변` premise, not substitute a company-known generic employee app.
+The defect is that those two correct boundaries are not reliably joined when the exact S1 pair is known to be in another scene/location.
 
-Operator review `5406170563` does NOT confirm the terminal's claimed stationary-start P1 from the descriptive phrase `출입문을 지나 들어서면`; preserve `e980c721...` and do not iterate stationary-start again in this task.
-
-## 2. First owning boundary — split bundled Opening authority
+## 2. First owning boundary / hypothesis to prove
 
 Inspect first:
+- `runtime-r3/domain/csa.js`
+  - `buildActiveS1StoryBinding()`
+  - exact subject/counterparty direction
+  - `official_work_order_same_turn`
 - `runtime-r3/domain/memory.js`
-  - `product.private_discovery` projection;
-  - `opening_contract` fields, especially the bundled `identity_arrival_and_app_premise_must_be_established_without_player_action` and `identity_arrival_establishment_authority`;
-  - `opening_agency_contract` passive app exposure semantics.
+  - `active_s1_story_binding`
+  - `active_s1_literal_contract`
+  - recent committed scene/history projection for ordinary turns
 - `runtime-r3/server/provider.js`
-  - `OPENING_IDENTITY_AGENCY_PRECEDENCE_PROMPT`;
-  - `OPENING_STORY_SYSTEM_PROMPT`;
-  - `OPENING_PRODUCT_PROMPT` final composition/order.
-- focused Opening/player-identity/source-correction tests.
+  - `STORY_SYSTEM_PROMPT`
+  - `STORY_NPC_MOVEMENT_PROMPT`
+  - final ordinary Story prompt composition
+- Story request construction/callers and focused S1/navigation tests.
 
-Current source conflict to resolve:
-- correct: `product.private_discovery` says only PLAYER knows the unfamiliar app and NPCs do not until reveal;
-- correct: `opening_contract.npc_ignorance_until_player_reveals=true`;
-- correct: Opening system prompt says NPCs remain ignorant;
-- broken: combined precedence wording permits `identity, arrival, and passive app presence` to be established through company artifact/sign or NPC initiative/dialogue, wrongly granting NPC/company authority over the app premise.
+Current source already says separately:
+1. a positively matched supported S1 literal is mandatory same-turn and may not be confirmation/future deferral;
+2. a remote instruction must be delivered without moving PLAYER.
 
-Required correction is **authority separation**, not more keyword bans:
+Live evidence proves those clauses are insufficiently ordered/joined: remote locality becomes an implicit veto/confirmation boundary.
 
-### Identity / arrival authority
-May continue to use:
-- narrator/world facts;
-- normal company identity artifacts;
-- NPC initiative/address/dialogue;
-- first-day/first-appointment context.
+Required correction is a narrow precedence/contract clarification at the existing Story boundary:
+- when active exact-scope S1 is present;
+- the literal positively matches one of the six finite supported families;
+- the literal names the exact configured subject/counterparty;
+- and committed/recent Story context already grounds that exact pair remotely/co-located away from PLAYER;
+then remote separation from PLAYER does NOT remove S1 mandatory force.
 
-### Private app provenance authority
-Must be separately bounded:
-- canonical private app is `상식개변` / product app name;
-- only PLAYER privately possesses/can notice it before reveal;
-- passive device-local/narrator presentation may expose it without a completed PLAYER action;
-- NPC/company/HR/security/onboarding/training/general-NPC dialogue or company artifacts may NOT announce, install, distribute, recommend, recognize, explain, ask about, or source that private app before PLAYER explicitly reveals it later;
-- do not invent company installer/provenance or a second generic employee app as a substitute for the private premise;
-- merely possessing/seeing the app changes nothing.
+The Story must:
+- deliver/communicate the PLAYER-issued official instruction without inventing PLAYER travel;
+- begin/perform the supported act in that same Story turn at the grounded remote pair's scene;
+- preserve PLAYER's current canonical location unless the literal itself moves PLAYER;
+- allow reluctance, embarrassment, surprise, protest, awkwardness around execution but not confirmation-as-veto, future deferral, rule discussion instead of the act, or actor/target substitution.
 
-Use the smallest existing context/prompt shape. A narrow structured `opening_private_app_contract` or equivalent is acceptable if it cleanly separates authority. Do not create a new durable domain or app engine.
+Do not invent a generic telepathy premise. Story may use a normal plausible communication/delivery channel consistent with the current fiction, or narratively establish that the instruction is heard/received. The key invariant is that remote delivery is not a mandatory-authority veto and is not permission to move PLAYER.
 
-If an earlier existing source boundary is proven, fix that instead and explain.
+If another earlier existing boundary is proven to own the failure, fix that instead and explain it in the terminal.
 
-## 3. Preserve accepted behavior
+## 3. Closed-world / negative boundary must remain intact
+
+Do NOT broaden S1.
+
+- Supported family list remains exactly the six current canonical values.
+- `player_request_executes_immediately` remains retired.
+- Unsupported or ambiguous actions remain ordinary/non-mandatory even if the literal says `공식적으로`, `지시`, `업무명령`, etc.
+- Remote status must not turn an unsupported request into a mandatory one.
+- Exact PLAYER issuer / subject / counterparty direction is immutable.
+- The counterparty never becomes issuer.
+- Compliance is not desire, affection, romance, comfort, arousal, trust, obedience-as-personality, or private consent-as-feeling.
+
+Known separate later P1 — do NOT fold into this implementation unless the exact same source root is proven:
+- supported literal `성기를 직접 검사` / `genital_touch` semantic-grounding failure from prior live evidence.
+- Do not sample that probe in this task's browser campaign.
+
+## 4. Preserve accepted behavior
 
 Do not regress:
-- `e980c721...` Opening stationary-start anchor: PLAYER already present at canonical starting location; arrival transition is pre-Story setup fact;
-- exact canonical formal rank (`TF팀장` when selected), player name and department;
-- empty voluntary PLAYER action authority before first literal;
-- no pre-literal PLAYER speech/gesture/movement/touch/phone/app manipulation/work/decision;
-- first-day / first-appointment semantics;
-- rich living Company Opening with NPC/world initiative unrelated to private-app knowledge;
-- Story-owned exactly four full choices + free input;
-- ordinary-turn agency and explicit navigation;
-- Observer scene re-entry behavior;
+- Opening stationary-start, exact identity/rank, no pre-literal voluntary PLAYER action;
+- private `상식개변` app provenance separation from `dc99a622...`;
+- player-private app / institutional official-announcement source separation;
 - temporal continuity;
-- rule-change private-app isolation and official announcement ownership;
-- S1 closed-world unsupported behavior, PLAYER sole issuer, exact S1 direction;
-- S7 / compatibility / exact conflict-copy accepted behavior;
-- one Story + one Observer only.
+- S1 closed-world unsupported behavior;
+- PLAYER sole issuer and exact S1 pair direction;
+- ordinary no-rule external-outcome boundary;
+- no-invented-player-travel / NPC-only movement behavior from `bd643fa...`;
+- S7 literal agency;
+- finite compatibility + exact conflict copy;
+- Observer scene re-entry / presence work already accepted;
+- Story-owned exactly four choices + free input;
+- exactly one Story + one Observer + one Commit.
 
-Known separate P1, NOT this implementation:
-- preserved game `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`;
-- active S1 configured 서원희 -> 박정우;
-- supported remote/stationary S1 `kiss` instruction failed to execute in the same Story turn.
-
-Do not modify or sample S1 in this task.
-
-## 4. Forbidden approaches
+## 5. Forbidden approaches
 
 Do NOT add:
-- post-Story regex/string deletion or replacement of `앱`, `인사팀`, etc.;
-- Korean keyword classifier/parser/NER/fuzzy detector for app provenance;
-- deterministic replacement Opening/template;
-- second Story, second Observer, verifier/repair/reaction LLM;
+- a generic remote-action executor/router;
+- a physical/location graph or generic offscreen simulation engine;
+- a Korean keyword/regex sexual-action taxonomy, parser, NER, fuzzy classifier, or semantic repair engine;
+- a second Story, reaction Story, verifier, repair LLM, or second Observer;
 - retry/regeneration/sample-until-pass;
+- post-Story deterministic narrative rewrite;
+- deterministic sex-scene author;
 - provider/model/temperature/token/secret/config workaround;
-- generic app/world/relation/consent/emotion engine;
+- expansion of S1 family list;
+- generic consent/relation/emotion/corruption/obedience engine;
 - DB/schema/RPC/migration/backfill;
 - Production;
-- frontend executable change unless directly proven necessary (not expected);
-- S1 semantic changes;
+- frontend change unless directly proven necessary (not expected);
 - preserved-game mutation;
 - new branch/PR/task file;
 - `OWNER_READY`.
 
-## 5. Deterministic regressions
+## 6. Deterministic regressions
 
-At the actual Opening Story request/context boundary prove:
-1. `product.private_discovery` remains canonical and explicit.
-2. Opening context has a separate private-app authority from identity/arrival establishment authority.
-3. Identity/rank/first-day may be established by NPC/world/company identity artifacts.
-4. Private app may NOT be established by NPC/company/HR/security/onboarding/company artifact before PLAYER reveal.
-5. Private app name is the canonical `상식개변` app; no generic company employee app substitutes for it.
-6. Passive device-local/narrator exposure is allowed without PLAYER manipulation.
-7. NPC ignorance remains explicit until later PLAYER reveal.
-8. Merely possessing/noticing the app does not change reality.
-9. `e980c721...` stationary-start anchor remains present and Opening starts in canonical current location.
-10. `literal_action=''` still gives zero voluntary PLAYER action authority.
-11. Exact formal position `TF팀장` remains mandatory and exact for decisive profile.
-12. Ordinary turns are unaffected; explicit later action/navigation remains allowed.
-13. Four Story choices remain Story-owned; Observer is not a choice author.
-14. Existing temporal/rule-change/announcement/S1-closed-world/S7/compatibility/conflict-copy/Observer-reentry focused regressions remain green.
-15. No post-Story repair, parser classifier, second Story/Observer/verifier, or retry path.
+Tests must inspect the actual built Story context/request/prompt boundary and existing pure helpers, not sanitize generated output.
 
-Tests must inspect the actual built Story request/context/prompt contract, not sanitize generated output.
+Required regression coverage:
+1. Ordinary request with no active S1 keeps normal no-auto-compliance semantics.
+2. Active S1 exact subject/counterparty direction remains immutable and PLAYER is sole issuer.
+3. Supported family list is exactly the six canonical values.
+4. A positively matched supported S1 action is mandatory same-turn.
+5. Active S1 context explicitly states that PLAYER co-location is NOT required for mandatory force when the exact configured pair is already grounded remotely in committed/recent context.
+6. Remote supported instruction must be delivered/acted in the pair's grounded remote scene without inventing PLAYER standing/following/walking/approaching/entering/knocking/teleporting.
+7. Remote separation alone cannot convert a supported action into confirmation, clarification, rule discussion, future deferral, refusal-as-veto, or another action.
+8. Unsupported/ambiguous remote action remains ordinary/non-mandatory and preserves actor/target/action/topic.
+9. `player_request_executes_immediately` remains retired.
+10. Existing S1 closed-world unsupported, S7, NAV/NPC-only movement, announcement/private-app, temporal, compatibility/conflict-copy, Opening provenance and Observer re-entry focused regressions stay green.
+11. No second Story/Observer/verifier/retry path is introduced.
 
 Then run:
 - `node --check` for changed JS/MJS;
 - `git diff --check`;
 - focused affected tests;
-- broader canon/CSA/turn-kernel/navigation/Observer focused regressions;
-- exactly one full `npm test` after focused green, recording exit/count.
+- broader R3 canon/CSA/navigation/turn-kernel/Opening regressions;
+- exactly one full `npm test` after focused green, record deterministic exit/count.
 
 Automated green is not product acceptance.
 
-## 6. DB / deploy law
+## 7. DB / deploy law
 
 No DB/schema/RPC/migration change is expected or allowed.
 
 If runtime executable source changes:
-- verify local/remote `main` equality after implementation;
-- deploy TEST API only through unchanged contract-gated R3 path;
-- if local `psql` is unavailable and TEST contract is unchanged, Issue #68 `5404426864` may be reused only as the same approved ephemeral off-repo catalog input to the unchanged gate;
-- if gate rejects, STOP rather than weakening it;
+- confirm current local/remote main equality after implementation;
+- deploy TEST API only through the unchanged contract-gated R3 path;
+- if local `psql` is unavailable and TEST DB contract is unchanged, Issue #68 `5404426864` may be reused only as the same approved ephemeral off-repo catalog input to the unchanged gate;
+- if the gate rejects, STOP instead of weakening it;
 - frontend deploy only if frontend executable source actually changes; not expected;
 - record exact TEST Worker version/source SHA.
 
-No DB write, Production, provider/model/config change.
+No Production, DB write, provider/model/config change.
 
-## 7. Fresh deployed-browser acceptance — exactly one new game
+## 8. Fresh deployed-browser acceptance — exactly one new game
 
-Use real deployed TEST frontend/UI. Create exactly ONE fresh disposable adult-profile game.
-No second game, reset, regenerate, direct gameplay API substitute, semantic retry, or sample-until-pass.
+After TEST API deployment, use the actual deployed TEST frontend/UI.
+Create exactly ONE fresh disposable adult-profile game.
+No second game, reset, regenerate, semantic retry, direct gameplay API substitute, or sample-until-pass.
 Preserve it READ ONLY after campaign.
 
-Use `TF팀장` profile for direct continuity. Target 2–3 committed turns. Stop at first reproducible P0/P1.
+Target ~5–7 committed turns. Stop at first reproducible P0/P1.
 
-### A. Opening — decisive private-app source + preservation gate
-PASS simultaneously requires:
-- normal living first-day scene in canonical starting location;
-- PLAYER begins already present there; no clear completed pre-literal PLAYER movement/action;
-- exact `민준 / 신사업TF / TF팀장`-equivalent selected canonical identity is preserved and exact;
-- canonical `상식개변` unfamiliar private app is passively present/discoverable to PLAYER without PLAYER manipulation;
-- NPCs/company/HR/security/onboarding do not know, distribute, install, recommend, explain, mention, ask about, or source the private app;
-- no generic company-known employee app substitutes for the private premise;
-- app presence alone does not change reality;
-- NPC/world initiative remains natural;
-- Story ends with exactly four meaningful full choices and free input is available.
+### A. Opening preservation
+- Complete normal Opening.
+- PASS: stationary start, exact selected identity, canonical private app remains PLAYER-private/passively exposed, no company/NPC provenance, four Story choices + free input.
 
-Record full chain:
-`literal='' -> Story -> observer raw -> observer applied -> durable scene/profile/time -> rendered UI`.
-
-### B. One ordinary explicit action
-Only if Opening passes, submit one simple social or movement action.
+### B. APPLY exact canonical S1 pair
+Through visible CSA UI activate `성적 업무지시권` for exact pair `서원희 -> 박정우` when available.
 PASS:
-- submitted actor/target/action/topic/destination preserved;
-- exact identity remains unchanged when referenced;
-- ordinary play is not frozen by Opening-only constraints;
-- no NPC suddenly gains private-app knowledge unless PLAYER explicitly reveals it;
-- four Story choices + free input remain available.
+- exactly one grounded official announcement;
+- PLAYER sole issuer;
+- correct recipient/counterparty direction;
+- private app not institutional source;
+- one Story/Observer/Commit;
+- active S1 reconstructable in durable state.
 
-### C. Refresh / re-entry
-Only if no P0/P1:
-- one deliberate refresh/re-entry;
+### C. Move only the configured NPC pair away from PLAYER
+Use the literal as close as practical to preserved evidence:
+`나는 자리에 그대로 남은 채 서원희 차장과 박정우 팀장이 브랜드전략팀 회의실로 이동하는 모습을 지켜본다.`
+
+PASS:
+- PLAYER remains in current office location;
+- 서원희 and 박정우 are grounded together in the meeting room / absent from PLAYER present-actor set;
+- no invented PLAYER travel.
+
+### D. Decisive remote supported S1 probe
+Submit exactly:
+`나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.`
+
+PASS requires simultaneously:
+- actor/target/direction preserved exactly;
+- instruction reaches/is received by the remote configured pair without moving PLAYER;
+- `kiss` begins/is performed in the same Story turn in the grounded remote pair scene;
+- no `뭐라고 하셨죠?` confirmation gate, clarification-as-veto, future deferral, rule discussion instead of execution, substitute act, substitute actor, or PLAYER travel;
+- reluctance/awkwardness may remain character reaction;
+- observer/applied/durable scene does not falsely move PLAYER into the meeting room.
+
+Record full decisive chain:
+`literal -> active S1 binding/context -> Story -> observer raw -> observer applied -> durable state -> next context/UI`.
+
+### E. One remote unsupported preservation probe
+Only if D passes, submit one clearly unsupported exact-pair instruction such as:
+`나는 서원희 차장에게 박정우 팀장에게 사랑한다고 고백하라고 공식적으로 지시한다.`
+
+PASS:
+- literal actor/target/action/topic preserved;
+- Story does NOT treat the unsupported action as mandatory merely because S1 is active or the literal says official instruction;
+- Story may comply/refuse/question/react as an ordinary request, but must not cite S1 as forcing the unsupported act;
+- PLAYER remains stationary unless literal moves PLAYER.
+
+Do NOT use `성기를 직접 검사` in this campaign.
+
+### F. Refresh / re-entry
+If no P0/P1 appears, perform one deliberate refresh/re-entry.
+PASS:
 - no duplicate Story/Commit;
-- Opening/turn history reconstructs once;
-- identity/current scene/private-app premise are not rewritten into company-owned provenance;
-- input/choices usable.
+- active S1 reconstructs once;
+- PLAYER location and remote NPC scene consequences remain coherent;
+- no phantom pending/rejected turn;
+- choices/free input/CSA remain usable.
 
-Do NOT run the known remote S1 probe here.
+## 9. Whole-canon observations — record, do not broaden
 
-## 8. Whole-canon observations — record, do not broaden
-
-Record obvious:
-- MM raw -> applied retention/drop;
+During the single campaign record obvious evidence for later operator audit:
+- Story vs observer raw/applied/durable scene disagreement;
+- MM raw `{surface,subconscious}` retention/drop for reached heroine turns;
 - player_inner_thought invention/drop;
-- Story choices vs Observer projection;
 - dialogue projection drops;
-- Story/current-state disagreement;
-- any private-app/supernatural source leakage;
-- player-facing internal CSA text only if naturally visible.
+- removed/replaced rule ghosts only if naturally encountered;
+- player-facing internal CSA implementation text leakage if visible.
 
-Existing MM/removal/text P2 lanes remain paused. Media/TTS remain paused.
+Do not implement P2 fixes here.
+Media/TTS remain paused.
 
-## 9. Stop / terminal law
+## 10. Stop / terminal law
 
-At first reproducible P0/P1 during live campaign:
+No runtime patching during the live campaign.
+At first reproducible P0/P1:
 - preserve fresh game READ ONLY;
-- do not patch during campaign;
-- set this same task file to `WAITING_REVIEW`;
+- record decisive chain;
+- set this same `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW`;
 - post exactly one BLOCKED terminal;
 - STOP.
 
-Success requires source/test/deploy gates plus exactly one fresh browser campaign passing Opening private-app source separation, one ordinary action, and refresh with no new P0/P1.
+Success requires source/test/deploy gates plus exactly one fresh browser campaign passing Opening preservation, exact S1 APPLY, NPC-only remote move, remote supported kiss same-turn execution, remote unsupported preservation, and refresh with no new P0/P1 before terminal.
 
 On success terminal:
-`OPENING_PRIVATE_APP_PROVENANCE_SEPARATION_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`S1_REMOTE_SUPPORTED_SAME_TURN_EXECUTION_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 On blocker/failure terminal:
-`OPENING_PRIVATE_APP_PROVENANCE_SEPARATION_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`S1_REMOTE_SUPPORTED_SAME_TURN_EXECUTION_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-After any deployed browser campaign, operator must perform independent whole-canon audit before next task registration.
-Do not self-register the remote S1 task.
-
-## Terminal report — 2026-08-25 KST
-
-Result: `OPENING_PRIVATE_APP_PROVENANCE_SEPARATION_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
-
-Task ID: `company-r3-opening-private-app-provenance-separation-p1-continuation-v1`
-CURRENT_TASK blob SHA: `02d02f154a8d29134d2373f41aa786e530c4387a`
-Expected branch: `main`
-Implementation commit: `dc99a6225bbaa3732ac53a320286fd935001b0ec`
-
-Implemented scope:
-- Split the existing Opening identity/arrival authority from the private-app provenance boundary in `runtime-r3/domain/memory.js` and `runtime-r3/server/provider.js`.
-- Kept the canonical unfamiliar app player-private and passively exposable through player-local device/narrator presentation while NPC/company/HR/security/onboarding/training/general-NPC sources remain ignorant before explicit player reveal.
-- Preserved stationary start, exact identity/rank/agency, ordinary-turn behavior, Story-owned four choices plus free input, Observer re-entry, and ordinary non-app company identity artifacts.
-- No output filtering, app keyword parser/classifier, deterministic Opening, second Story/Observer/verifier, retry, DB/schema/RPC/migration, preserved-game mutation, Production, provider/model/config, frontend, or S1 change.
-
-Verification:
-- `node --check` for changed JS/MJS: PASS.
-- `git diff --check`: PASS.
-- Focused Opening/source-correction tests: 32/32 PASS.
-- Broader R3 tests: 157/157 PASS.
-- Full `npm.cmd test` (PowerShell `npm test` shim was policy-blocked): 583/583 PASS.
-- Unchanged contract-gated TEST deploy: PASS.
-- TEST API: `game-proxy-company-r3`, version `5d4a688c-8ca6-41cc-8fb0-5e56cb235b80`, source `dc99a6225bbaa3732ac53a320286fd935001b0ec`.
-
-Fresh deployed browser campaign (exactly one disposable adult profile, READ ONLY):
-- Game: `bc16b278-2aee-4b3d-abfb-bab104aedf2e`.
-- Profile: `민준`, age 32, `신사업TF`, exact `TF팀장 (조율 권한)`. No preserved game was reset or modified.
-- Opening chain visible in the UI: `literal='' -> Story -> committed Turn 0/rendered UI`. The UI exposed the Story-owned four choices and free input. Raw Observer payload and durable commit fields are not separate UI surfaces.
-- Opening Story: first-day 1층 로비; 오세훈 identifies the player from the ordinary identity artifact and handles normal 출입증 발급. The player's phone passively shows the unfamiliar `상식개변` app; the Story explicitly says nobody else knows it, and 오세훈 does not see it. No NPC/company/HR/security/onboarding source announced, installed, distributed, recommended, recognized, explained, asked about, or substituted a generic employee app.
-- Ordinary Turn 1: selected the visible second choice asking whether department/rank appear on the badge. Story advanced to normal badge/photo procedure and preserved the app as player-private; four choices and free input remained available.
-- Refresh/re-entry: same game URL reconstructed committed Turn 1 once with `연결 완료`, preserved the same Story, choices, free input, and private-app isolation. No duplicate commit or new P0/P1 observed.
-
-Terminal control commit pending: this file will be committed and pushed to `origin/main` before the Issue #68 terminal report.
+After any deployed browser campaign, operator must perform independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing/registering the next task.
+Do not self-register the later genital-touch semantic-grounding task or any P2/media/TTS lane.
