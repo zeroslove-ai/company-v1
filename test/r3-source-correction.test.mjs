@@ -226,6 +226,28 @@ test('R3 ordinary Story context carries one fixed generic player agency contract
   assert.match(first.player_agency_contract.external_outcome_boundary, /not automatic proof of external outcome or NPC compliance/i);
 });
 
+test('R3 active S1 adds a finite same-turn authority exception without weakening ordinary agency', () => {
+  const heroine = Object.values(content.characters)[0];
+  const state = createInitialState({ name: 'R3 S1 precedence player' }, heroine.default_location_id, ['heroine5', 'general_park_jungwoo']);
+  state.csa_active = ['r3_csa_1'];
+  state.csa_rules = {
+    r3_csa_1: {
+      id: 'r3_csa_1', active: true, slot: 'S1', template_id: 'sexual_work_instruction_authority',
+      content: 'bounded S1', mode: 'on_player_request', trigger: 'on_player_request',
+      subject_scope: 'female_employee', counterparty_scope: 'male_employee',
+      selector: { subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' },
+      supported_action_families: ['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration']
+    }
+  };
+  const context = buildStoryContext({ state: { state }, turns: [] }, '서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.', { content });
+  assert.match(context.player_agency_contract.external_outcome_boundary, /ordinary requests without an applicable rule-owned same-turn authority exception/i);
+  assert.match(context.active_s1_literal_contract.mandatory_supported_action_exception, /exact active S1 subject\/counterparty scope matches/i);
+  assert.match(context.active_s1_literal_contract.mandatory_supported_action_exception, /takes precedence over the ordinary external-outcome boundary/i);
+  assert.match(context.active_s1_literal_contract.mandatory_supported_action_exception, /same Story turn/i);
+  assert.match(context.active_s1_literal_contract.mandatory_supported_action_exception, /does not apply outside the listed families/i);
+  assert.equal(context.active_s1_literal_contract.unsupported_literal_remains_ordinary, true);
+});
+
 test('R3 scene_note is replaceable and clears when current observation has no useful note', () => {
   const state = createInitialState({ name: 'R3 Player' }, 'brand_strategy_office', ['heroine1']);
   state.scene.scene_note = 'old source-scene note';

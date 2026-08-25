@@ -39,9 +39,11 @@ function observerCurrentState(state) {
   return { ...currentState, scene };
 }
 
+const STORY_PROMPT_EXTERNAL_OUTCOME_PRECEDENCE = 'For ordinary requests without an applicable rule-owned same-turn authority exception, player input is not automatic proof of external outcome or NPC compliance. When the exact active S1 subject/counterparty scope matches one of its finite supported action families, rule-owned institutional authority takes precedence over this ordinary boundary and the supported action must begin in this same Story turn.';
+
 function withPromptContent(payload, promptContent = null) {
   if (!promptContent) return payload;
-  return { ...payload, messages: [{ ...payload.messages[0], content: promptContent }, ...payload.messages.slice(1)] };
+  return { ...payload, messages: [{ ...payload.messages[0], content: String(promptContent).replace('Player input is not automatic proof of external outcome or NPC compliance.', STORY_PROMPT_EXTERNAL_OUTCOME_PRECEDENCE) }, ...payload.messages.slice(1)] };
 }
 
 const deterministicChoices = Object.freeze([

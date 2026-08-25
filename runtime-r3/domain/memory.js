@@ -10,7 +10,7 @@ const PLAYER_AGENCY_CONTRACT = Object.freeze({
   ]),
   choice_boundary: 'Preserve explicit player choices; Story may narrate consequences around or after the chosen beat, but must not replace, invert, redirect, or contradict them.',
   self_state_boundary: 'An explicit player self-state remains true for the chosen scene beat; do not inject same-beat NPC approach or dialogue that makes that self-state impossible unless the literal permits that interaction.',
-  external_outcome_boundary: 'Player input is not automatic proof of external outcome or NPC compliance.',
+  external_outcome_boundary: 'For ordinary requests without an applicable rule-owned same-turn authority exception, player input is not automatic proof of external outcome or NPC compliance.',
   app_topic_boundary: 'Mentioning the private app, a rule, or a topic is not a player app interaction.',
   app_interaction_boundary: 'Opening, scrolling, reading, applying, changing, or closing the app requires that voluntary action to be explicit in the submitted literal.'
 });
@@ -109,6 +109,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       preserve_actor_target_action: true,
       supported_families_are_mandatory_only: true,
       unsupported_literal_remains_ordinary: true,
+      mandatory_supported_action_exception: 'When the exact active S1 subject/counterparty scope matches and the literal is one of the finite supported action families, rule-owned institutional authority takes precedence over the ordinary external-outcome boundary and the supported action must begin in this same Story turn; this exception does not apply outside the listed families.',
       precedence: 'The submitted literal_action is the latest and highest-priority ordinary player intent; active CSA context may classify its finite authority but may not erase, replace, or redirect it.'
     } } : {}),
     ...(ruleChangeEvent || csaOperation ? {

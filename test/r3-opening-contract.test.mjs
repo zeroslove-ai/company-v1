@@ -123,6 +123,10 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /one action per line/i);
   assert.match(storySystem, /verbatim in the current Story/i);
   assert.match(storySystem, /active_rules contains an institutional rule/i);
+  assert.match(storySystem, /ordinary requests without an applicable rule-owned same-turn authority exception/i);
+  assert.match(storySystem, /exact active S1 subject\/counterparty scope matches/i);
+  assert.match(storySystem, /takes precedence over this ordinary boundary/i);
+  assert.match(storySystem, /An action outside that list remains an ordinary player request or instruction/i);
   assert.match(storySystem, /authoritative current-world institutional\/system fact already in force/i);
   assert.match(storySystem, /exact stated content and exact subject\/counterparty scope/i);
   assert.match(storySystem, /materially concerns a rule's scoped premise or observable consequence/i);
