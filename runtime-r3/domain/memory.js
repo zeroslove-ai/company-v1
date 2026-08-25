@@ -61,6 +61,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   };
   const rules = state.csa_rules && typeof state.csa_rules === 'object' ? state.csa_rules : {};
   const exactRuleChangeBinding = ruleChangeBinding ?? (ruleChangeEvent ? buildRuleChangeStoryBinding({ event: ruleChangeEvent, content }) : null);
+  const ruleChangeStory = Boolean(ruleChangeEvent || csaOperation);
   const activeRules = [...new Set(Array.isArray(state.csa_active) ? state.csa_active : [])]
     .map(id => rules[id])
     .filter(rule => rule?.active)
@@ -83,7 +84,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     .find(rule => rule?.active && rule.slot === 'S1');
   const activeS1StoryBinding = buildActiveS1StoryBinding({ rule: activeS1Rule, content, playerIdentity: canonicalPlayerIdentity });
   return {
-    product,
+    ...(ruleChangeStory ? {} : { product }),
     opening,
     literal_action: storyLiteralAction,
     player_agency_contract: PLAYER_AGENCY_CONTRACT,
@@ -94,7 +95,9 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     profile: state.profile ?? {},
     time: state.time ?? {},
     location,
-    scene: { location_id: state.scene?.location_id ?? null, present_actor_ids: actorIds, scene_note: bounded(state.scene?.scene_note, 1000) },
+    scene: ruleChangeStory
+      ? { location_id: state.scene?.location_id ?? null, present_actor_ids: actorIds }
+      : { location_id: state.scene?.location_id ?? null, present_actor_ids: actorIds, scene_note: bounded(state.scene?.scene_note, 1000) },
     actors: canonicalActors(content, actorIds),
     clothing: state.clothing ?? {},
     active_rules: activeRules,
@@ -119,7 +122,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       pending_rule_change_turn: {
         type: 'rule_change_turn',
         ...(ruleChangeEvent ?? { operation: csaOperation }),
-        boundary: 'This exact visible app operation is the player action for this turn. Announce the institutional change naturally in Story, enact only its bounded immediate consequence, and return to the player literal intent. Do not infer affection, desire, consent, or app awareness from compliance.'
+        boundary: 'This structured server-owned rule-change operation is the player action for this turn. The official institutional announcement is the single world-issuance source already rendered by the server; continue with grounded reactions and only its bounded immediate consequence. Do not expose private presentation history, invent a second authority source, or infer affection, desire, consent, or app awareness from compliance.'
       }
     } : {}),
     ...(exactRuleChangeBinding ? { rule_change_story_binding: exactRuleChangeBinding } : {}),
@@ -161,8 +164,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       current_story_only: true,
       unavailable_on_projection_failure: true
     },
-    recent_turns: recent,
-    older_summaries: older,
-    ...(feedbackText ? { feedback_guidance: bounded(feedbackText, 2000) } : {})
+    ...(ruleChangeStory ? { recent_turns: [], older_summaries: [] } : { recent_turns: recent, older_summaries: older }),
+    ...(feedbackText && !ruleChangeStory ? { feedback_guidance: bounded(feedbackText, 2000) } : {})
   };
 }

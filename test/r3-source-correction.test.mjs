@@ -12,6 +12,7 @@ import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { createR3Provider } from '../runtime-r3/server/provider.js';
 import { normalizeObserver } from '../runtime-r3/domain/observer-normalizer.js';
 import { reduceObservation } from '../runtime-r3/domain/reducer.js';
+import { applyR3Csa, buildRuleChangeStoryBinding } from '../runtime-r3/domain/csa.js';
 
 const content = loadCanonicalCompanyR3Content();
 
@@ -249,6 +250,49 @@ test('R3 active S1 adds a finite same-turn authority exception without weakening
   assert.equal(context.active_s1_literal_contract.closed_world_supported_families, true);
   assert.equal(context.active_s1_literal_contract.positive_supported_family_match_required, true);
   assert.equal(context.active_s1_literal_contract.ambiguous_or_unmatched_action_is_ordinary, true);
+});
+
+test('R3 rule-change Story request structurally omits private presentation continuity while retaining operation facts', async () => {
+  const heroine = Object.values(content.characters)[0];
+  const state = createInitialState({ name: 'R3 context projection player' }, heroine.default_location_id, ['heroine5', 'general_park_jungwoo']);
+  const operation = { operation: 'activate', template_id: 'sexual_work_instruction_authority', subject_scope: 'female_employee', counterparty_scope: 'male_employee', subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' };
+  const changed = applyR3Csa({ state, content, rawOperations: [operation] });
+  const binding = buildRuleChangeStoryBinding({ event: changed.last_rule_change, content });
+  const context = buildStoryContext({
+    state: { state: { ...state, csa_active: [], csa_rules: {} } },
+    turns: [{ turn_number: 0, literal_action: 'opening', story_text: 'Opening: the unfamiliar ?곸떇媛쒕? app is visible on the player phone.', turn_summary: 'The private app was discovered.', scene_note: 'The private app notification remains visible.' }]
+  }, 'ignored free text', { content, csaOperation: operation, ruleChangeEvent: changed.last_rule_change, ruleChangeBinding: binding });
+  const payloadText = JSON.stringify(context);
+  assert.equal('product' in context, false);
+  assert.deepEqual(context.scene, { location_id: state.scene.location_id, present_actor_ids: ['heroine5', 'general_park_jungwoo'] });
+  assert.deepEqual(context.recent_turns, []);
+  assert.deepEqual(context.older_summaries, []);
+  assert.equal(context.pending_rule_change_turn.template_id, operation.template_id);
+  assert.deepEqual(context.rule_change_story_binding.selected_actor_ids, ['heroine5', 'general_park_jungwoo']);
+  assert.match(context.pending_rule_change_turn.boundary, /structured server-owned rule-change operation/i);
+  assert.match(context.pending_rule_change_turn.boundary, /single world-issuance source/i);
+  assert.doesNotMatch(payloadText, /app_name|private_discovery|This exact visible app operation|Opening: the unfamiliar|private app notification/i);
+
+  const requests = [];
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    fetchImpl: async (_url, init) => {
+      requests.push(JSON.parse(init.body));
+      return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: 'grounded continuation' } }] })}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+    }
+  });
+  for await (const _ of provider.story({ context: { state: { state }, turns: [{ turn_number: 0, story_text: 'Opening: the unfamiliar private app appears.' }] }, content, csaOperation: operation, ruleChangeEvent: changed.last_rule_change, ruleChangeBinding: binding })) {}
+  assert.equal(requests.length, 1);
+  const storyPayload = JSON.parse(requests[0].messages[1].content);
+  assert.equal('product' in storyPayload, false);
+  assert.deepEqual(storyPayload.scene, context.scene);
+  assert.deepEqual(storyPayload.recent_turns, []);
+  assert.equal(storyPayload.pending_rule_change_turn.template_id, operation.template_id);
+  assert.doesNotMatch(requests[0].messages[1].content, /private app appears|app_name|private_discovery|visible app operation/i);
+
+  const ordinary = buildStoryContext({ state: { state }, turns: [{ turn_number: 0, story_text: 'Opening retains the private app premise.' }] }, 'ordinary action', { content });
+  assert.equal(typeof ordinary.product.app_name, 'string');
+  assert.equal(ordinary.recent_turns.length, 1);
 });
 
 test('R3 scene_note is replaceable and clears when current observation has no useful note', () => {
