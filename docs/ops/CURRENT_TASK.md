@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-opening-no-invented-player-action-p1-correction-v1
 Mode: TARGETED CORE P1 — OPENING PLAYER AGENCY BEFORE FIRST LITERAL
 Updated: 2026-08-25 KST
@@ -264,3 +264,41 @@ On blocker/failure:
 `OPENING_NO_INVENTED_PLAYER_ACTION_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the next task. After any deployed browser campaign, operator performs `POST_LIVE_CANON_AUDIT_CONTRACT` before the next CURRENT_TASK.
+
+## 11. Terminal report — 2026-08-25 KST
+
+Terminal:
+`OPENING_NO_INVENTED_PLAYER_ACTION_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+Execution identity:
+- TASK_ID: `company-r3-opening-no-invented-player-action-p1-correction-v1`
+- CURRENT_TASK blob SHA at lease: `92a7e0d3075844236257c04150e06dce50dde057`
+- expected branch: `main`
+- reviewed executable / starting HEAD: `d47f80c8399c3955e10c93593d533aeb253f6385`
+- implementation commit: `b719831396436913e4a0ea414064c17040cee1c5`
+- terminal control-file commit: this `WAITING_REVIEW` commit, reported with its final SHA in Issue #68
+
+Implementation and validation:
+- Narrow Opening precedence correction in `runtime-r3/domain/memory.js` and `runtime-r3/server/provider.js`; regressions in `test/r3-opening-contract.test.mjs` and `test/r3-source-correction.test.mjs`.
+- The Opening context now states that voluntary PLAYER action authority is empty before the first submitted literal, validated setup facts are not action authority, passive app discovery requires no player manipulation, and no completed player action may be authored before the first literal.
+- The actual Opening prompt places this precedence before generic ordinary-turn consequence wording. No parser, classifier, post-Story rewrite, second LLM, retry, provider/model/config, or deterministic replacement Story was added.
+- Focused Opening/source/owner agency tests: 39 passed, 0 failed.
+- Broader canon/CSA/turn-kernel/navigation/Observer regression set: 118 passed, 0 failed.
+- Exactly one full `npm.cmd test`: 583 passed, 0 failed.
+- `node --check` passed for all changed JS/MJS files; `git diff --check` passed.
+
+TEST/live evidence:
+- TEST API deployed only through the unchanged contract-gated R3 path from implementation SHA `b719831396436913e4a0ea414064c17040cee1c5`.
+- TEST Worker: `game-proxy-company-r3`; version `531e8d43-f977-49e2-9b4b-4d2453909093`.
+- Frontend executable source was unchanged; no frontend deploy.
+- Exactly one fresh disposable adult-profile browser game: `e5292172-a34e-4be5-972d-a8c48e77d81a`; preserved READ ONLY after the campaign. No reset, second game, direct gameplay API substitute, retry, or regeneration.
+- Opening: Day 1 · 09:05, Turn 0; normal first arrival and selected TF-team-lead identity. NPC initiative and dialogue occurred. The unfamiliar `상식개변` app was passively visible on a personal smartphone without player placement/pickup/manipulation. Story explicitly left player action unstarted and provided four choices plus free input. No voluntary PLAYER speech, gesture, movement, touch, work/review, decision, acceptance/refusal, app manipulation, or private player decision was authored.
+- Ordinary native choice: `박정우 팀장과 팀원들에게 가볍게 인사하며 "안녕하세요, 반갑습니다"라고 말한다.`
+  - Story preserved the selected greeting, produced the expected NPC introductions/reactions, retained the passive app presence, and advanced to Day 1 · 09:08, Turn 1 with four choices and free input. The Opening no-action boundary did not block ordinary player agency.
+- Refresh/re-entry: the same game reloaded to Day 1 · 09:08, Turn 1 with the committed greeting Story, same choices, usable free input, and no duplicate Story/Commit.
+- Optional S1 sanity was not run because the task explicitly preserves the known remote supported-S1 same-turn P1 as a separate lane; no S1 mutation was introduced here.
+- No P0/P1 was reproduced in this campaign. Observer re-entry and the known remote S1 same-turn execution issue remain unproven/open outside this task and require the mandatory independent whole-canon audit.
+
+Operational boundary:
+- No DB write, schema/RPC/migration/backfill, Production access, provider/model/config change, or frontend executable change.
+- Preserved games/evidence were not modified. Stop here for independent operator whole-canon audit; do not select or register the next task in this session.
