@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-opening-exact-formal-rank-p1-correction-v1
 Mode: TARGETED CORE P1 — OPENING EXACT PLAYER IDENTITY / FORMAL RANK
 Updated: 2026-08-25 KST
@@ -285,3 +285,44 @@ On blocker/failure:
 `OPENING_EXACT_FORMAL_RANK_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the next task. After any deployed browser campaign, operator performs `POST_LIVE_CANON_AUDIT_CONTRACT` before the next CURRENT_TASK.
+
+## 11. Terminal report — 2026-08-25 KST
+
+Status: BLOCKED
+Terminal: `OPENING_EXACT_FORMAL_RANK_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+TASK_ID: `company-r3-opening-exact-formal-rank-p1-correction-v1`
+CURRENT_TASK_BLOB_BEFORE_TERMINAL: `609fb3a26e698b435f4156e59a39965ca4ef5f1a`
+EXPECTED_BRANCH: `main`
+STARTING_SHA: `6c6a2f0e2c6c367bdeccfe4a8aabb8136a2dcf9c`
+IMPLEMENTATION_SHA: `49d12d5e2b4c939d0923c70b31823d39b6b1d13e`
+RUNNER: `company-v1-codex-watcher / WATCHER`
+EXECUTION_LEASE: `5405585962`
+
+### Result
+
+- The narrow source correction was implemented only at the Opening Story request/context boundary.
+- `runtime-r3/domain/memory.js` now exposes the exact selected formal position label and explicit Opening requirements to establish it without normalization.
+- `runtime-r3/server/provider.js` now places an Opening formal-identity precedence prompt before generic Story wording. It requires the exact canonical label, forbids generic/inferred replacement, and allows first-day/new-arrival descriptors only around the exact label.
+- Regressions were added in `test/r3-opening-contract.test.mjs` and `test/r3-source-correction.test.mjs`.
+- No post-Story repair, title parser/classifier, deterministic Opening, second Story/Observer/verifier, retry, provider/model/config, S1 semantic, DB/migration, Production, frontend, or preserved-game change was made.
+
+### Validation
+
+- Focused Opening/source/owner-P0 tests: `39 passed, 0 failed`.
+- Broader canon/CSA/turn-kernel/navigation/Observer regressions: `118 passed, 0 failed`.
+- Exactly one full `npm.cmd test`: `583 passed, 0 failed`.
+- Syntax checks and `git diff --check`: passed.
+
+### TEST / live blocker
+
+- TEST API was deployed only through the unchanged contract-gated R3 path from `49d12d5e2b4c939d0923c70b31823d39b6b1d13e`.
+- Worker: `game-proxy-company-r3`; version: `4006b70f-25a4-4f6e-ab9f-d6fad19f425f`; frontend source unchanged and not deployed.
+- Exactly one fresh disposable adult-profile game was created: `6eb13fb7-cf0e-4192-b503-5996cd5523e4`. It is preserved READ ONLY; no second game, reset, retry, regeneration, or direct gameplay API substitute was used.
+- Opening exact-rank gate: PASS for visible canonical `브랜드전략팀 TF팀장`; the Story established `TF팀장` and did not normalize it to `팀장` or `신입 팀장`.
+- First P1 blocker at the earlier Story boundary: before any submitted literal (`literal_action=''`), the Opening authored PLAYER actions in `출입문 앞에 선 나는 ... 한 번 심호흡을 했다.` This regresses the accepted no-invented-player-action boundary from `b719831396436913e4a0ea414064c17040cee1c5` and violates the current Opening contract.
+- The campaign stopped at that first P1. No ordinary player action or refresh/re-entry lane was run. The captured Story/UI and game identity are the decisive evidence; no later lane is claimed green.
+- Observer raw/applied and durable chain were not used to override the first broken Story boundary. The game remains preserved READ ONLY.
+
+### Required stop
+
+Await the mandatory independent `POST_LIVE_CANON_AUDIT_CONTRACT` review. Do not register or select the next task, and do not reopen the accepted agency implementation except through the next owner-authorized task.
