@@ -69,6 +69,15 @@ test('R3 Opening context and provider prompts require private premise discovery 
   const state = createInitialState(profile, content.locations[0].location_id);
   const openingContext = buildOpeningContext({ state: { state }, turns: [] }, content);
   assert.equal(openingContext.opening, true);
+  assert.deepEqual(openingContext.opening_scene_anchor, {
+    starting_location_id: content.locations[0].location_id,
+    starting_location_name: content.locations[0].name,
+    player_presence_is_preexisting_setup_fact: true,
+    arrival_transition_already_complete: true,
+    story_begins_after_arrival_transition: true,
+    voluntary_player_transition_before_first_literal: false,
+    first_story_beat_authority: 'world_or_npc_initiative'
+  });
   assert.equal(openingContext.opening_contract.product_title, openingContext.product.title);
   assert.equal(openingContext.opening_contract.private_app_name, openingContext.product.app_name);
   assert.equal(openingContext.opening_contract.first_day_at_company, true);
@@ -158,6 +167,12 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.doesNotMatch(storySystem, /masturbate_for_recipient|vaginal_sex_with_recipient|player_request_executes_immediately/i);
   assert.match(storySystem, /preserve that exact canonical destination name/i);
   assert.match(storySystem, /Opening-only product and agency law/i);
+  assert.match(storySystem, /opening_scene_anchor is authoritative context/i);
+  assert.match(storySystem, /already present at the canonical starting location before Story begins/i);
+  assert.match(storySystem, /arrival transition is already complete/i);
+  assert.match(storySystem, /Story begins after that arrival transition/i);
+  assert.match(storySystem, /without reenacting threshold crossing, arrival, entering, walking in/i);
+  assert.match(storySystem, /world or NPC initiative while PLAYER remains stationary and action-free/i);
   assert.match(storySystem, /OPENING FORMAL-IDENTITY PRECEDENCE \+ OPENING PLAYER-AGENCY PRECEDENCE/i);
   assert.match(storySystem, /single combined Opening boundary owns the validated setup facts and the pre-literal agency boundary together/i);
   assert.match(storySystem, /exact canonical string.*immutable validated PLAYER setup fact/i);

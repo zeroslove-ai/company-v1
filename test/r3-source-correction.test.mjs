@@ -218,9 +218,20 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   const state = createInitialState(profile, locationId, [heroine.character_id, npcId]);
   state.scene.scene_note = '현재 장면의 최소 연속성 메모';
   const context = { state: { state }, turns: [] };
+  const expectedOpeningAnchor = {
+    starting_location_id: locationId,
+    starting_location_name: location.name,
+    player_presence_is_preexisting_setup_fact: true,
+    arrival_transition_already_complete: true,
+    story_begins_after_arrival_transition: true,
+    voluntary_player_transition_before_first_literal: false,
+    first_story_beat_authority: 'world_or_npc_initiative'
+  };
   const opening = buildOpeningContext(context, content);
   const turn = buildStoryContext(context, '한국어 원문 행동', { content });
   assert.equal(opening.opening, true);
+  assert.deepEqual(opening.opening_scene_anchor, expectedOpeningAnchor);
+  assert.equal(turn.opening_scene_anchor, null);
   assert.equal(turn.literal_action, '한국어 원문 행동');
   assert.equal(turn.product.title, content.edition.title);
   assert.match(turn.product.private_discovery, /NPC/);

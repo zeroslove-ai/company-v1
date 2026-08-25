@@ -116,6 +116,15 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     profile: state.profile ?? {},
     time: storyTime,
     location,
+    opening_scene_anchor: opening ? {
+      starting_location_id: state.scene?.location_id ?? null,
+      starting_location_name: location?.name ?? null,
+      player_presence_is_preexisting_setup_fact: true,
+      arrival_transition_already_complete: true,
+      story_begins_after_arrival_transition: true,
+      voluntary_player_transition_before_first_literal: false,
+      first_story_beat_authority: 'world_or_npc_initiative'
+    } : null,
     scene: ruleChangeStory
       ? { location_id: state.scene?.location_id ?? null, present_actor_ids: actorIds }
       : { location_id: state.scene?.location_id ?? null, present_actor_ids: actorIds, scene_note: bounded(state.scene?.scene_note, 1000) },
