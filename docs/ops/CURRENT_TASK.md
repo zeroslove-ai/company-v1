@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-s1-supported-same-turn-authority-p1-correction-v1
 Mode: OWNER-PRIORITY CORE P1 CORRECTION — S1 SUPPORTED INSTRUCTION MUST EXECUTE IN THE SAME STORY TURN
-Updated: 2026-08-25 09:45 KST
+Updated: 2026-08-25 09:53 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `e1aa9b1f3993c5436c591d3c1fec61a7412afc66`
@@ -272,3 +272,15 @@ Blocked:
 `S1_SUPPORTED_SAME_TURN_AUTHORITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task. Operator must run the mandatory post-live whole-canon audit before choosing the next lane.
+
+## 10. Terminal evidence — BLOCKED
+
+- Terminal: `S1_SUPPORTED_SAME_TURN_AUTHORITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+- Lease comment: Issue #68 `5403538171`
+- Start / implementation / final-main SHA: `af979eecf132ece23607da85c31c42842ed11e82` / `5a58383505fa303080c7663b116ecc87089b2b12` / `PENDING_LIFECYCLE_COMMIT`
+- Fresh disposable game: `a91169d9-3c27-4bf4-bbe0-5ac0767d7f33`
+- First broken boundary: after exact S1 activation for `서원희` -> `박정우`, the Story semantic path treated an unsupported `사랑을 고백` instruction as institutionally mandatory. The supported same-turn precedence correction passed both supported probes, but the unsupported-family boundary was not effective in live Story behavior. No further live probe or patch was attempted after this first new P1.
+- Live chain: opening committed Turn 0; S1 activation committed Turn 1 with official announcement and exact named pair; supported `키스` probe committed Turn 2 and executed same turn; supported `성기를 직접 검사` probe committed Turn 3 and executed same turn; unsupported `사랑을 고백` probe committed Turn 4 and was forced same-turn despite being outside the six finite S1 families. Stop/change-of-mind and refresh/re-entry were intentionally not run after the first new P1.
+- Browser evidence is UI/Story evidence only; no raw observer payload or durable DB readback was performed. Turn 1/2/3 showed S1-related Mind Monitor projections; Turn 4 showed no current-turn Mind Monitor information. Known internal English role wording/private-app narration remained as an observed P2 and was not expanded into this task.
+- Verification: focused affected regression `75 passed, 0 failed`; full `npm test` `579 passed, 0 failed`; changed-file syntax and `git diff --check` passed. Direct R3 Wrangler dry-run passed. The contract-gate wrapper was blocked by missing `SUPABASE_DB_URL` / unavailable live catalog snapshot; no DB or migration write was attempted. One authorized TEST API deploy was performed: `game-proxy-company-r3`, version `2e276e18-c8c1-4d3a-8444-424a3dfc874a`; frontend deploy count 0.
+- Scope guard: preserved games untouched; Production 0; DB/migration writes 0; provider/model/config/secret changes 0; retry/resample 0; second Story/Observer 0; generic parser/DSL/action engine 0; new branch/PR/CURRENT_TASK file 0; frontend source/deploy 0; OWNER_READY 0.
