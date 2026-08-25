@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-current-literal-choice-memory-authority-p1-correction-v1
 Mode: TARGETED CORE P1 — CURRENT LITERAL PRECEDENCE / PRIOR STORY CHOICE MEMORY AUTHORITY
-Updated: 2026-08-25 KST
+Updated: 2026-08-25 KST - execution complete; awaiting operator review
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `ecd4f78e0fc1785822bc157ae7d13cb062e50ac5`
@@ -322,3 +322,55 @@ On blocker/failure:
 
 Declared terminal = STOP.
 Do not self-register the Company Map task or later lane. Operator must perform the independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing the next CURRENT_TASK.
+
+## 12. Execution record
+
+Execution identity:
+- TASK_ID: `company-r3-current-literal-choice-memory-authority-p1-correction-v1`
+- START_HEAD: `2de279bd68de292fb45beac204bd8947920d6013`
+- REVIEWED_EXECUTABLE_SHA: `2de279bd68de292fb45beac204bd8947920d6013`
+- IMPLEMENTATION_HEAD: `fab6f43f937dde317fbdf152a41a7942e24d3669`
+- EXPECTED_BRANCH: `main`
+- LEASE: Issue #68 comment `5408496591`
+
+Implementation and root cause:
+- `runtime-r3/domain/observer-normalizer.js`: reused the existing bounded final-four choice-tail contract and added exact stored-choice parity stripping. A mismatch fails local and preserves the full narrative.
+- `runtime-r3/domain/memory.js`: recent Story continuity now keeps the prior literal and narrative body but removes only a safely matched committed choice menu; ordinary turns carry a structured current literal authority fact.
+- `runtime-r3/server/provider.js`: ordinary Story context explicitly states that the submitted current literal supersedes prior unexecuted Story suggestions. Existing prompt routing and one-Story/one-Observer flow remain unchanged.
+- `test/r3-source-correction.test.mjs`, `test/r3-owner-p0-contract.test.mjs`: focused coverage for exact parity, local mismatch preservation, provider context, current literal precedence, and worker-path propagation.
+- Root cause confirmed: prior `recent_turns[*].story_text` included the complete prior Story including its final four unexecuted choices. The current literal was already passed unchanged through the worker, so the narrow owning seam was memory projection plus ordinary prompt authority, not Observer or Commit.
+
+Verification:
+- Changed files are limited to the three runtime files above and the two focused test files.
+- `node --check` changed JS/MJS: PASS.
+- Focused R3 source/worker correction tests: 47/47 PASS.
+- Broader R3 memory/agency/provider/worker/choice regression set: 103/103 PASS.
+- Exactly one full `npm.cmd test`: 596/596 PASS.
+- `git diff --check`: PASS.
+- No provider/model/config, DB/schema/RPC/migration, Production, retry, or preserved-game mutation.
+
+TEST deployment:
+- Contract-gated TEST API deploy only, using the approved ephemeral catalog artifact from Issue #68 comment `5404426864`.
+- Worker: `game-proxy-company-r3`
+- Version ID: `26fc1dd2-9354-4b99-b6ee-b4c53306c607`
+- Source implementation SHA: `fab6f43f937dde317fbdf152a41a7942e24d3669`
+- Contract gate: stage_a and stage_b PASS.
+- Frontend executable source was unchanged; no frontend deploy was performed.
+
+Fresh deployed-browser campaign (one game, preserved READ ONLY):
+- Game ID: `cad7d45f-f06a-4107-8856-bb27ba82afbc`
+- Frontend: `https://gamebuilder-company-r3.zeroslove.workers.dev/`
+- Opening: committed at Turn 0 / Day 1 09:05; exact identity and private-app provenance were visible; four Story choices and unrestricted free input were visible. No Opening choice was used for the decisive turn.
+- Decisive Turn 1 intended literal: `이메이는 지금 브랜드전략팀 사무실을 떠나 2층 공용 회의실에서 진행되는 브리핑에 참석한다. 이메이가 사무실 밖으로 나가는 모습을 보여준다.`
+- Stored input evidence: the visible direct-input control retained the exact UTF-8 literal after submission and the committed UI advanced to Turn 1; raw `game_actions.player_action` and raw `structured_action` are not exposed by the visible UI and were not substituted with a direct gameplay API/DB read.
+- Story result: the exact registered NPC Imai was shown leaving the brand-strategy office, traveling to the second-floor common meeting room, and beginning the briefing context. The stale Opening choices were not executed as PLAYER speech, gesture, or action. Decisive B gate PASS.
+- Extract/post-save UI evidence: Turn 1 saved, new four choices appeared, and no new player movement was authored. The raw Observer payload is not exposed by the UI; the visible saved scene/history was used only as UI evidence.
+- Selected-choice positive control: clicked the newly offered first choice by its full visible button literal. It committed as Turn 2 with the selected social greeting beat and four new choices.
+- Reload: performed exactly once after no new P0/P1. Turn 2, the committed Story/history, Mind Monitor surface, scene image, and current choices restored without duplicate commit.
+- No retry, second game, reset, regenerate, direct gameplay API substitute, or sample-until-pass.
+
+WHOLE-CANON DIVERGENCE audit:
+- Current `CURRENT_TRUTH.md`, `COMPANY_CANON.md`, `LIVE_ACCEPTANCE_MATRIX.md`, `POST_LIVE_CANON_AUDIT_CONTRACT.md`, specialized authority contracts, and this task were reread after the campaign.
+- Cross-boundary review covered visible literal -> Story -> saved Turn/UI -> next Story context behavior where the browser exposed it. No new P0/P1 was observed outside the narrow lane.
+- Existing known Company Map default-location false-current rendering P1 remains deferred and was not changed by this task. Adult/CSA, long-memory, media/TTS, and other broad acceptance lanes were not exercised and remain unproven.
+- Conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE` (operator must independently order the known deferred Company Map P1 or another lane; no next task is registered here).
