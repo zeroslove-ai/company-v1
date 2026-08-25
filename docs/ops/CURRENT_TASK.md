@@ -1,28 +1,29 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-story-player-movement-agency-p1-correction-v1
-Mode: TARGETED CORE P1 — STORY PLAYER MOVEMENT / NPC-ONLY MOVEMENT AGENCY AUTHORITY
+Status: READY
+Task ID: company-r3-current-literal-choice-memory-authority-p1-correction-v1
+Mode: TARGETED CORE P1 — CURRENT LITERAL PRECEDENCE / PRIOR STORY CHOICE MEMORY AUTHORITY
 Updated: 2026-08-25 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `b602f1d5bca5153b9fa69e2618f728c726661625`
-Previous task: `company-r3-observer-final-presence-evidence-p1-correction-v1`
-Previous terminal: Issue #68 `5407625800`
-Operator whole-canon review: Issue #68 `5408119028`
+Registration base main: `ecd4f78e0fc1785822bc157ae7d13cb062e50ac5`
+Previous task: `company-r3-story-player-movement-agency-p1-correction-v1`
+Previous terminal: Issue #68 `5408382379`
+Operator whole-canon review: Issue #68 `5408443358`
+Accepted movement-authority implementation to preserve: `e523b6fdca209fdecc107f14820a2c2e524dcc61`
 Accepted final-presence implementation to preserve: `6c14509131564e66d9a57bd6cccc7e70585f6514`
 Accepted PLAYER-location implementation to preserve: `df1a884e350c032cff0ef5bfae834a38c1adf473`
 Accepted registered-NPC identity implementation to preserve: `298bfd0af86caca679039fadf431089c8e372531`
 Accepted Observer completed-Story evidence implementation to preserve: `72292961a0ad9ed2861ce62a645bad629bbc2e60`
 Remote-S1 implementation awaiting valid live acceptance: `1cc59e3718ab255da531ccd0b1029893143f9381`
-Fresh previous live game: `6b5e7941-36a7-4019-94a8-777112824fc9` — READ ONLY
+Fresh decisive live game: `ab72dbc0-3e58-441b-856f-2530cd93e8e7` — READ ONLY
 Known deferred P1: Company Map default-location false-current rendering.
 
 Success terminal:
-`STORY_PLAYER_MOVEMENT_AGENCY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`CURRENT_LITERAL_CHOICE_MEMORY_AUTHORITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`STORY_PLAYER_MOVEMENT_AGENCY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`CURRENT_LITERAL_CHOICE_MEMORY_AUTHORITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
@@ -37,8 +38,8 @@ Mandatory read order before action:
 4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
 5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
 6. `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`
-7. previous terminal `5407625800`
-8. operator whole-canon review `5408119028`
+7. previous terminal `5408382379`
+8. operator whole-canon review `5408443358`
 9. this CURRENT_TASK.
 
 Preserve A′/R3 exactly:
@@ -49,92 +50,101 @@ Do not mutate/reset/retry preserved evidence games.
 
 ## 1. Accepted previous target
 
-The previous final-presence correction is accepted for its narrow target and is frozen.
+The previous Story PLAYER-movement correction is accepted for its narrow target and frozen.
 
-`6c145091...` added one bounded `presence_reconciliation` evidence field inside the existing Observer call and normalizer/reducer reconciliation grounded by exact completed-Story quotes. It did not add a second Story/Observer, generic parser, retry, DB/migration, provider/model/config, or Production change.
+`e523b6f...` reuses the existing bounded navigation resolver and projects its exact current-turn result as a server-owned movement authority. NPC-only movement receives `authorized=false` plus canonical location preservation; explicit PLAYER navigation receives the exact canonical destination. Do not reopen or weaken this boundary unless a direct regression is proven.
 
-Deterministic worker-path regressions cover the exact prior/default actor explicit-absence case. The fresh deployed Opening did not naturally exercise that negative branch, so no fabricated live PASS is claimed for that exact stochastic branch.
+The fresh live campaign verified:
+- NPC-only literal did not move PLAYER;
+- explicit `나는 2층 공용 회의실로 이동한다.` reached the exact destination;
+- reload restored the committed location/history/choices without duplicate commit.
 
-Do not reopen that boundary unless this task proves a direct regression.
+## 2. Decisive new P1 — current literal replaced by an unchosen prior Story choice
 
-## 2. New decisive P1 from the previous live campaign
+Fresh preserved TEST game:
+`ab72dbc0-3e58-441b-856f-2530cd93e8e7` — READ ONLY.
 
-Previous terminal `5407625800` reports the fresh browser campaign `6b5e7941-36a7-4019-94a8-777112824fc9` as follows:
-- Opening committed;
-- one ordinary greeting committed;
-- then one grounded NPC-departure request was submitted;
-- Story did **not** complete the requested NPC departure;
-- instead Story moved PLAYER to `2층 공용 회의실` and showed 윤민아 there.
+Turn 0 Opening ends with four Story-authored next-action choices. One of them is effectively:
+`고개를 끄덕이며 "네, 안내해 주세요"라고 조용히 답한다.`
 
-That campaign's own acceptance law required PLAYER location to remain unchanged unless PLAYER literal explicitly moved.
+Those four choices are **not committed PLAYER actions**. They are optional future actions. A later free-form literal discards them unless it explicitly selects/repeats one.
 
-This is a direct `P-AGENCY-001` / PLAYER movement-authority P1 **if the preserved turn literal did not explicitly authorize PLAYER movement**.
+Turn 1 literal is exactly:
+`이메이는 지금 브랜드전략팀 사무실을 떠나 2층 공용 회의실에서 진행되는 브리핑에 참석한다. 이메이가 사무실 밖으로 나가는 모습을 보여준다.`
 
-Before editing, reconstruct the exact preserved live Turn literal + completed Story + committed PLAYER location from the read-only evidence available to the watcher. Freeze that evidence in the terminal report. Do not mutate/retry the game.
+Completed Turn 1 Story instead:
+- begins by authoring PLAYER ending 박정우's handshake and saying `"네, 안내 부탁드립니다."`;
+- keeps 이메이 in the office and has her guide PLAYER;
+- sends 박정우 out toward the briefing;
+- therefore substitutes the selected actor/action (`이메이` departure -> `박정우` departure) while executing a stale, unchosen Opening choice.
 
-If the exact literal actually explicitly authorized PLAYER navigation, STOP without editing and report that the operator classification premise was disproven. Do not silently choose another task.
+Durable state/Observer follow the completed Story correctly: PLAYER remains in `brand_strategy_office`, 박정우 exits, 이메이 remains. Observer/DB are not the owning defect.
 
-## 3. Current first broken boundary to prove before editing
+This is a fresh `P-AGENCY-001` P1.
+
+## 3. Earliest owning boundary to prove before editing
 
 Inspect in this order:
 
-1. `runtime-r3/domain/navigation.js`
-   - `resolvePlayerNavigationIntent()`
-   - existing NPC-only / mixed clause / unresolved alias behavior;
-   - this resolver is bounded structural authority and must not be replaced by a new semantic parser.
-2. `runtime-r3/server/worker.js`
-   - `processTurn()` computes `navigationIntent` before Story;
-   - `projectNavigationContext()` is only used when actual `player_navigation` exists;
-   - inspect what explicit current-turn authority is passed to Story when `navigationIntent === null`.
-3. `runtime-r3/domain/memory.js`
-   - `PLAYER_MOVEMENT_AUTHORITY_CONTRACT`;
-   - `PLAYER_AGENCY_CONTRACT`;
-   - Story context construction.
-4. `runtime-r3/server/provider.js`
-   - ordinary Story system prompt and hard-boundary wording;
-   - determine whether a positive server-owned current-turn movement authorization/denial is projected with enough precedence.
-5. focused navigation / agency / provider / worker tests.
+1. `runtime-r3/domain/memory.js`
+   - current `recent_turns` projection;
+   - verify that prior turn `story_text` is injected wholesale, including the final four Story-authored choice lines;
+   - verify current submitted `literal_action` is separately supplied but prior unchosen choices are not structurally excluded from continuity.
+2. `runtime-r3/domain/observer-normalizer.js`
+   - existing bounded exact final-four Story choice-tail logic (`storyChoiceTail` / `projectChoices` or its current equivalent);
+   - this is proof that the runtime already knows the bounded shape of Story-owned final choices. Do not create a generic narrative parser.
+3. `runtime-r3/server/provider.js`
+   - ordinary Story prompt current-literal precedence;
+   - prior-turn memory wording and whether unchosen prior choices are distinguished from committed chronology.
+4. `runtime-r3/server/worker.js`
+   - prove the exact current job literal reaches Story unchanged;
+   - do not move the fix into Observer/Commit.
+5. focused memory/agency/provider/worker/choice tests.
 
 Current-main hypothesis:
-- the server correctly resolves NPC-only movement as **no `player_navigation`**;
-- current Story context contains a generic law saying PLAYER movement must come from the literal, but it does not expose the resolver's current-turn result as a positive structured binding such as `authorized=false / preserve current canonical location`;
-- therefore Story can still invent a convenience bridge action such as following/entering/accompanying the NPC even though the server already knows no PLAYER navigation was authorized;
-- once Story authors that movement, the post-Story Observer/Commit should follow completed Story reality and cannot safely rewrite it afterward without becoming a second narrative authority.
+- current `recent_turns` contains prior `story_text` including final numbered choices;
+- those choices are presentation/future suggestions but are projected next turn adjacent to actual committed narrative;
+- the model can therefore continue an unchosen prior option as if it were committed action despite receiving the new literal;
+- this contaminates current-literal authority before Story generation.
 
-Prove or disprove this exact boundary before editing. If an earlier existing Story-side authority seam is the real cause, fix that instead and explain it in the terminal.
+Prove or disprove this exact seam before editing. If an earlier existing Story-memory seam is the actual cause, fix that narrower seam and explain it in the terminal.
 
-## 4. Required product behavior
+## 4. Required product law
 
 For every ordinary turn:
-- PLAYER voluntary navigation is authorized only by the submitted literal as resolved through the existing bounded navigation authority;
-- NPC-only movement, NPC departure, remote target destinations, remote actor scenes, stale context, or narrative convenience must never cause PLAYER to stand up, follow, walk, approach, enter, knock, accompany, return, or teleport;
-- if no PLAYER navigation is authorized for this turn, Story must keep PLAYER at the current canonical scene unless an independently grounded non-voluntary world consequence physically displaces PLAYER;
-- a non-voluntary displacement must be actually caused by the world, not a Story-authored voluntary bridge action disguised as consequence;
-- explicit canonical PLAYER navigation remains fully supported;
-- mixed clauses must preserve exactly which actor is moving;
-- Story may decide NPC feasibility/reaction/consequence, but may not replace the actor/direction of the player's chosen action;
-- Observer/Commit remain post-Story observers/structural writers, not narrative repair systems.
+- the exact submitted current `literal_action` is the highest-priority PLAYER action/intent for this turn;
+- previous Story-authored choices are **unexecuted suggestions**, not chronology, not player state, and not action authority;
+- a prior choice becomes action evidence only if the later committed `literal_action` actually selects/repeats it;
+- free-form input supersedes all previously offered choices;
+- historical Story narrative remains valid chronology, but its final choice menu must not be replayed to Story as committed narrative reality;
+- Story may determine feasibility/reaction/consequence, but may not replace explicit actor, target, action, movement/destination, request, refusal, self-state, topic, or intent;
+- if the requested external outcome cannot or should not complete, narrate the block/reaction while preserving actor/action direction instead of substituting another actor/action;
+- Observer/Commit remain post-Story observers and must not repair prose.
 
 ## 5. Allowed implementation
 
 Allowed only when proven necessary:
-- expose the existing `resolvePlayerNavigationIntent()` result to Story as a narrow **current-turn PLAYER movement authority binding**;
-- when no `player_navigation` exists, project a positive structured fact equivalent to:
-  - `player_voluntary_navigation_authorized=false`,
-  - `preserve_location_id=<current canonical location>`,
-  - NPC/remote movement cannot authorize PLAYER bridge travel;
-- when `player_navigation` exists, expose the exact canonical destination as authorized and preserve existing projection/postcondition behavior;
-- strengthen the existing ordinary Story prompt so that this current-turn binding has explicit precedence over narrative convenience and remote/NPC movement;
-- focused deterministic tests through the actual resolver -> worker/context -> provider request path.
+- project prior recent Story narrative **without** the exact final Story-owned choice tail when that tail can be safely identified by the existing bounded choice contract / exact committed `turn.choices` parity;
+- preserve actual narrative text before the choice tail;
+- keep prior committed `literal_action` as chronology evidence;
+- optionally expose prior `choices` separately as presentation-only/unexecuted metadata if useful, but they must not be mixed into committed narrative text;
+- add a narrow structured current-turn literal authority fact such as:
+  - `literal_action=<exact submitted literal>`,
+  - `source=submitted_current_turn`,
+  - `supersedes_prior_story_choices=true`,
+  - `prior_story_choices_are_unexecuted_suggestions=true`,
+  only if source review shows this is needed after memory decontamination;
+- strengthen existing ordinary Story prompt so current literal has precedence over historical choice suggestions;
+- factor/reuse existing bounded exact-choice-tail semantics if appropriate.
 
-Prefer one server-owned bounded movement authority fact over adding more free prose or a new parser.
+Prefer removing false history authority over adding more prompt prose.
 
 ## 6. Forbidden approaches
 
 Do NOT add:
-- a new generic Korean parser, NER, fuzzy matcher, embedding classifier, movement ontology, route engine, or second navigation engine;
-- post-Story prose rewrite/repair;
-- post-Story movement censor that changes completed narrative into another narrative;
+- generic Korean semantic parser, NER, fuzzy actor matcher, embedding classifier, action ontology, relation engine, or third parser generation;
+- actor/action post-Story rewrite;
+- post-Story censor/repair of completed prose;
 - second Story, second Observer, verifier LLM, repair LLM;
 - retry/regeneration/sample-until-pass;
 - provider/model/temperature/token/secret/config workaround;
@@ -147,101 +157,92 @@ Do NOT add:
 Do not use this task to fix:
 - Company Map default-location false-current rendering;
 - setup/world-definition catalog closure;
+- Opening voluntary-action leaks unless directly caused by this exact prior-choice contamination seam;
 - remote supported S1 live acceptance;
 - `성기를 직접 검사` / `genital_touch` semantic grounding;
-- continuous-rule compliance;
-- CHANGE/REMOVE provenance;
+- CSA CHANGE/REMOVE prospective-state/provenance;
 - broad MM reliability;
-- CSA player-facing internal copy;
 - Media/TTS.
 
 ## 7. Preserve accepted/current behavior
 
 Do not regress:
-- final NPC-presence evidence correction from `6c14509...`;
-- PLAYER location / NPC-only movement / unresolved alias resolver behavior from `df1a884...`;
-- registered NPC canonical formal identity from `298bfd0...`;
-- completed-Story positive outcome evidence from `72292961...`;
-- Opening stationary-start / exact PLAYER setup identity / private-app provenance;
+- current-turn PLAYER movement authority from `e523b6f...`;
+- final NPC-presence evidence from `6c14509...`;
+- PLAYER location/NPC-only resolver behavior from `df1a884...`;
+- registered NPC canonical identity from `298bfd0...`;
+- completed-Story Observer positive-evidence law from `72292961...`;
+- Opening stationary-start / setup identity / private-app provenance;
+- Story-owned exactly four choices + unrestricted free input;
+- exact selected choice submission when the user actually clicks a prior offered choice;
+- feedback revision behavior;
 - temporal continuity;
-- official rule issuance/private-app institutional-source separation;
-- PLAYER sole issuer and exact S1 pair direction;
-- S1 closed-world exact six supported action families;
-- remote-S1 source work `1cc59e...` as implemented-but-not-yet-live-accepted;
-- ordinary external-outcome boundary;
-- S7 literal agency;
-- finite compatibility + exact conflict copy;
+- CSA authority and finite S1/S7 contracts;
 - player-thought grounded-only fail-local safety;
-- Story-owned exactly four choices + free input;
-- exactly one Story + one Observer + one Commit.
+- exactly one Story + one Observer + one atomic Commit.
 
 ## 8. Required deterministic regressions
 
-Use the actual current R3 navigation/context/provider/worker path where practical.
+Use the actual current R3 memory -> provider -> worker path where practical.
 
-### A. NPC-only movement = explicit no-PLAYER-navigation Story binding
+### A. Prior choice tail is not recent committed chronology
 
-Use at least the established regression literal:
-`서원희와 박정우가 사무실을 나가 2층 공용 회의실로 이동한다.`
+Construct a committed prior turn whose Story ends in four canonical numbered choices and whose stored `choices` exactly match them.
 
-Required:
-- resolver returns no `player_navigation`;
-- Story request context contains a positive current-turn binding that PLAYER voluntary navigation is not authorized and current canonical PLAYER location must be preserved;
-- NPC remote destination must not become PLAYER destination authority.
+Required next Story context:
+- prior narrative before the choice menu remains in recent continuity;
+- the four final choice actions are not embedded in `recent_turns[*].story_text` as historical narrative/action;
+- prior committed `literal_action` remains available;
+- no unrelated narrative body is truncated.
 
-Also add the exact preserved live literal from game `6b5e7941-...` after read-only reconstruction if available.
+### B. Current free-form literal supersedes prior menu
 
-### B. Explicit PLAYER navigation remains authorized
+Use the decisive live shape:
+prior Opening offers an `안내해 주세요` style choice, then current free-form literal is exactly:
+`이메이는 지금 브랜드전략팀 사무실을 떠나 2층 공용 회의실에서 진행되는 브리핑에 참석한다. 이메이가 사무실 밖으로 나가는 모습을 보여준다.`
 
-For an exact literal such as:
-`나는 2층 공용 회의실로 이동한다.`
+Required provider context/prompt:
+- exact current literal is present unchanged;
+- previous offered `안내해 주세요` action is not presented as committed chronology/current action authority;
+- current literal is explicitly highest-priority current-turn PLAYER input;
+- no structural field claims that a prior unchosen choice executed.
 
-Required:
-- resolver returns the exact canonical destination;
-- Story binding says PLAYER navigation is authorized to that exact destination;
-- existing projection/postcondition behavior remains green.
+### C. Actually selected prior choice still works
 
-### C. Mixed actor clauses
+If a user submits a literal equal to one of the offered prior choices:
+- that new committed literal is preserved normally as current authority;
+- stripping its previous menu copy must not prevent the selected action from being executed from the current literal.
 
-Cover at least:
-- NPC moves, PLAYER stays;
-- PLAYER moves, NPC stays;
-- one clause for NPC remote movement followed by non-movement PLAYER action;
-- no actor-role leakage across clauses.
+### D. Choice projection remains exact-four
 
-### D. Unresolved destination alias
+Keep current Story choice extraction/projection tests green:
+- exactly four final Story choices;
+- observer mismatch fallback behavior;
+- supported symmetric emphasis tolerance if currently canonical;
+- no new parser generation.
 
-`나는 신사업TF 사무실로 이동한다.` must not silently resolve to generic `office` merely because a nested generic alias is present.
-No false authorized destination may be exposed to Story.
+### E. Non-choice numbered prose safety
 
-### E. Story prompt/context precedence
+Do not strip arbitrary numbered narrative content. Strip only the bounded final four choice tail when it safely matches current exact Story-choice contract / stored committed choices.
+If safe parity is absent, fail local rather than deleting narrative text.
 
-Provider request assertions must prove:
-- generic player-agency contract remains;
-- current-turn movement binding is present;
-- `authorized=false` explicitly forbids voluntary PLAYER bridge actions including follow/enter/accompany/return;
-- `authorized=true` preserves exact canonical destination;
-- external physical consequence remains the only non-literal displacement exception.
-
-### F. Prior accepted boundaries
+### F. Accepted agency/movement boundaries
 
 Keep focused regressions green for:
+- NPC-only PLAYER movement forbidden;
+- explicit PLAYER navigation exact destination;
+- actor/target/action generic agency contract;
 - final presence reconciliation;
 - registered identity;
 - completed-Story Observer provenance;
 - Opening agency/private-app provenance;
-- temporal continuity;
-- S1/S7;
-- compatibility/conflict copy;
-- choices;
-- player-thought fail-local safety;
 - one Story/one Observer.
 
 Then run:
 - `node --check` for changed JS/MJS;
 - `git diff --check`;
 - focused affected tests;
-- broader R3 navigation/agency/provider/worker regressions;
+- broader R3 memory/agency/provider/worker/choice regressions;
 - exactly one full `npm test` after focused green and record count/exit.
 
 Automated green is not product acceptance.
@@ -253,8 +254,8 @@ No DB/schema/RPC/migration change is expected or allowed.
 If API/runtime executable source changes:
 - confirm local/remote main equality after implementation;
 - deploy TEST API only through the unchanged contract-gated R3 path;
-- if local `psql` is unavailable and TEST DB contract is unchanged, Issue #68 `5404426864` may be reused only as the approved ephemeral off-repo catalog input to the unchanged gate;
-- if the gate rejects, STOP rather than weakening it;
+- if local `psql` is unavailable and TEST DB contract is unchanged, Issue #68 `5404426864` may be reused only as approved ephemeral off-repo catalog input to the unchanged gate;
+- if gate rejects, STOP rather than weakening it;
 - frontend deploy only if frontend executable source actually changes; not expected;
 - record exact TEST Worker version/source SHA.
 
@@ -262,46 +263,45 @@ No Production, DB write, provider/model/config change.
 
 ## 10. Fresh deployed-browser acceptance — exactly one new game
 
-After successful TEST deployment, use the actual deployed TEST frontend/UI.
+After TEST deployment, use actual deployed TEST frontend/UI.
 Create exactly ONE fresh disposable adult-profile game.
 No second game, reset, regenerate, semantic retry, direct gameplay API substitute, or sample-until-pass.
 Preserve the game READ ONLY after the campaign.
 
-Target ~3–5 committed turns. Stop at first **new** reproducible P0/P1.
-Known Company Map default-location false-current is already recorded and must not be misclassified as durable state or used to stop this campaign by itself.
+Target ~3–5 committed turns. Stop at first new reproducible P0/P1.
+Known Company Map false-current presentation is already recorded and must not be confused with durable truth.
 
 ### A. Opening
 
 Complete a normal Opening.
-Verify stationary-start, exact identity, private-app provenance, Story-owned four choices + free input, and Story/durable presence coherence.
+Verify stationary-start, exact identity, private-app provenance, four Story choices + free input.
+Do not click an Opening choice for the decisive next step.
 
-### B. NPC-only departure/movement — decisive gate
+### B. Free-form current literal vs stale prior choices — decisive gate
 
-From the current scene, submit a natural literal that explicitly moves one or two registered NPCs to `2층 공용 회의실` while **not moving PLAYER**.
+Submit a natural free-form literal that is clearly different from all four Opening choices and explicitly names a registered NPC/action.
+Prefer the preserved repro literal when scene-compatible:
+`이메이는 지금 브랜드전략팀 사무실을 떠나 2층 공용 회의실에서 진행되는 브리핑에 참석한다. 이메이가 사무실 밖으로 나가는 모습을 보여준다.`
 
 PASS only if:
-- Story does not make PLAYER stand, follow, accompany, enter, knock, walk, approach, return, or teleport;
-- Story may accept/refuse/partially complete the NPC request according to ordinary agency, but PLAYER remains in the canonical prior scene unless an actual non-voluntary external displacement occurs;
-- durable PLAYER location remains prior canonical location;
-- completed NPC movement, if any, is reflected coherently in Observer/durable presence;
-- no map false-current observation is confused with durable truth.
+- Story does not execute any unchosen Opening choice as PLAYER speech/gesture/action;
+- Story addresses the exact current literal actor/action;
+- Story may block/refuse/modify feasibility through grounded reaction, but may not substitute another actor's departure/action for the chosen actor/action;
+- PLAYER movement remains governed by accepted current-turn movement authority;
+- durable Observer/state follow completed Story coherently.
 
-If Story moves PLAYER without explicit PLAYER movement authority, STOP immediately as the same P1. No retry.
+If an unchosen prior choice is executed or current actor/action is replaced, STOP immediately. No retry.
 
-### C. Explicit PLAYER navigation positive control
+### C. Selected-choice positive control
 
-Only if B passes, submit one explicit literal moving PLAYER to an exact canonical destination.
-
-PASS:
-- Story preserves actor/destination;
-- durable PLAYER location reaches that exact location once;
-- no unrelated NPC movement is invented merely to bridge the scene.
+Only if B passes, submit one of Turn B's newly offered choices by actual UI click.
+PASS if the clicked full literal becomes the next current action normally. This proves removal of historical menu authority did not break real choice selection.
 
 ### D. Reload/re-entry
 
-If no new P0/P1, perform one deliberate reload and verify current committed location/history/choices restore without duplicate commit.
+If no new P0/P1, perform one deliberate reload and verify committed Story/history/current choices restore without duplicate commit.
 
-After the browser campaign, perform the required independent whole-canon audit before any next task is chosen.
+After campaign, perform independent whole-canon audit before any next task is chosen.
 
 ## 11. Terminal / STOP law
 
@@ -309,33 +309,16 @@ On success:
 1. commit/push implementation and tests on `main`;
 2. deploy TEST API only if executable API source changed;
 3. perform exactly one fresh browser campaign above;
-4. overwrite this same file to `WAITING_REVIEW` with a concise execution record;
+4. overwrite this same file to `WAITING_REVIEW` with concise execution record;
 5. post Issue #68 terminal:
-   `STORY_PLAYER_MOVEMENT_AGENCY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`.
+   `CURRENT_LITERAL_CHOICE_MEMORY_AUTHORITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`.
 
 On blocker/failure:
 - preserve evidence;
 - no retry/sample-until-pass;
 - overwrite this same file to `WAITING_REVIEW` with exact blocker;
 - post:
-  `STORY_PLAYER_MOVEMENT_AGENCY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`.
+  `CURRENT_LITERAL_CHOICE_MEMORY_AUTHORITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`.
 
 Declared terminal = STOP.
-Do not self-register the Company Map task or any later lane. Operator must perform the independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing the next CURRENT_TASK.
-
-## 12. Execution record — 2026-08-25
-
-- `TASK_ID`: `company-r3-story-player-movement-agency-p1-correction-v1`
-- Branch: `main`
-- Start head: `a70827ce78199978eff438781d5257aa832bed09`
-- Implementation head: `e523b6fdca209fdecc107f14820a2c2e524dcc61`
-- Reviewed executable SHA preserved: `6c14509131564e66d9a57bd6cccc7e70585f6514`
-- Changed files: `runtime-r3/domain/navigation.js`, `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-owner-p0-contract.test.mjs`.
-- Narrow implementation: the existing navigation resolver now binds the exact current-turn PLAYER movement authority into Story context; NPC-only movement preserves the current canonical PLAYER location, while explicit PLAYER navigation carries the exact resolver destination. The Story prompt consumes this server-owned binding with precedence. No parser, generic engine, retry, provider/model/config, database, migration, or preserved-data changes were made.
-- Validation: syntax checks passed; focused suite `11/11`; broader contract suite `89/89`; one full `npm.cmd test` `592/592`; `git diff --check` passed. Exact-head CI run `32831533304` / test job `97751099890` passed.
-- TEST deployment: API-only contract-gated deployment passed. Worker `game-proxy-company-r3`, version `8c898893-344f-456a-89f3-e6a9f96b475a`, URL `https://game-proxy-company-r3.zeroslove.workers.dev`. No frontend source changed, so no frontend deployment was performed.
-- Fresh disposable TEST game: `ab72dbc0-3e58-441b-856f-2530cd93e8e7`, preserved READ ONLY. Opening committed as Turn 0. The exact NPC-only literal `이메이는 지금 브랜드전략팀 사무실을 떠나 2층 공용 회의실에서 진행되는 브리핑에 참석한다. 이메이가 사무실 밖으로 나가는 모습을 보여준다.` committed as Turn 1 without moving PLAYER. The explicit control `나는 2층 공용 회의실로 이동한다.` committed as Turn 2 with Story and summary placing PLAYER in the exact destination. One reload restored Turn 2, location, Story, and four choices without duplicate commit.
-- Browser evidence: History preserved the exact submitted literals plus Story/choices/summary and saved state. The R3 `company_r3_*` contract uses `literal_action`; `structured_action` and legacy `game_actions.player_action` are not fields in this namespace. Observer raw/applied and reducer internals were not exposed by the browser UI and were not guessed or substituted with direct gameplay API/DB writes.
-- Preserved prior game `6b5e7941-36a7-4019-94a8-777112824fc9` remained READ ONLY. Its prior NPC-only movement evidence remains preserved and was not reset or modified.
-- Whole-canon audit: current canon, CSA authority contract, live matrix, post-live audit contract, current task, and current-main owning boundaries were reread. The narrow lane passes. A new outside-lane P1 candidate was observed in Turn 1: although the exact literal was stored, Story injected a stale continuation from the opening choice and did not faithfully preserve the current submitted literal/actor action. The source review did not establish a deterministic resolver defect for this single live sample; no provider/model/retry workaround was introduced. The requested NPC departure also was not completed, but this sample alone does not promote an NPC outcome defect. MM raw/applied drop rate was not measurable from the UI; Turn 1 showed MM and Turn 2 did not. CSA, refusal/change-of-mind, private-app provenance, TTS/image, long-memory, and other lanes were not exercised.
-- Required independent conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE`. No next task, branch, PR, merge, Production action, preserved-game mutation, DB write, or migration was started.
+Do not self-register the Company Map task or later lane. Operator must perform the independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing the next CURRENT_TASK.
