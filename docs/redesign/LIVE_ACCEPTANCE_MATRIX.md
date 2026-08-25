@@ -2,7 +2,7 @@
 
 Status: **OWNER_ACCEPTED / BINDING L1**  
 Accepted: 2026-08-24 KST  
-Revised: 2026-08-24 KST — three-tier CSA / rule-change Story-turn acceptance
+Revised: 2026-08-25 KST — owner recurrence-root addendum `5406605153` promoted  
 
 Automated tests protect catastrophic invariants. **Actual deployed browser play is the product gate.**
 
@@ -37,6 +37,8 @@ Across acceptance campaigns include:
 
 No stochastic retry/sample-until-pass.
 
+Targeted 2–6 turn fixtures are for finding/fixing one boundary, not product acceptance. Before any `OWNER_READY` claim, run several ordinary **15–30 turn** browser games that judge character, Story, CSA, memory, agency, and continuity as a game. A long play is still evidence collection, not permission to patch many unrelated defects in one campaign.
+
 ## A-AGENCY-001
 
 For representative free inputs record:
@@ -64,6 +66,7 @@ If the player explicitly states a thought/feeling, projection may preserve it wi
 Over 10+ turns with multiple heroines:
 
 - each heroine’s speech, initiative, embarrassment/conflict/help style remains distinguishable;
+- canonical registered identity facts used by Story remain stable across turns; when Story states a registered NPC's formal department, position/rank, or role title, it must not invent a downgrade/upgrade or contradictory title relative to canonical repository content;
 - character prompt labels are not recited as dossier prose;
 - the same stimulus does not make every heroine respond with interchangeable office logic;
 - adult/emotional situations are not routinely converted into “meeting schedule / report delay” solutions;
@@ -72,6 +75,13 @@ Over 10+ turns with multiple heroines:
 ## A-OPENING-001
 
 Opening feels like entering a living Company scene. Characters are introduced through interaction/events rather than a five-profile roll call. The private unfamiliar app exists but has not changed reality merely by existing.
+
+Before PLAYER explicitly reveals the app:
+
+- passive player-private device-local/narrator exposure is allowed;
+- Company, HR, security, onboarding, training, company artifacts, or another NPC must not install, distribute, recommend, require, explain, recognize, or announce `상식개변`;
+- no generic substitute employee app may be used to smuggle in that provenance;
+- later institutional channels may announce a committed **rule effect**, never the private app as its source.
 
 ## A-CHOICE-001
 
@@ -137,7 +147,7 @@ Pass requires:
 2. it is not serialized as an ordinary free-text player action for Story to reinterpret;
 3. Story visibly dramatizes a grounded institutional announcement (phone/company monitor/intranet/company messenger/HR or equivalent appropriate channel);
 4. NPCs may recognize that the rule is new/changed/removed and react in character;
-5. NPCs do not know the private app/supernatural cause;
+5. NPCs do not know the private app/supernatural cause, and company/HR/security/onboarding/training/NPC channels never become provenance for the private app itself before explicit PLAYER reveal;
 6. same-turn MM, when present, matches the same affected actor/rule reality;
 7. active-rule state and the rule-change Story turn become canonical together — no half-applied rule after a failed Story turn;
 8. no duplicate Story/Commit occurs on refresh/reconnect;
@@ -153,6 +163,9 @@ Across at least one disruptive Weak/Medium rule and one Strong authority rule ve
 
 - new official institutional rule, not retroactive “always normal” memory;
 - immediate surprise/confusion/embarrassment/annoyance/reluctance can coexist with compliance;
+- once a continuous rule successfully commits, it is current authority immediately;
+- when a continuous rule's applicability condition is already true in the current scene, the first materially applicable Story beat visibly makes its required premise/state true rather than replacing compliance with `확인해보겠다`, discussion, confirmation, or future deferral;
+- if the scoped actor is absent or the trigger/context is not currently applicable, do not force remote exposition; verify enforcement on the first later applicable beat instead;
 - compliance does not create unrelated attraction, romance, comfort, arousal, loyalty or private consent-as-feeling;
 - later turns can show character-specific adaptation without a numeric corruption/adaptation/obedience system;
 - unrelated characters or scenes are not forced by out-of-scope rules.
@@ -175,6 +188,8 @@ Minimum owner-ready representative set:
 
 For S1, verify only catalog-supported finite action families receive institutional authority. A free-form unsupported action must not become mandatory merely because S1 exists.
 
+When exact S1 scope/direction and a supported finite action-family match are satisfied, the behavior must **begin in the same Story turn**. Character reaction may surround execution but must not replace it with `뭐라고요?`, rule discussion, confirmation, refusal-as-veto, or future deferral. Unsupported/ambiguous actions remain ordinary requests. Do not accept a generic action executor/DSL as the solution.
+
 For S4, verify bystanders are not auto-injected; an additional adult joins only when the player actually approves/directs participation and scene reality permits it.
 
 For S6, verify evaluation changes narrative/institutional context without creating a hidden numeric affinity/obedience score.
@@ -191,6 +206,13 @@ Pass requires:
 - no stale enforcement remains after REMOVE;
 - no historical retired rule is resurrected as a side effect;
 - combination handling does not require a player-facing generic DSL.
+
+Mandatory provenance regressions after the core P1 lanes:
+
+- **M1 -> CHANGE same rule instance to W3:** M1-owned `uniform_top=removed` / `uniform_bottom=removed` must not survive merely because the old template was overwritten. W3 must be able to represent its own normal shirt/blouse worn/open premise.
+- **W1 -> REMOVE:** W1-owned `underwear_top=removed` must not survive as current authority unless another active rule or later independently committed Story supports the same fact.
+- General rule: CHANGE/REMOVE retracts requirements owned only by the replaced/removed rule before the new active set is interpreted; independent active-rule or later Story evidence may still support the same physical fact.
+- These regressions must remain bounded to the finite rule-owned state boundary; do not build a generic clothing constraint solver.
 
 ## A-MEDIA-001
 
@@ -234,6 +256,6 @@ Every owner-ready claim must have evidence across separate lanes:
 11. desktop/mobile;
 12. refresh/reconnect/duplicate-submit structural integrity.
 
-A four-turn P0/P1 smoke can be a deploy sanity check but can never produce `OWNER_READY` by itself.
+A four-turn P0/P1 smoke can be a deploy sanity check but can never produce `OWNER_READY` by itself. Before owner-ready, complement targeted fixtures with several ordinary 15–30 turn browser games and judge the product as a continuous character/story simulation.
 
 For each defect record severity, domain, reproducibility, first broken boundary, visible impact, and why previous QA missed it.
