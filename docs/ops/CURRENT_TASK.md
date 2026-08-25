@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-observer-scene-reentry-presence-p1-correction-v1
 Mode: TARGETED CORE P1 — SINGLE-OBSERVER POST-STORY SCENE MEMBERSHIP INTEGRITY
 Updated: 2026-08-25 KST
@@ -299,3 +299,19 @@ On blocker/failure:
 `OBSERVER_SCENE_REENTRY_PRESENCE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not register the next task yourself. The operator must run the mandatory whole-canon audit first.
+
+## 11. Terminal record — 2026-08-25 KST
+
+Terminal: `OBSERVER_SCENE_REENTRY_PRESENCE_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Implementation commit: `ae27e7805065118657869ba90a7cf52bc3890982`
+TEST Worker: `game-proxy-company-r3` version `fd39063f-5b3c-4d9d-bb89-586da4c24cf0`, source `ae27e7805065118657869ba90a7cf52bc3890982`
+Fresh disposable browser game: `59b3fd24-5889-4d59-a1a9-5ceddb427b72` — preserved READ ONLY
+
+Acceptance record:
+- Opening committed successfully at `brand_strategy_office`, Day 1 09:05, with four visible choices and free input.
+- S1 was activated through the visible CSA UI for exact `서원희 -> 박정우`; the turn committed one official announcement and the supported rule was reflected in the Story.
+- Exact self-stay input `나는 자리에 그대로 남은 채 서원희 차장과 박정우 팀장이 브랜드전략팀 회의실로 이동하는 모습을 지켜본다.` committed with PLAYER remaining in the office while the pair moved to the meeting room; visible Mind Monitor membership dropped to the remaining office actors and no player-navigation marker was observed.
+- Exact supported-kiss input `나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.` produced the supported directed kiss, but Story additionally invented PLAYER travel from the office to the meeting-room door even though the literal input contained no player movement. This is a reproducible P1 under the no-invented-player-travel acceptance law.
+- The campaign stopped at the first P1; no retry, second game, reset, or further turn was performed. The decisive raw Observer/applied/durable chain was not used to override the earlier visible P1, and no claim is made that the scene-reentry P1 is closed.
+
+Required review state: preserve the fresh game read-only and perform the mandatory whole-canon operator audit before any next task is registered.
