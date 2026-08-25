@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-s1-closed-world-issuance-integrity-p1-continuation-v1
 Mode: TARGETED CORE P1 CONTINUATION — S1 CLOSED-WORLD AUTHORITY / SOLE-ISSUER DIRECTION / RULE-CHANGE STORY INTEGRITY
-Updated: 2026-08-25 10:48 KST
+Updated: 2026-08-25 11:18 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `b55011718a20fd08b95dddf1af4a124ce9a20da4`
@@ -392,3 +392,18 @@ Blocked:
 `S1_CLOSED_WORLD_ISSUANCE_INTEGRITY_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task. The operator must run the mandatory post-live whole-canon audit before selecting the following lane.
+
+## 12. Terminal evidence — BLOCKED
+
+Terminal: `S1_CLOSED_WORLD_ISSUANCE_INTEGRITY_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Start / implementation / final main SHA: start `f3c9e65973a7c340a6f79ab20283914cad88cb3c`; implementation `180160ba61195787dfcab254377c922f92f304b5`; final source SHA before this lifecycle edit `180160ba61195787dfcab254377c922f92f304b5`.
+- Changed source/test files: `runtime-r3/domain/csa.js`, `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-csa-contract.test.mjs`, `test/r3-source-correction.test.mjs`. Lifecycle-only change: this file.
+- Implementation boundaries: closed-world S1 fields require positive semantic family match and keep unmatched/ambiguous input ordinary; S1 direction names the player as sole issuer and the selected subject as recipient while the counterparty is not issuer; rule-change binding records the server-owned announcement as already rendered and single. No parser/classifier/executor, second Story/Observer, rewrite, retry, provider/model/config workaround, DB/migration, or preserved-game operation was added.
+- Focused tests: `node --test test/r3-csa-contract.test.mjs test/r3-opening-contract.test.mjs test/r3-source-correction.test.mjs test/r3-owner-p0-contract.test.mjs test/destination-target-handoff-contract.test.mjs` — 75 passed, 0 failed. Syntax checks and `git diff --check` passed before commit. Full `npm.cmd test` was invoked exactly once; the runner truncated its output, so its exit status is not independently recoverable without a prohibited rerun.
+- TEST deploy: `game-proxy-company-r3`, Worker version `d8d269a1-8beb-4a7d-bde5-8a2c7974e240`; one authorized TEST API deployment, no frontend deployment, Production 0.
+- Fresh disposable game: `51141ee0-60f8-428b-9066-a5a69eb20c4e` (`https://gamebuilder-company-r3.zeroslove.workers.dev/?game_id=51141ee0-60f8-428b-9066-a5a69eb20c4e`). Preserved game `a91169d9-3c27-4bf4-bbe0-5ac0767d7f33` was not opened or changed.
+- S1 APPLY issuance chain (visible UI): exact rule `강함 · 성적 업무지시권`; subject `김제나`, counterparty `박정우`, subject scope `여성 직원`, counterparty scope `남성 직원`. Turn 1 showed one `[공식 공지]` with `지정 수신자(지원 지시를 받는 직원): 김제나` and `지정 상대방(지원 지시의 상대 직원): 박정우`. The direction and single official notice were correct.
+- First new P1 and stop point: the same Turn 1 Story then described the private app as receiving/displaying an alert in parallel: `주머니 속 휴대폰이 다시 한번 조용히 진동했다... '상식개변'이라는 앱 아이콘 위로 방금 도착한 알림이 하나 떠 있었다` and `화면에는 마치 공지가 도착한 것처럼 조용한 표시가 남아 있었다`, followed by `미처 열지도 않은 앱`. This violates the task boundary against private-app activation/parallel authority narration. No further turn, retry, second game, refresh, or read/write action followed.
+- Unsupported probes: not run after the first new P1. Stop/change-of-mind: not run. Observer raw/applied and durable DB readback: not collected because stop-at-first-P1. Refresh/re-entry duplicate count: not run. Mind Monitor raw/applied/drop observations: Turn 1 had no Mind Monitor data; no further probe was allowed.
+- Findings: P1-C private-app activation/parallel-notice leakage. No new P0 observed before stop. P2/P3 observations are not claimed. Forbidden counts: Production 0; preserved-game mutation/reset 0; DB writes/migrations 0; provider/model/config workaround 0; retry/sample loops 0; second Story/Observer/parser/classifier/action executor 0; OWNER_READY 0.
