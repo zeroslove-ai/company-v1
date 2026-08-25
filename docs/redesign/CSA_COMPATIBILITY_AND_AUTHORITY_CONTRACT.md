@@ -2,6 +2,7 @@
 
 Status: **OWNER_ACCEPTED / BINDING SPECIALIZED CONTRACT**  
 Accepted: 2026-08-25 KST  
+Revised: 2026-08-25 KST — owner recurrence-root addendum `5406605153` promoted  
 Product: `company-v1 / 상식개변: 회사편`
 
 This contract records the owner-reviewed corrections discovered by cross-boundary DB/live-play review after the 21-slot CSA redesign. It specializes `COMPANY_CANON.md` without changing the A′/R3 architecture. When implementation, tests, or historical evidence conflict with this contract, the lower layer is wrong.
@@ -33,6 +34,10 @@ After successful APPLY/CHANGE/REMOVE, the canonical active-rule set is the only 
 - CHANGE must not leave the prior rule simultaneously active unless the operation explicitly creates two independent compatible rules.
 - REMOVE must not leave stale enforcement, clothing requirement, designation, or current-policy language.
 - Historical memory is not permission to resurrect retired or removed authority.
+- CHANGE/REMOVE must retract requirements owned **only** by the replaced/removed rule before applying the new active set. The same physical fact may remain only when another active rule or later independently committed Story evidence supports it.
+- Concrete acceptance example: M1 `속옷 근무` -> CHANGE the same rule instance to W3 `가슴골 노출 근무` must not preserve M1-owned `uniform_top=removed` / `uniform_bottom=removed`; W3 must be able to represent its own normal shirt/blouse worn/open premise.
+- Concrete acceptance example: W1 `노브라 근무` -> REMOVE must not preserve W1-owned `underwear_top=removed` as current authority unless another active rule or later committed Story independently supports that fact.
+- This provenance/reconciliation remains finite to the current rule-owned clothing/state boundary. Do not build a generic clothing or physical constraint solver.
 
 ## C-CSA-ANNOUNCE-001 — Institutional issuance is observable and authoritative
 
@@ -45,12 +50,31 @@ A successful rule-change Story turn is not product-complete merely because the s
 - The implementation must not rely only on an LLM prompt instruction when live evidence shows that omission can still commit. The smallest owning boundary must make the official issuance observably present while keeping exactly one Story call and one observer pass.
 - No semantic retry loop, second reaction Story, or provider/model workaround.
 
+## C-CSA-APP-PROV-001 — Private-app provenance is a negative premise boundary
+
+Before PLAYER explicitly reveals the private `상식개변` app:
+
+- Company, HR, security, onboarding, training, or another NPC may **not** have installed, distributed, recommended, required, explained, recognized, or announced the app.
+- Institutional channels may announce the **rule effect** produced by a successful rule change; they may never announce the private app itself or a generic substitute employee app as its source.
+- Passive player-private device-local or narrator exposure remains allowed by the Opening premise.
+- This is a premise/provenance law, not merely an Opening wording preference.
+
+## C-CSA-CONTINUOUS-001 — Active continuous rules cannot be deferred by surprise
+
+A successfully committed rule change is current authority immediately.
+
+- For a continuous rule whose applicability condition is already true in the current scene, the first materially applicable Story beat must make the required premise/state visibly true.
+- Character surprise, protest, embarrassment, reluctance, dislike, or hesitation-as-feeling may coexist with compliance, but may not substitute `확인해보겠다`, rule discussion, confirmation, or future deferral for the required rule behavior.
+- If the scoped actor is not present or the trigger/context is not currently applicable, do not force remote exposition. Enforce the rule on the first later materially applicable beat.
+- This remains finite preset semantics. Do not introduce a generic action, sexual, clothing, consent, or physical-state ontology.
+
 ## C-CSA-AGENCY-001 — Active CSA cannot erase literal action
 
 Active CSA changes institutional authority and outcome constraints; it does not erase or substitute the player's ordinary literal action.
 
 - S7 trainer/trainee state does not authorize redirecting a player request addressed to the trainer into a request that the player explain the rule instead.
 - For S1, actions inside the finite supported families may receive institutional mandatory force when scope matches.
+- When exact S1 scope, direction, and a finite supported action-family match are satisfied, the supported behavior must **begin in that same Story turn**. Emotional reaction may surround execution but may not replace it with `뭐라고요?`, rule discussion, confirmation, refusal-as-veto, or future deferral.
 - A free-form action outside S1's supported families remains an ordinary request/instruction. `Unsupported by S1` means `not institutionally mandatory`, not `ignore the action`.
 - Story may refuse, question, misunderstand in-character, or decline an unsupported request, but must preserve the requested actor/target/topic/action under `P-AGENCY-001`.
 - Do not create a generic action executor/DSL to enforce this rule.
@@ -91,10 +115,10 @@ Mind Monitor remains `{surface, subconscious}`. Local drop is safer than corrupt
 Before resuming Image/TTS owner-readiness work, close in this order:
 
 1. player-navigation false positive;
-2. rule-change announcement/institutional-source guarantee;
-3. active-CSA ordinary literal agency, including S7 and S1 unsupported path;
+2. rule-change announcement/institutional-source guarantee, including private-app provenance;
+3. active-CSA ordinary literal agency, including S7 and S1 unsupported/supported same-turn paths;
 4. finite contradictory-rule compatibility;
-5. removed-rule current-authority residue;
+5. active continuous-rule timing and removed/replaced-rule current-authority/state provenance;
 6. MM projection reliability;
 7. player-facing/internal CSA text separation.
 
