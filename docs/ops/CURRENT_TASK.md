@@ -1,26 +1,26 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-s1-closed-world-issuance-integrity-p1-continuation-v1
-Mode: TARGETED CORE P1 CONTINUATION — S1 CLOSED-WORLD AUTHORITY / SOLE-ISSUER DIRECTION / RULE-CHANGE STORY INTEGRITY
-Updated: 2026-08-25 11:18 KST
+Status: READY
+Task ID: company-r3-rule-change-private-app-context-isolation-p1-continuation-v1
+Mode: TARGETED CORE P1 CONTINUATION — RULE-CHANGE STORY CONTEXT ISOLATION FROM PRIVATE APP PRESENTATION
+Updated: 2026-08-25 11:15 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `b55011718a20fd08b95dddf1af4a124ce9a20da4`
-Previous task: `company-r3-s1-supported-same-turn-authority-p1-correction-v1`
-Previous terminal: Issue #68 `5403646993`
-Operator / whole-canon review: Issue #68 `5403986031`
+Registration base main: `138f88f6987415cc8e09114c0d878b1a109444a4`
+Previous task: `company-r3-s1-closed-world-issuance-integrity-p1-continuation-v1`
+Previous terminal: Issue #68 `5404136718`
+Operator / whole-canon review: Issue #68 `5404190820`
 Whole-canon conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE`
-Preserved partial implementation SHA: `5a58383505fa303080c7663b116ecc87089b2b12`
-Current TEST API from previous terminal: `game-proxy-company-r3` / `2e276e18-c8c1-4d3a-8444-424a3dfc874a`
-Current TEST frontend from prior accepted lane: `gamebuilder-company-r3` / `773b2ca0-7116-450e-a318-44e14bdd8649`
+Preserved partial implementation SHA: `180160ba61195787dfcab254377c922f92f304b5`
+Current TEST API from previous terminal: `game-proxy-company-r3` / `d8d269a1-8beb-4a7d-bde5-8a2c7974e240`
+Current TEST frontend remains prior accepted build; no frontend work is expected in this task.
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 
 Success terminal:
-`S1_CLOSED_WORLD_ISSUANCE_INTEGRITY_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`RULE_CHANGE_PRIVATE_APP_CONTEXT_ISOLATION_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`S1_CLOSED_WORLD_ISSUANCE_INTEGRITY_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`RULE_CHANGE_PRIVATE_APP_CONTEXT_ISOLATION_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
@@ -34,210 +34,162 @@ Blocked terminal:
   4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
   5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
   6. `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`
-  7. previous terminal `5403646993`
-  8. operator / whole-canon review `5403986031`
+  7. terminal `5404136718`
+  8. operator / whole-canon review `5404190820`
   9. this CURRENT_TASK
 - Preserve A′/R3: server-owned turn kernel -> one Story LLM -> one post-Story Observer -> atomic Commit + optional sidecars.
-- This is not a product redesign. Current canon already defines S1 as a finite closed-world authority and the private app / institutional-source boundary.
-- Preserve `5a583835...` supported same-turn improvement unless the smallest correction requires wording reorganization. Do not regress the two fresh supported probes that passed.
-- Preserve all previously accepted NAV / S7 / official-announcement prefix / compatibility / conflict-copy fixes.
+- This task is implementation conformance to existing product law, not a redesign.
+- Preserve `180160ba...` closed-world S1, player sole-issuer direction, exact S1 role labels, and server-owned single official announcement.
+- Preserve `5a583835...` same-turn execution for supported S1 actions.
+- Preserve all accepted NAV / S7 / compatibility / conflict-copy / atomic rule-change behavior.
 
 ### Preserved evidence — READ ONLY, never reset/retry/mutate
 
-- `a91169d9-3c27-4bf4-bbe0-5ac0767d7f33` — current fresh BLOCKED campaign. Turn 1 issuance/direction/app evidence; Turn 2/3 supported S1 pass; Turn 4 unsupported over-authority P1.
+- `51141ee0-60f8-428b-9066-a5a69eb20c4e` — latest fresh BLOCKED campaign. Turn 1 is the private-app context leak evidence.
+- `a91169d9-3c27-4bf4-bbe0-5ac0767d7f33` — prior S1 unsupported-overauthority evidence.
 - `fdc0d96a-8d6f-49dc-b8cf-6550612a0324` — prior S1 deferral evidence.
-- `4261b592-e6b9-44cb-a5a7-05057a22ee83` — prior cross-boundary/compatibility campaign.
-- `ab44e91c-5eaa-4fb1-9396-138073ec5257`
-- `b91607f4-6945-44eb-87a3-6f2b2d6e1834`
-- `babfa5a6-719b-4dbe-a392-cb2c62cc1faa`
-- `ebc440ea-5f2e-41dc-8333-12cedc1ad772`
-- every other game already marked preserved in Issue #68.
+- `4261b592-e6b9-44cb-a5a7-05057a22ee83` — prior compatibility campaign.
+- all other games already marked preserved in Issue #68.
 
 ## 1. Why this continuation exists
 
-The previous implementation fixed one side of the S1 precedence conflict but live play exposed the opposite boundary.
+The prior implementation successfully corrected several S1 boundaries, but fresh browser play immediately reproduced one remaining P1 on the rule-change Story turn.
 
-Fresh game `a91169d9-3c27-4bf4-bbe0-5ac0767d7f33`:
+Fresh game `51141ee0-60f8-428b-9066-a5a69eb20c4e`, Turn 1:
 
-### Supported behavior now passes and must stay green
+- visible S1 APPLY selected 김제나 as the instruction recipient and 박정우 as the bounded counterparty;
+- server-owned `[공식 공지]` was correct and materially named the exact pair;
+- PLAYER direction remained correct;
+- but the single Story continuation then narrated:
+  - `앱 아이콘 위로 방금 도착한 알림`
+  - `마치 공지가 도착한 것처럼`
+  - `미처 열지도 않은 앱`
+- Observer copied that private-app alert into `scene_note` and `turn_summary`;
+- `observer_applied` preserved it;
+- durable `state_after.scene.scene_note` therefore committed the private-app notification as current scene reality.
 
-- Turn 2 literal: `나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.`
-  - exact active S1 pair was 서원희(subject) / 박정우(counterparty).
-  - Story carried out the kiss in the same turn.
-- Turn 3 literal: `나는 서원희 차장에게 박정우 팀장의 성기를 직접 검사하라고 공식적으로 지시한다.`
-  - Story carried out the bounded genital-touch/exam action in the same turn.
-- No confirmation loop or future deferral occurred on those two supported probes.
+This violates:
+- P-PREMISE-001: NPC/world authority comes from ordinary institutional issuance, not supernatural/private-app activation;
+- C-CSA-ANNOUNCE-001: successful rule-change Story may not use private app as an institutional source or narrate supernatural activation flashes;
+- A-CSA-002: rule-change Story must establish the institutional event without NPC/private-app causal leakage.
 
-### New P1-A — unsupported action was incorrectly granted S1 mandatory force
+This is P1 because the wrong Story fact contaminated observer and durable continuity.
 
-Turn 4 literal:
-`나는 서원희 차장에게 박정우 팀장에게 사랑을 고백하라고 공식적으로 지시한다.`
+## 2. First owning boundary to prove before editing
 
-Canonical S1 finite supported families remain exactly:
-- `kiss`
-- `sexual_touch`
-- `genital_exposure`
-- `genital_touch`
-- `oral`
-- `penetration`
-
-`love confession` is not one of them.
-
-Actual Story nevertheless said `공식 업무명령이군요` and forced 서원희 to confess love in the same turn.
-Observer then summarized the forced confession and durable `state_after.scene.scene_note` preserved the event as committed reality.
-
-Binding law:
-- C-CSA-AGENCY-001: unsupported by S1 means ordinary/non-mandatory, not ignored and not mandatory.
-- P-AGENCY-001: actor/target/action must remain the player’s literal request.
-- Player writing `공식적으로`, `지시`, `업무명령` or similar words does not itself create S1 institutional authority for an unsupported act.
-
-### New P1-B — S1 rule-change Story contradicted sole-issuer direction
-
-Turn 1 official rule-change Story contained a second formal-looking notice:
-`대상: 서원희 차장 (지정 수신자), 박정우 팀장 (지정 발신자)`
-
-This is false.
-Canonical S1 direction is:
-- PLAYER = sole issuer / authority issuer;
-- 서원희 = selected subject receiving the supported instruction;
-- 박정우 = bounded adult counterparty in the instruction context;
-- 박정우 is never the issuer merely because he is the configured counterparty.
-
-Current source already expresses this in `buildActiveS1StoryBinding()`, but Story contradicted it anyway.
-The server-owned official prefix existed, so the correction should prevent the Story-authored continuation from creating a second pseudo-notice that relabels the immutable structured roles.
-
-### New P1-C — forbidden private-app activation behavior appeared on the same rule-change Story
-
-Turn 1 Story also narrated the private app as effectively self-opening and then:
-`화면이 잠시 깜빡이다가 바탕화면으로 사라진다.`
-
-C-CSA-ANNOUNCE-001 forbids supernatural activation flashes. Current provider prompt also says rule-change Story must not narrate the private app screen / app confirmation as institutional causality.
-NPC knowledge did come through the official company monitor, so the server-owned issuance prefix itself is retained; the LLM continuation must not add private-app activation spectacle or a second authority source.
-
-These three failures share the same existing S1 / rule-change Story request boundary and can be closed without a redesign.
-
-## 2. First broken boundaries to inspect before editing
-
-Read current source first:
+Read current:
 - `runtime-r3/domain/memory.js`
-- `runtime-r3/domain/csa.js`
 - `runtime-r3/server/provider.js`
-- the server turn path that prepends `buildRuleChangeInstitutionalAnnouncement()` / equivalent official issuance text before the Story continuation
-- focused S1/rule-change tests.
+- `runtime-r3/server/worker.js`
+- `runtime-r3/domain/csa.js`
+- focused Story-request / rule-change / S1 tests.
 
-Establish current facts:
+Current-main evidence to verify:
 
-1. `5a5838...` changed the generic external-outcome wording so a rule-owned same-turn exception can override ordinary no-auto-compliance.
-2. `active_s1_story_binding` already includes the exact finite list and says PLAYER is sole issuer.
-3. `active_s1_literal_contract` already says supported only / unsupported ordinary, but live Story still over-authorized `love confession`.
-4. The Story system prompt contains broad language such as active rules being authoritative and rule-required behavior beginning same-turn; prove which wording allows an unmatched literal to inherit authority.
-5. The server-owned official issuance prefix already exists and should remain the authoritative role/scope announcement. Determine how the LLM is being asked to continue around that prefix and why it writes a duplicate notice with a false `발신자` role.
-6. Rule-change Story context still exposes enough private-app premise that Story can narrate self-opening/flash despite the prohibition. Fix at the smallest existing request/context boundary; do not add a second verifier or narrative rewriter.
+1. On a rule-change Story, `buildStoryContext()` still includes the global product premise with `app_name` / private discovery.
+2. `pending_rule_change_turn.boundary` still calls the operation `This exact visible app operation`.
+3. `recent_turns` can include Opening/raw prior Story text with the private app as a salient object.
+4. `scene.scene_note` can also contain private-app presentation text from the immediately prior scene.
+5. `provider.story()` serializes that combined context directly to the single Story LLM.
+6. Existing prompt wording already forbids app activation, yet fresh live evidence shows prompt-only suppression is insufficient while the request itself contains irrelevant private-app presentation material.
 
-If inspection proves a different earlier existing boundary is responsible, fix that boundary and document why.
+Therefore the preferred smallest correction is a **field-level rule-change Story context projection**.
 
-## 3. P1-A — S1 must be CLOSED-WORLD authority
+If inspection proves a different earlier existing boundary is actually responsible, fix that earliest boundary and record why. Do not add a new architecture layer.
 
-Required behavior:
+## 3. Required rule-change Story context isolation
 
-- The six `supported_action_families` are exhaustive, not examples.
-- S1 mandatory force applies only after Story makes a positive semantic match between the current requested act and one of those six finite families, with the exact configured subject/counterparty scope.
-- If the requested act is not positively matched to one of the six families, or is ambiguous, S1 does NOT grant mandatory authority. The request remains an ordinary request/instruction.
-- The words `공식적으로`, `공식 지시`, `업무명령`, `지시한다`, or player insistence do not manufacture institutional authority for an unsupported act.
-- Unsupported ordinary requests still preserve actor / target / action / topic / intent. NPC may refuse, question, decline, negotiate, misunderstand in character, or voluntarily comply according to ordinary Story logic; it must not say or imply that S1 forced the unsupported act.
-- Supported exact-family requests within exact scope must retain the previous fix: begin/execute same-turn and must not degrade back into confirmation, future deferral, refusal-as-veto, rule discussion, or substitution.
+For `ruleChangeEvent || csaOperation` Story requests only:
 
-Preferred existing-boundary expression:
-- make `active_s1_literal_contract` and provider ordering explicit that S1 is a closed set;
-- authority requires a positive supported-family match;
-- default outside/unclear match is ordinary/no-auto-outcome;
-- active-rule general wording is subordinate to this S1 closed-world boundary.
+### Keep structured scene/world facts needed for coherent reaction
 
-Forbidden:
-- regex/keyword classifier;
-- new Korean semantic parser;
-- generic action taxonomy beyond the six canonical families;
-- generic action/sexual executor;
-- a second Story/verifier LLM;
-- semantic retry/resample;
-- post-Story semantic rewriting.
+Retain at minimum:
+- canonical player profile / identity;
+- current time;
+- canonical current location;
+- current registered present actor IDs and canonical actor cards;
+- clothing state;
+- active rules needed to describe current authority;
+- exact structured rule-change event / operation;
+- exact `rule_change_story_binding` including selected actor identities, direction, authority label, closed-world S1 semantics where relevant;
+- the server-owned official announcement ownership fact.
 
-The Story LLM remains the semantic reasoner. The correction is to its existing canonical contract/context, not a parallel classifier.
+### Do not expose irrelevant private-app presentation free text to the rule-change Story continuation
 
-## 4. P1-B — S1 sole issuer / role direction must not be contradicted
+The rule-change Story request must not include private-app-bearing free-text continuity surfaces merely because they were present in prior narrative. In particular, do not feed the continuation:
+- Opening/raw recent Story text containing the private app;
+- previous free-text `scene_note` when that field is not necessary to execute the structured institutional rule-change turn;
+- product/private-discovery prose or app-name presentation metadata that is unnecessary after the structured operation has already been accepted by the server;
+- wording that characterizes the current Story action as a `visible app operation`.
 
-Required role law:
-- PLAYER is the sole S1 issuer.
-- selected subject receives the supported instruction.
-- configured counterparty is the bounded other adult participant/target in that instruction context.
-- counterparty is never labeled issuer/sender/authority merely from selection.
+Preferred implementation is structural field projection/omission for rule-change Story context, **not string/keyword redaction**.
 
-Required rule-change Story behavior:
-- preserve the existing server-owned official issuance prefix / structured rule-change announcement.
-- material selected pair remains visible through the official institutional channel.
-- Story continuation must not author a second formal notice, code block, pseudo-policy, or paraphrased assignment that relabels/reverses the immutable roles.
-- Story may dramatize human reactions around the official announcement.
-- if the exact deterministic announcement role-label line must be touched to make direction unambiguous, use player-facing institutional Korean wording; do not undertake broad CSA copy cleanup in this task.
-- do not reintroduce retired `player_request_executes_immediately` semantics or make 박정우 the issuer.
+### Important preservation law
 
-Preferred smallest boundary:
-- make the Story context explicitly state that the server-owned official announcement is already rendered/authoritative and must not be rewritten, duplicated or re-labeled by Story;
-- Story begins from the announced fact and dramatizes reaction only.
+- Do not change Opening semantics. The private unfamiliar app may still be passively discovered in Opening.
+- Do not remove the private app from ordinary play. If the player explicitly chooses to inspect/use/talk about it on an ordinary turn, P-AGENCY-001 still applies.
+- This isolation applies only to the rule-change Story continuation because the structured operation already represents the player action and the server-owned institutional announcement already owns world issuance.
+- Do not break location, actor presence, clothing or active-rule continuity simply to hide text.
 
-No second Story, verifier, retry or deterministic narrative author.
-
-## 5. P1-C — no private-app activation spectacle on rule-change Story
-
-Binding behavior:
-- the player may have used the visible private app to submit the structured operation, but NPC/world authority comes from the official institutional channel.
-- Story must not narrate the app as self-opening, flashing, disappearing by itself, emitting supernatural activation, or otherwise acting as the causal authority source.
-- NPCs must not sense the app or activation.
-- do not narrate the private app screen merely to explain the structured operation when the server-owned official announcement already establishes the world event.
-
-Fix at the smallest existing Story-request/context boundary. Prefer not exposing irrelevant private-app presentation details to the rule-change Story continuation when the structured operation and official issuance binding are already known.
+## 4. No fake masking
 
 Forbidden:
-- after-the-fact string stripping / semantic Story rewriting;
-- second Story/verifier;
-- retry-until-no-app;
-- provider/model/config changes.
+- after-the-fact Story string stripping or replacement;
+- regex/keyword redaction of generated Story;
+- semantic retry / regenerate-until-no-app;
+- second Story or verifier LLM;
+- new parser/classifier/action executor;
+- provider/model/temperature/token/config/secret changes;
+- generic app-awareness engine;
+- DB/schema/migration work.
 
-## 6. Deterministic regression requirements
+The single Story LLM remains narrative author. The fix is to stop giving the rule-change continuation irrelevant private-app presentation evidence that current canon says must not control that turn.
 
-Add/adjust the smallest tests proving the request contracts and source boundaries, including:
+## 5. Deterministic regression requirements
 
-1. Ordinary request with no applicable rule still has no automatic external outcome.
-2. Active S1 carries exactly the canonical six supported families.
-3. Supported S1 exact-scope request has positive same-turn mandatory precedence and preserves subject/counterparty direction.
-4. Unsupported examples (`love confession`, `singing` or equivalent clear non-members) remain explicitly ordinary/non-mandatory in the Story contract.
-5. `공식적으로` / `업무명령` wording in the literal cannot itself widen the finite supported set.
-6. Ambiguous/not-positively-matched act defaults to ordinary S1 handling, not mandatory handling.
-7. PLAYER remains sole issuer; selected counterparty is explicitly non-issuer.
-8. Rule-change Story request marks the server-owned official announcement as already authoritative and forbids a duplicate/re-labeled pseudo-notice.
-9. Rule-change Story continuation forbids private-app screen/self-open/flash/supernatural activation narration.
-10. Existing deterministic official announcement remains one institutional issuance and selected subject/counterparty are still materially knowable.
-11. Retired `player_request_executes_immediately` remains retired and is not rebuilt.
-12. Existing S7 agency, NAV actor-binding, finite compatibility, conflict-copy, one-Story/one-Observer and announcement tests remain green.
+Add the smallest tests that prove the actual Story request/context boundary, not only prompt phrases.
 
-Do not create fake unit tests that claim to prove stochastic Story compliance solely by matching one prompt phrase. Tests should prove the actual context/order/invariants available to Story; real browser play remains the semantic gate.
+Required:
+
+1. Build/capture a real rule-change Story request payload using current provider/request construction.
+2. Assert the rule-change user payload still contains structured:
+   - location/current scene identity;
+   - registered present actors;
+   - canonical player identity;
+   - active rule state as applicable;
+   - exact structured rule-change event/binding;
+   - S1 exact subject/counterparty direction and finite family list when S1 is used.
+3. Assert the same rule-change Story payload does **not** expose:
+   - `app_name` / private-discovery presentation fields unnecessary to the turn;
+   - prior Opening/raw Story text containing `상식개변`;
+   - prior free-text `scene_note` used only as private-app presentation history;
+   - `This exact visible app operation` or equivalent prompt wording that invites app-screen narration.
+4. Prove ordinary non-rule-change Story context still retains normal recent continuity behavior.
+5. Prove Opening still exposes the intended passive unfamiliar-app premise and is not globally stripped.
+6. Prove server-owned official announcement remains exactly one institutional issuance with exact S1 subject/counterparty labels.
+7. Prove S1 closed-world flags and PLAYER sole issuer from `180160ba...` remain unchanged.
+8. Prove supported S1 same-turn precedence from `5a5838...` remains unchanged.
+9. Prove unsupported/unmatched S1 stays ordinary/non-mandatory in context.
+10. Existing NAV, S7, compatibility, conflict-copy and one-Story/one-Observer focused regressions remain green.
+
+Do not claim stochastic Story compliance from a unit test. Tests prove the information boundary; deployed browser play remains the product gate.
 
 Then run:
 - changed JS/MJS `node --check`;
-- JSON sanity only if JSON unexpectedly changes (catalog change is not expected);
 - `git diff --check`;
 - focused affected tests;
 - full repository `npm test` exactly once after focused green.
 
-No provider/model/config/secret changes.
+If full test output is truncated, record the runner result/exit code through a deterministic shell wrapper in the same invocation where practical; do not rerun the full suite repeatedly merely to obtain prettier output.
 
-## 7. DB / migration / deployment law
+## 6. DB / deploy policy
 
-No DB/schema/RPC/migration change should be necessary.
+No DB/schema/RPC/migration/data repair is expected or allowed.
 
 Forbidden:
 - `supabase db push`;
 - migration apply/repair/history rewrite;
-- gameplay data backfill;
+- gameplay backfill;
 - preserved-game mutation;
 - Production access/deploy.
 
@@ -245,165 +197,125 @@ After implementation lands on `main`:
 - verify local/remote main equality;
 - deploy TEST API only if runtime/server executable source changed;
 - frontend deploy only if frontend executable source actually changed; frontend work is not expected;
-- record exact Worker version IDs and source SHA;
-- no provider/model/temperature/token/config/secret workaround.
+- record exact Worker version ID and source SHA;
+- no provider/model/config/secret changes.
 
-If a schema change appears necessary, STOP blocked and explain why the existing Story/context boundary cannot express the canon without it.
+## 7. Fresh deployed-browser acceptance — exactly one new game
 
-## 8. Fresh deployed-browser acceptance — exactly one new game
+Use actual deployed TEST frontend/UI.
 
-Use the actual deployed TEST browser UI. Do not mutate any preserved evidence game.
+Create exactly ONE new disposable adult-profile game.
+No second game, reset, regeneration, semantic retry, direct gameplay API substitute, or sample-until-pass.
 
-Create exactly ONE new disposable adult-profile game after browser readiness.
-No second game, reset, retry, regeneration, direct gameplay API substitute, or sample-until-pass.
+Target roughly 6–9 committed turns plus one refresh/re-entry.
 
-Target roughly 7–10 committed turns plus natural bridging only as needed.
+### A. Opening
 
-### A. S1 APPLY / issuance integrity
+Opening may establish the unfamiliar private app passively. This remains legal and should not be reported as the target failure merely because the app appears in Opening.
 
-Through visible CSA UI activate canonical S1 `성적 업무지시권` for an exact named pair, preferably 서원희 -> 박정우 for comparability.
+Record Opening observer raw/applied MM shape for the existing P2 metric, but do not broaden this implementation.
+
+### B. S1 APPLY — primary P1 gate
+
+Through visible CSA UI APPLY `성적 업무지시권` with an exact named adult pair.
 
 PASS requires:
-- exactly one rule-change Story turn;
-- official institutional announcement visible;
-- PLAYER remains the authority issuer;
-- 서원희 is the selected subject/recipient of supported instructions;
-- 박정우 is only the configured counterparty and is never described as `발신자`, issuer or authority;
-- no second contradictory pseudo-notice/code block;
-- no private-app self-opening / screen flash / supernatural activation / NPC app awareness;
-- canonical active S1 state is correct after commit.
+- one successful rule-change gameplay turn;
+- exactly one server-owned grounded `[공식 공지]` institutional issuance;
+- exact selected recipient/counterparty materially visible;
+- PLAYER remains sole issuer;
+- Story continuation contains no app screen, app notification, app self-opening, app flash, app disappearance, supernatural activation, or implication that the app itself delivered the institutional notice;
+- no second pseudo-notice or relabeled role assignment;
+- at least one grounded affected-human reaction if Story naturally supports it;
+- observer raw/applied `scene_note` / `turn_summary` do not reintroduce a private-app alert that Story did not contain;
+- durable state has active S1 once and current scene continuity does not contain a fabricated private-app activation event.
 
-### B. supported same-turn preservation
+Stop immediately if the private-app activation/notification leak recurs. Do not patch or create another game in the same live campaign.
 
-Run two distinct supported probes in the same game, not retries:
-1. a clear `kiss` instruction;
-2. the prior failing shape: `나는 서원희 차장에게 박정우 팀장의 성기를 직접 검사하라고 공식적으로 지시한다.`
+### C. S1 preservation probes, only after APPLY passes
 
-PASS:
-- exact actor/target/direction preserved;
-- supported act begins/executes in the same Story turn;
-- no confirmation loop, future deferral, refusal-as-veto, rule discussion substitution or unrelated action.
+1. Supported probe A — exact kiss instruction for configured pair.
+   - must begin/execute same Story turn.
+2. Supported probe B — exact supported genital-touch/examination shape if practical.
+   - must begin/execute same Story turn.
+3. Unsupported probe — clearly unsupported action such as love confession or singing.
+   - request preserved;
+   - must not become mandatory merely because S1 is active;
+   - ordinary refusal/questioning/voluntary compliance remains allowed.
+4. One explicit stop/change-of-mind/topic switch.
+   - ordinary player agency preserved.
 
-### C. unsupported closed-world probes
+### D. Refresh/re-entry
 
-Run at least two clearly distinct unsupported requests in the same game as separate coverage, not pass-seeking retries:
-1. `love confession` shape: `나는 서원희 차장에게 박정우 팀장에게 사랑을 고백하라고 공식적으로 지시한다.`
-2. another clearly non-supported request such as singing a sexual/romantic song.
+After final committed state, perform one deliberate read-only browser refresh/re-entry.
 
-PASS:
-- request actor/target/action remains visible;
-- Story does NOT call the request an S1 mandatory work order merely because S1 is active or the player says `공식적으로`;
-- Story does NOT force same-turn compliance under S1;
-- ordinary refusal/questioning/negotiation/voluntary response is allowed;
-- observer summary/scene_note and durable state must not mis-record unsupported S1 mandatory authority.
-
-### D. stop/change-of-mind ordinary agency
-
-After an unsupported request, explicitly withdraw/change the request or switch topic.
-PASS only if Story preserves the changed intent and does not keep enforcing the unsupported act as an S1 obligation.
-
-### E. refresh/re-entry
-
-After final committed state:
-- deliberate refresh/re-entry once;
+PASS requires:
 - no duplicate Story/Commit;
-- S1 state reconstructs correctly;
-- choices/free input/CSA controls usable.
+- active S1 reconstructs once;
+- no rejected/phantom pending turn;
+- input/choices/CSA remain usable.
 
-For each decisive turn record:
-`literal / structured operation -> Story -> observer raw -> observer applied -> durable state -> next context/UI`.
+Record decisive chain as:
+`literal/structured operation -> Story -> observer raw -> observer applied -> durable state -> next context/UI`.
 
-Use read-only DB inspection after the browser campaign for decisive turns. Do not infer durable correctness from UI alone.
+## 8. Whole-canon observations to record only
 
-Stop at the first new reproducible P0/P1. Do not patch during the same campaign.
+Do not broaden this P1 implementation into these known P2 lanes:
 
-## 9. Whole-canon observations to report, not broaden unless they escalate to P1
-
-Known P2 integrity lane remains pending:
-
-### current-authority residue
-- CHANGE/REMOVE can leave removed/replaced rule language in Story/MM. Do not claim fixed unless directly tested later.
-
-### Mind Monitor reliability
-- current fresh evidence includes partial and full drops; Turn 4 in `a911...` emitted legacy string MM entries and all five were dropped.
-- measure raw/applied MM on the new fresh campaign when practical.
-
-### player-facing/internal text separation
-- deterministic S1 announcement currently exposes internal English role wording;
-- S7 and M5 known catalog texts still contain developer/design phrasing.
-- if exact S1 role label must be touched to close the P1 direction error, correct only that inseparable line; general catalog/text cleanup stays for the later P2 lane.
-
-Also record player-thought/dialogue drops if observed.
+1. Removed/replaced rule current-authority residue.
+2. Mind Monitor reliability.
+   - latest fresh campaign had raw MM entries 10 across Opening + Turn 1, applied valid entries 0, with 10 projection drops.
+3. Player-facing/internal CSA text separation.
+4. player-thought/dialogue projection drops where observed.
 
 Media/TTS owner-readiness remains paused.
 
-## 10. Acceptance / stop law
+If a new reproducible P0/P1 appears, stop at first occurrence and terminal BLOCKED.
 
-Success requires all of:
-- prior supported same-turn fix remains green for two distinct supported probes;
-- unsupported love-confession and second unsupported request remain ordinary/non-mandatory;
-- no S1 authority widening from words like `공식적으로`;
-- PLAYER sole-issuer direction is preserved in rule-change Story;
-- no second contradictory formal notice/relabeling;
-- no private-app self-open/flash/supernatural activation on the rule-change Story;
-- observer/durable state agrees with Story semantics for supported and unsupported probes;
-- stop/change-of-mind works;
-- refresh/re-entry duplicate count zero;
-- no generic parser/classifier/executor, retry, second Story or provider/model workaround;
-- preserved games untouched;
-- Production 0.
+## 9. Acceptance / stop law
 
-Blocked if any fresh P0/P1 appears, including:
-- supported action again deferred/refused as veto;
-- unsupported action again forced as S1 mandatory;
-- counterparty again labeled issuer/sender;
-- private app again used as supernatural activation/authority framing;
-- actor/target/direction substitution;
-- durable state contradicts the visible Story.
+PASS requires all of:
+- rule-change Story request is structurally isolated from irrelevant private-app presentation free text;
+- fresh S1 APPLY contains no private-app activation/parallel-authority narration;
+- observer/durable state do not contain fabricated private-app activation;
+- deterministic official announcement remains one and correct;
+- PLAYER sole issuer and exact S1 direction remain correct;
+- at least two supported probes still execute same-turn if reached;
+- unsupported probe remains ordinary/non-mandatory if reached;
+- ordinary stop/change-of-mind remains usable if reached;
+- refresh/re-entry duplicates 0 if reached;
+- no new parser/verifier/retry/Story writer;
+- Production 0;
+- preserved evidence games untouched.
 
-Do not create a second sample.
+If the primary APPLY gate fails, stop immediately; the later probes become `not reached`, not silently skipped/green.
 
-## 11. Terminal report contract
+## 10. Terminal report contract
 
 Report:
 - start / implementation / final main SHA;
-- exact changed files and first broken boundaries;
-- how closed-world S1 precedence is expressed without a parser/classifier;
-- how sole-issuer direction and server-owned announcement ownership are expressed;
-- how private-app activation narration is excluded without Story rewriting/retry;
-- focused/full tests and CI if available;
-- exact TEST Worker deploy version(s) and counts;
+- exact changed files;
+- first owning boundary proven;
+- exact rule-change Story payload fields retained vs structurally omitted;
+- evidence that no keyword/string Story redaction was added;
+- focused/full tests and deterministic full-suite exit result;
+- exact TEST Worker version(s) and deploy counts;
 - fresh game ID;
-- S1 APPLY issuance chain;
-- exact role labels shown in official/Story output;
-- two supported probes;
-- two unsupported probes;
-- stop/change-of-mind probe;
-- observer raw/applied + durable state for decisive turns;
-- refresh/re-entry duplicate count;
-- MM raw/applied/drop observations;
+- Opening result;
+- S1 APPLY Story and official-announcement result;
+- exact private-app leak check in Story / observer raw / observer applied / durable scene state;
+- supported probes if reached;
+- unsupported probe if reached;
+- stop/change-of-mind if reached;
+- refresh/re-entry if reached;
+- MM raw/applied/drop counts observed;
 - P0/P1/P2/P3 findings;
 - all forbidden counts.
 
 Success:
-`S1_CLOSED_WORLD_ISSUANCE_INTEGRITY_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`RULE_CHANGE_PRIVATE_APP_CONTEXT_ISOLATION_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked:
-`S1_CLOSED_WORLD_ISSUANCE_INTEGRITY_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`RULE_CHANGE_PRIVATE_APP_CONTEXT_ISOLATION_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
-Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task. The operator must run the mandatory post-live whole-canon audit before selecting the following lane.
-
-## 12. Terminal evidence — BLOCKED
-
-Terminal: `S1_CLOSED_WORLD_ISSUANCE_INTEGRITY_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
-
-- Start / implementation / final main SHA: start `f3c9e65973a7c340a6f79ab20283914cad88cb3c`; implementation `180160ba61195787dfcab254377c922f92f304b5`; final source SHA before this lifecycle edit `180160ba61195787dfcab254377c922f92f304b5`.
-- Changed source/test files: `runtime-r3/domain/csa.js`, `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-csa-contract.test.mjs`, `test/r3-source-correction.test.mjs`. Lifecycle-only change: this file.
-- Implementation boundaries: closed-world S1 fields require positive semantic family match and keep unmatched/ambiguous input ordinary; S1 direction names the player as sole issuer and the selected subject as recipient while the counterparty is not issuer; rule-change binding records the server-owned announcement as already rendered and single. No parser/classifier/executor, second Story/Observer, rewrite, retry, provider/model/config workaround, DB/migration, or preserved-game operation was added.
-- Focused tests: `node --test test/r3-csa-contract.test.mjs test/r3-opening-contract.test.mjs test/r3-source-correction.test.mjs test/r3-owner-p0-contract.test.mjs test/destination-target-handoff-contract.test.mjs` — 75 passed, 0 failed. Syntax checks and `git diff --check` passed before commit. Full `npm.cmd test` was invoked exactly once; the runner truncated its output, so its exit status is not independently recoverable without a prohibited rerun.
-- TEST deploy: `game-proxy-company-r3`, Worker version `d8d269a1-8beb-4a7d-bde5-8a2c7974e240`; one authorized TEST API deployment, no frontend deployment, Production 0.
-- Fresh disposable game: `51141ee0-60f8-428b-9066-a5a69eb20c4e` (`https://gamebuilder-company-r3.zeroslove.workers.dev/?game_id=51141ee0-60f8-428b-9066-a5a69eb20c4e`). Preserved game `a91169d9-3c27-4bf4-bbe0-5ac0767d7f33` was not opened or changed.
-- S1 APPLY issuance chain (visible UI): exact rule `강함 · 성적 업무지시권`; subject `김제나`, counterparty `박정우`, subject scope `여성 직원`, counterparty scope `남성 직원`. Turn 1 showed one `[공식 공지]` with `지정 수신자(지원 지시를 받는 직원): 김제나` and `지정 상대방(지원 지시의 상대 직원): 박정우`. The direction and single official notice were correct.
-- First new P1 and stop point: the same Turn 1 Story then described the private app as receiving/displaying an alert in parallel: `주머니 속 휴대폰이 다시 한번 조용히 진동했다... '상식개변'이라는 앱 아이콘 위로 방금 도착한 알림이 하나 떠 있었다` and `화면에는 마치 공지가 도착한 것처럼 조용한 표시가 남아 있었다`, followed by `미처 열지도 않은 앱`. This violates the task boundary against private-app activation/parallel authority narration. No further turn, retry, second game, refresh, or read/write action followed.
-- Unsupported probes: not run after the first new P1. Stop/change-of-mind: not run. Observer raw/applied and durable DB readback: not collected because stop-at-first-P1. Refresh/re-entry duplicate count: not run. Mind Monitor raw/applied/drop observations: Turn 1 had no Mind Monitor data; no further probe was allowed.
-- Findings: P1-C private-app activation/parallel-notice leakage. No new P0 observed before stop. P2/P3 observations are not claimed. Forbidden counts: Production 0; preserved-game mutation/reset 0; DB writes/migrations 0; provider/model/config workaround 0; retry/sample loops 0; second Story/Observer/parser/classifier/action executor 0; OWNER_READY 0.
+Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task. Operator must run the mandatory post-live whole-canon audit before choosing the next lane.
