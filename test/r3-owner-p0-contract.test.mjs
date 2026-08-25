@@ -47,6 +47,40 @@ async function setup(worker) {
   return gameId;
 }
 
+function storyWithChoices(choices, body) {
+  return `${body}\n1. ${choices[0]}\n2. ${choices[1]}\n3. ${choices[2]}\n4. ${choices[3]}`;
+}
+
+test('R3 Worker passes current literal authority with prior Story choice menu removed from memory', async () => {
+  const openingChoices = ['고개를 끄덕인다.', '창가로 간다.', '질문한다.', '잠시 기다린다.'];
+  const turnChoices = ['주변을 살핀다.', '자리에 앉는다.', '메모한다.', '자유 입력을 한다.'];
+  const currentLiteral = '이메이는 브랜드전략팀 사무실을 떠나 2층 공용 회의실로 이동한다.';
+  const storyRequests = [];
+  const provider = {
+    async *story({ opening, context, literalAction }) {
+      storyRequests.push({ opening, context, literalAction });
+      yield storyWithChoices(opening ? openingChoices : turnChoices, opening ? 'Opening committed narrative.' : 'Current literal narrative.');
+    },
+    async observe({ storyText }) {
+      return { choices: storyText.includes('Opening committed') ? openingChoices : turnChoices, turn_summary: 'summary' };
+    }
+  };
+  const worker = createR3Worker({ store: new InMemoryR3Store(), provider, content, gameAccessSecret: SECRET });
+  const gameId = await setup(worker);
+  const opening = await sseEvents(await actionRequest(worker, `/api/r3/games/${gameId}/opening`, { method: 'POST' }));
+  assert.equal(opening.at(-1).data.status, 'committed');
+  const turn = await sseEvents(await actionRequest(worker, `/api/r3/games/${gameId}/turn`, {
+    method: 'POST',
+    body: { action_id: 'current-literal', expected_turn: 1, literal_action: currentLiteral }
+  }));
+  assert.equal(turn.at(-1).data.status, 'committed');
+  const ordinary = storyRequests.at(-1);
+  assert.equal(ordinary.opening ?? false, false);
+  assert.equal(ordinary.literalAction, currentLiteral);
+  assert.deepEqual(ordinary.context.turns[0].literal_action, '');
+  assert.match(ordinary.context.turns[0].story_text, /Opening committed narrative/);
+});
+
 test('R3 Worker Opening applies grounded final-presence evidence instead of copied prior/default presence', async () => {
   const absentActor = content.characters.heroine5;
   const currentActor = content.characters.heroine1;

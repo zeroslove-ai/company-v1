@@ -1,5 +1,6 @@
 import { canonicalActors, canonicalLocation, productPremise, relevantActorIds } from './content.js';
 import { buildActiveS1StoryBinding, buildRuleChangeStoryBinding } from './csa.js';
+import { stripCommittedChoiceTail } from './observer-normalizer.js';
 
 const bounded = (value, max) => String(value ?? '').slice(0, max);
 const canonicalClock24h = time => {
@@ -71,7 +72,10 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const turns = Array.isArray(context?.turns) ? context.turns : [];
   const location = canonicalLocation(content, state.scene?.location_id);
   const actorIds = relevantActorIds(content, state, { opening });
-  const recent = turns.slice(-8).map(turn => ({ turn_number: turn.turn_number, literal_action: bounded(turn.literal_action, 2000), story_text: bounded(turn.story_text, 4000) }));
+  const recent = turns.slice(-8).map(turn => {
+    const narrative = stripCommittedChoiceTail(turn.story_text, turn.choices);
+    return { turn_number: turn.turn_number, literal_action: bounded(turn.literal_action, 2000), story_text: bounded(narrative.storyText, 4000) };
+  });
   const older = turns.slice(0, -8).map(turn => ({ turn_number: turn.turn_number, turn_summary: bounded(turn.turn_summary || turn.story_text, 600) })).slice(-24);
   const product = productPremise(content);
   const department = (content?.departments ?? []).find(item => item?.department_id === state.profile?.department_id);
@@ -85,6 +89,14 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const rules = state.csa_rules && typeof state.csa_rules === 'object' ? state.csa_rules : {};
   const exactRuleChangeBinding = ruleChangeBinding ?? (ruleChangeEvent ? buildRuleChangeStoryBinding({ event: ruleChangeEvent, content }) : null);
   const ruleChangeStory = Boolean(ruleChangeEvent || csaOperation);
+  const currentTurnLiteralAuthority = !opening && !ruleChangeStory && storyLiteralAction
+    ? {
+        literal_action: storyLiteralAction,
+        source: 'submitted_current_turn',
+        supersedes_prior_story_choices: true,
+        prior_story_choices_are_unexecuted_suggestions: true
+      }
+    : null;
   const currentTurnPlayerMovementAuthority = context?.current_turn_player_movement_authority ?? {
     authorized: false,
     player_voluntary_navigation_authorized: false,
@@ -124,6 +136,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     ...(ruleChangeStory ? {} : { product }),
     opening,
     literal_action: storyLiteralAction,
+    ...(currentTurnLiteralAuthority ? { current_turn_literal_authority: currentTurnLiteralAuthority } : {}),
     player_agency_contract: PLAYER_AGENCY_CONTRACT,
     player_movement_authority_contract: PLAYER_MOVEMENT_AUTHORITY_CONTRACT,
     current_turn_player_movement_authority: currentTurnPlayerMovementAuthority,

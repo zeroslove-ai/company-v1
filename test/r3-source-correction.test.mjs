@@ -20,6 +20,34 @@ function storyWithChoices(choices, { body = 'Current Story' } = {}) {
   return `${body}\n1. ${choices[0]}\n2. ${choices[1]}\n3. ${choices[2]}\n4. ${choices[3]}`;
 }
 
+test('R3 recent Story memory keeps committed narrative and literal but removes the committed choice menu', () => {
+  const choices = ['고개를 끄덕인다.', '창가로 간다.', '질문한다.', '잠시 기다린다.'];
+  const narrative = 'Opening establishes the office scene and the player remains free.';
+  const context = buildStoryContext({
+    state: { state: createInitialState({ name: 'Player' }, content.locations[0].location_id, ['heroine1']) },
+    turns: [{ turn_number: 0, literal_action: 'opening', story_text: storyWithChoices(choices, { body: narrative }), choices }]
+  }, '이메이의 행동을 직접 묘사한다.', { content });
+  assert.deepEqual(context.recent_turns, [{ turn_number: 0, literal_action: 'opening', story_text: narrative }]);
+  assert.equal(context.recent_turns[0].story_text.includes(choices[0]), false);
+  assert.deepEqual(context.current_turn_literal_authority, {
+    literal_action: '이메이의 행동을 직접 묘사한다.',
+    source: 'submitted_current_turn',
+    supersedes_prior_story_choices: true,
+    prior_story_choices_are_unexecuted_suggestions: true
+  });
+});
+
+test('R3 choice-tail memory stripping fails local when committed choice parity is absent', () => {
+  const choices = ['one', 'two', 'three', 'four'];
+  const story = storyWithChoices(choices, { body: 'Narrative that must remain intact.' });
+  const context = buildStoryContext({
+    state: { state: createInitialState({ name: 'Player' }, content.locations[0].location_id) },
+    turns: [{ turn_number: 1, literal_action: 'prior literal', story_text: story, choices: ['one', 'different', 'three', 'four'] }]
+  }, 'current literal', { content });
+  assert.equal(context.recent_turns[0].story_text, story);
+  assert.match(context.recent_turns[0].story_text, /1\. one[\s\S]*4\. four/);
+});
+
 test('R3 choice projection binds only the terminal Story tail and preserves exact Story literals', () => {
   const exact = ['inspect the desk', 'ask "hello"', 'write a note', 'leave the room'];
   const story = storyWithChoices(exact, { body: 'Earlier list\n1. stale one\n2. stale two\n3. stale three\n4. stale four\n\nCurrent Story' });
@@ -565,6 +593,39 @@ test('R3 real Story provider sends each active rule once and excludes inactive r
   assert.equal(JSON.stringify(requestContext).includes('INACTIVE RULE MUST NOT APPEAR'), false);
   assert.match(payloads[0].messages[0].content, /authoritative current-world institutional\/system fact already in force/i);
   assert.equal(story.includes('[SCENE] Story'), true);
+});
+
+test('R3 Story provider sends current literal authority separately from decontaminated prior choices', async () => {
+  const state = createInitialState({ name: 'R3 literal player' }, content.locations[0].location_id, ['heroine1']);
+  const priorChoices = ['고개를 끄덕인다.', '창가로 간다.', '질문한다.', '잠시 기다린다.'];
+  const priorBody = 'The opening scene remains the committed narrative.';
+  const currentLiteral = '이메이는 브랜드전략팀 사무실을 떠나 2층 공용 회의실로 이동한다.';
+  const payloads = [];
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    fetchImpl: async (_url, init) => {
+      payloads.push(JSON.parse(init.body));
+      return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: storyWithChoices(['one', 'two', 'three', 'four'], { body: 'continuation' }) } }] })}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+    }
+  });
+  for await (const _ of provider.story({
+    context: { state: { state }, turns: [{ turn_number: 0, literal_action: 'opening', story_text: storyWithChoices(priorChoices, { body: priorBody }), choices: priorChoices }] },
+    content,
+    literalAction: currentLiteral
+  })) {}
+  const systemPrompt = payloads[0].messages[0].content;
+  const requestContext = JSON.parse(payloads[0].messages[1].content);
+  assert.equal(requestContext.literal_action, currentLiteral);
+  assert.deepEqual(requestContext.current_turn_literal_authority, {
+    literal_action: currentLiteral,
+    source: 'submitted_current_turn',
+    supersedes_prior_story_choices: true,
+    prior_story_choices_are_unexecuted_suggestions: true
+  });
+  assert.deepEqual(requestContext.recent_turns, [{ turn_number: 0, literal_action: 'opening', story_text: priorBody }]);
+  assert.doesNotMatch(JSON.stringify(requestContext.recent_turns), /고개를 끄덕인다|창가로 간다/);
+  assert.match(systemPrompt, /current_turn_literal_authority is the highest-priority PLAYER action authority/i);
+  assert.match(systemPrompt, /prior Story choice.*not.*selected/i);
 });
 
 test('Worker content is a bundled canonical JSON path and production wiring selects async Supabase store', async () => {

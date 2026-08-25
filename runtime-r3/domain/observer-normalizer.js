@@ -60,12 +60,13 @@ function choiceLine(line, expectedNumber) {
   return plain?.[1] ?? null;
 }
 
-function storyChoiceTail(storyText) {
+function storyChoiceTailDetails(storyText) {
   const lines = String(storyText ?? '').replace(/\r\n?/g, '\n').split('\n');
-  while (lines.length && !lines.at(-1).trim()) lines.pop();
-  if (lines.length < 4) return null;
+  let end = lines.length;
+  while (end && !lines[end - 1].trim()) end -= 1;
+  if (end < 4) return null;
   const choices = [];
-  let index = lines.length - 1;
+  let index = end - 1;
   for (let number = 4; number >= 1; number -= 1) {
     while (index >= 0 && !lines[index].trim()) index -= 1;
     const choice = index >= 0 ? choiceLine(lines[index], number) : null;
@@ -73,10 +74,31 @@ function storyChoiceTail(storyText) {
     choices.unshift(choice);
     index -= 1;
   }
-  return choices.every(choice => choice) && new Set(choices).size === 4 ? choices : null;
+  return choices.every(choice => choice) && new Set(choices).size === 4
+    ? { choices, start: index + 1 }
+    : null;
+}
+
+function storyChoiceTail(storyText) {
+  return storyChoiceTailDetails(storyText)?.choices ?? null;
 }
 
 function choiceParityKey(value) { return value.replace(/\\"/g, '"'); }
+
+export function stripCommittedChoiceTail(storyText, committedChoices) {
+  const details = storyChoiceTailDetails(storyText);
+  const expected = Array.isArray(committedChoices) ? committedChoices.map(text) : [];
+  const matches = details?.choices?.length === 4
+    && expected.length === 4
+    && new Set(expected).size === 4
+    && details.choices.every((choice, index) => choiceParityKey(choice) === choiceParityKey(expected[index]));
+  if (!matches) return { storyText: String(storyText ?? ''), stripped: false, choices: null };
+  return {
+    storyText: String(storyText ?? '').replace(/\r\n?/g, '\n').split('\n').slice(0, details.start).join('\n').replace(/\s+$/, ''),
+    stripped: true,
+    choices: details.choices
+  };
+}
 
 function projectChoices(storyText, observerChoices) {
   const storyChoices = storyChoiceTail(storyText);
