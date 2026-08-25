@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-opening-stationary-start-anchor-p1-continuation-v1
 Mode: TARGETED CORE P1 — OPENING PRE-LITERAL STATIONARY START / EXACT IDENTITY PRESERVATION
 Updated: 2026-08-25 KST
@@ -316,3 +316,35 @@ On blocker/failure:
 `OPENING_STATIONARY_START_ANCHOR_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the next task. After any deployed browser campaign, operator performs `POST_LIVE_CANON_AUDIT_CONTRACT` before the next CURRENT_TASK.
+
+## Terminal report — 2026-08-25 KST
+
+Result: `OPENING_STATIONARY_START_ANCHOR_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+Implementation commit: `e980c721af68afc31a468128ba74fdbbcabb3c81`
+Expected branch: `main`
+TEST API deployment: `game-proxy-company-r3`, version `b2f5e962-564f-48f2-8ce7-3b55cd00336b`
+TEST API source: pushed `main` at `e980c721af68afc31a468128ba74fdbbcabb3c81`
+
+Implemented scope:
+- Added the bounded `opening_scene_anchor` to the existing Opening Story context only; ordinary turns project `null`.
+- Extended the existing combined Opening prompt boundary so canonical starting presence and completed arrival are pre-Story setup facts and the first Story beat begins after arrival through world/NPC initiative.
+- Added deterministic request-context/prompt contract assertions; no Story scanning, repair, parser, second LLM call, retry, DB, migration, frontend, provider/model/config, or S1 changes.
+
+Verification:
+- `node --check` for all changed JS/MJS: PASS.
+- `git diff --check`: PASS.
+- Focused Opening/source-correction tests: 32/32 PASS.
+- Broader R3 tests: 157/157 PASS.
+- Full `npm.cmd test` (the equivalent npm script; PowerShell `npm test` shim was policy-blocked): 583/583 PASS.
+- Contract-gated TEST dry-run: PASS; deploy: PASS.
+
+Fresh deployed browser campaign (exactly one, adult profile, READ ONLY):
+- Game: `c2223601-c42c-4de1-accb-d61579a496a3`
+- Profile: `민준`, age 32, `신사업TF`, exact `TF팀장`; no preserved game was reset or modified.
+- Opening chain observed as far as the UI exposes it: `literal='' -> Story -> committed Turn 0/rendered UI`; UI rendered Story-owned four choices and free input. Observer raw/applied payload and durable profile/time fields were not exposed as separate UI surfaces.
+- Exact decisive Story opening: `첫 출근 날, 1층 로비.` followed by `아침 9시의 회사 정문은 이미 활기를 띠고 있었다. 출입문을 지나 들어서면 넓은 대리석 바닥의 로비가 펼쳐지고...`
+- The phrase `출입문을 지나 들어서면` reenacts entering/crossing the threshold before the first literal. This violates the stationary-start P1 gate even though exact identity/rank, NPC initiative, passive app premise, four choices, and free input were present.
+- Per task law, stopped at the first P1; no ordinary action, refresh/re-entry, retry, second game, reset, or direct API substitute was performed.
+
+Operator review required. Do not create/register the next task from this terminal.
