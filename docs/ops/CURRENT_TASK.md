@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-story-player-movement-agency-p1-correction-v1
 Mode: TARGETED CORE P1 — STORY PLAYER MOVEMENT / NPC-ONLY MOVEMENT AGENCY AUTHORITY
 Updated: 2026-08-25 KST
@@ -322,3 +322,20 @@ On blocker/failure:
 
 Declared terminal = STOP.
 Do not self-register the Company Map task or any later lane. Operator must perform the independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing the next CURRENT_TASK.
+
+## 12. Execution record — 2026-08-25
+
+- `TASK_ID`: `company-r3-story-player-movement-agency-p1-correction-v1`
+- Branch: `main`
+- Start head: `a70827ce78199978eff438781d5257aa832bed09`
+- Implementation head: `e523b6fdca209fdecc107f14820a2c2e524dcc61`
+- Reviewed executable SHA preserved: `6c14509131564e66d9a57bd6cccc7e70585f6514`
+- Changed files: `runtime-r3/domain/navigation.js`, `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-owner-p0-contract.test.mjs`.
+- Narrow implementation: the existing navigation resolver now binds the exact current-turn PLAYER movement authority into Story context; NPC-only movement preserves the current canonical PLAYER location, while explicit PLAYER navigation carries the exact resolver destination. The Story prompt consumes this server-owned binding with precedence. No parser, generic engine, retry, provider/model/config, database, migration, or preserved-data changes were made.
+- Validation: syntax checks passed; focused suite `11/11`; broader contract suite `89/89`; one full `npm.cmd test` `592/592`; `git diff --check` passed. Exact-head CI run `32831533304` / test job `97751099890` passed.
+- TEST deployment: API-only contract-gated deployment passed. Worker `game-proxy-company-r3`, version `8c898893-344f-456a-89f3-e6a9f96b475a`, URL `https://game-proxy-company-r3.zeroslove.workers.dev`. No frontend source changed, so no frontend deployment was performed.
+- Fresh disposable TEST game: `ab72dbc0-3e58-441b-856f-2530cd93e8e7`, preserved READ ONLY. Opening committed as Turn 0. The exact NPC-only literal `이메이는 지금 브랜드전략팀 사무실을 떠나 2층 공용 회의실에서 진행되는 브리핑에 참석한다. 이메이가 사무실 밖으로 나가는 모습을 보여준다.` committed as Turn 1 without moving PLAYER. The explicit control `나는 2층 공용 회의실로 이동한다.` committed as Turn 2 with Story and summary placing PLAYER in the exact destination. One reload restored Turn 2, location, Story, and four choices without duplicate commit.
+- Browser evidence: History preserved the exact submitted literals plus Story/choices/summary and saved state. The R3 `company_r3_*` contract uses `literal_action`; `structured_action` and legacy `game_actions.player_action` are not fields in this namespace. Observer raw/applied and reducer internals were not exposed by the browser UI and were not guessed or substituted with direct gameplay API/DB writes.
+- Preserved prior game `6b5e7941-36a7-4019-94a8-777112824fc9` remained READ ONLY. Its prior NPC-only movement evidence remains preserved and was not reset or modified.
+- Whole-canon audit: current canon, CSA authority contract, live matrix, post-live audit contract, current task, and current-main owning boundaries were reread. The narrow lane passes. A new outside-lane P1 candidate was observed in Turn 1: although the exact literal was stored, Story injected a stale continuation from the opening choice and did not faithfully preserve the current submitted literal/actor action. The source review did not establish a deterministic resolver defect for this single live sample; no provider/model/retry workaround was introduced. The requested NPC departure also was not completed, but this sample alone does not promote an NPC outcome defect. MM raw/applied drop rate was not measurable from the UI; Turn 1 showed MM and Turn 2 did not. CSA, refusal/change-of-mind, private-app provenance, TTS/image, long-memory, and other lanes were not exercised.
+- Required independent conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE`. No next task, branch, PR, merge, Production action, preserved-game mutation, DB write, or migration was started.
