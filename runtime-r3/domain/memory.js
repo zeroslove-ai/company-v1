@@ -14,6 +14,7 @@ const PLAYER_AGENCY_CONTRACT = Object.freeze({
     'actor', 'target', 'action', 'movement/destination', 'request', 'refusal', 'self-state', 'topic', 'intent'
   ]),
   choice_boundary: 'Preserve explicit player choices; Story may narrate consequences around or after the chosen beat, but must not replace, invert, redirect, or contradict them.',
+  npc_movement_boundary: 'NPC-only movement, NPC-to-NPC action, remote target location, stale scene context, or narrative convenience never authorizes PLAYER follow, entry, accompaniment, teleport, or other movement; preserve the canonical player scene unless the literal explicitly binds player movement or an independently grounded external consequence does so.',
   self_state_boundary: 'An explicit player self-state remains true for the chosen scene beat; do not inject same-beat NPC approach or dialogue that makes that self-state impossible unless the literal permits that interaction.',
   external_outcome_boundary: 'For ordinary requests without an applicable rule-owned same-turn authority exception, player input is not automatic proof of external outcome or NPC compliance.',
   app_topic_boundary: 'Mentioning the private app, a rule, or a topic is not a player app interaction.',

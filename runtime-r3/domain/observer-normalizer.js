@@ -120,11 +120,13 @@ export function normalizeObserver(input, { storyText = '', literalAction = '', c
   else if (location) warnings.push('location_projection_dropped');
   const directory = actorDirectory(content);
   const eligibleMonitorActors = new Set([...currentState?.scene?.present_actor_ids ?? []].filter(actorId => actors.has(actorId)));
+  const groundedTransitions = { entered: new Set(), exited: new Set() };
   for (const key of ['entered', 'exited']) {
     const source = Array.isArray(observer[key]) ? observer[key] : [];
     normalized[key] = source.flatMap(item => {
       const grounded = groundedActorEvidence(item, storyText, directory);
       if (!grounded) { warnings.push(`${key}_projection_dropped`); return []; }
+      groundedTransitions[key].add(grounded.actor_id);
       if (key === 'entered') eligibleMonitorActors.add(grounded.actor_id);
       else eligibleMonitorActors.delete(grounded.actor_id);
       return [grounded];
@@ -133,7 +135,14 @@ export function normalizeObserver(input, { storyText = '', literalAction = '', c
   if (Array.isArray(observer.present_actor_ids)) {
     const valid = observer.present_actor_ids.filter(id => actors.has(id));
     if (valid.length === observer.present_actor_ids.length) {
-      normalized.present_actor_ids = [...new Set(valid)];
+      const reconciled = new Set(valid);
+      for (const actorId of groundedTransitions.exited) {
+        if (reconciled.delete(actorId)) warnings.push('present_actor_reconciled_exited');
+      }
+      for (const actorId of groundedTransitions.entered) {
+        if (reconciled.add(actorId)) warnings.push('present_actor_reconciled_entered');
+      }
+      normalized.present_actor_ids = [...reconciled];
       for (const actorId of normalized.present_actor_ids) eligibleMonitorActors.add(actorId);
       for (const actorId of actors) if (!normalized.present_actor_ids.includes(actorId)) eligibleMonitorActors.delete(actorId);
     }

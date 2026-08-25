@@ -70,6 +70,8 @@ test('exact canonical location navigation projects the destination before Story 
 
 test('NPC-only movement does not bind player navigation, while explicit player clauses still win', () => {
   const state = createInitialState({ name: 'Player' }, 'brand_strategy_office', ['heroine1', 'heroine2']);
+  const context = buildStoryContext({ state: { state }, turns: [] }, 'NPC-only movement probe', { content });
+  assert.match(context.player_agency_contract.npc_movement_boundary, /NPC-only movement.*never authorizes PLAYER follow, entry, accompaniment, teleport/i);
   assert.equal(resolvePlayerNavigationIntent({ content, state, literalAction: '서원희 차장과 박정우 팀장이 회의실로 이동한 뒤에도 나는 윤민아 대리에게 업무를 묻는다.' }), null);
   assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: '나는 회의실로 이동한다.' }), { kind: 'player_navigation', destination_location_id: 'meeting_room', source: 'explicit_player_binding' });
   assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: '서원희 차장은 회의실로 이동한 뒤 나는 직원 라운지로 이동한다.' }), { kind: 'player_navigation', destination_location_id: 'employee_lounge', source: 'explicit_player_binding' });

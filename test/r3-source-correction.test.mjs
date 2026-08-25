@@ -171,6 +171,23 @@ test('R3 actor evidence requires an exact Story quote containing the canonical a
   assert.ok(normalized.warnings.includes('entered_projection_dropped'));
 });
 
+test('R3 normalizer reconciles grounded exits and entries against contradictory present actors', () => {
+  const [currentActor, exitingActor, enteringActor] = Object.values(content.characters);
+  const state = createInitialState({ name: 'Player' }, currentActor.default_location_id, [currentActor.character_id, exitingActor.character_id]);
+  const story = `${exitingActor.name} leaves the office. ${enteringActor.name} enters the office.`;
+  const normalized = normalizeObserver({
+    exited: [{ actor_id: exitingActor.character_id, quote: `${exitingActor.name} leaves the office.` }],
+    entered: [{ actor_id: enteringActor.character_id, quote: `${enteringActor.name} enters the office.` }],
+    present_actor_ids: [currentActor.character_id, exitingActor.character_id]
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.present_actor_ids, [currentActor.character_id, enteringActor.character_id]);
+  assert.ok(normalized.warnings.includes('present_actor_reconciled_exited'));
+  assert.ok(normalized.warnings.includes('present_actor_reconciled_entered'));
+  const reduced = reduceObservation({ state, observation: normalized, turnNumber: 1 });
+  assert.deepEqual(reduced.state.scene.present_actor_ids, [currentActor.character_id, enteringActor.character_id]);
+  assert.equal(reduced.state.scene.location_id, currentActor.default_location_id);
+});
+
 test('R3 Story context carries canonical product, location, heroine cards, and general-NPC facts', () => {
   const heroine = Object.values(content.characters)[0];
   const locationId = heroine.default_location_id;
@@ -225,6 +242,8 @@ test('R3 ordinary Story context carries one fixed generic player agency contract
   assert.match(first.player_agency_contract.choice_boundary, /consequences.*replace, invert, redirect, or contradict/i);
   assert.match(first.player_agency_contract.self_state_boundary, /same-beat NPC approach or dialogue.*impossible.*literal permits/i);
   assert.match(first.player_agency_contract.external_outcome_boundary, /not automatic proof of external outcome or NPC compliance/i);
+  assert.match(first.player_agency_contract.npc_movement_boundary, /NPC-only movement.*never authorizes PLAYER follow, entry, accompaniment, teleport/i);
+  assert.match(first.player_agency_contract.npc_movement_boundary, /preserve the canonical player scene/i);
 });
 
 test('R3 active S1 adds a finite same-turn authority exception without weakening ordinary agency', () => {

@@ -195,6 +195,10 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /location\.location_id MUST come from canonical_location_directory/i);
   assert.match(observerSystem, /exact canonical actor IDs.*never actor names/i);
   assert.match(observerSystem, /exact contiguous quote must contain that actor's exact canonical name/i);
+  assert.match(observerSystem, /Scene fields are one post-Story snapshot/i);
+  assert.match(observerSystem, /present_actor_ids is the exact set of registered actors physically co-located in that player scene/i);
+  assert.match(observerSystem, /Grounded entered\/exited evidence must agree with present_actor_ids/i);
+  assert.match(observerSystem, /NPC-only movement never moves the player/i);
   assert.match(observerSystem, /If the current Story explicitly says.*enters, arrives at, moves to, or is now in/i);
   assert.match(observerSystem, /this evidence overrides merely copying the previous location from current_context/i);
   assert.match(observerSystem, /player literal action alone is intent\/input, not successful movement evidence/i);
