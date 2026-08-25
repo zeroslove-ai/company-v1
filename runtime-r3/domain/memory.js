@@ -85,6 +85,16 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const rules = state.csa_rules && typeof state.csa_rules === 'object' ? state.csa_rules : {};
   const exactRuleChangeBinding = ruleChangeBinding ?? (ruleChangeEvent ? buildRuleChangeStoryBinding({ event: ruleChangeEvent, content }) : null);
   const ruleChangeStory = Boolean(ruleChangeEvent || csaOperation);
+  const currentTurnPlayerMovementAuthority = context?.current_turn_player_movement_authority ?? {
+    authorized: false,
+    player_voluntary_navigation_authorized: false,
+    current_location_id: state.scene?.location_id ?? null,
+    destination_location_id: null,
+    preserve_location_id: state.scene?.location_id ?? null,
+    source: 'no_explicit_player_navigation',
+    npc_or_remote_movement_cannot_authorize_player_bridge: true,
+    external_consequence_only_displacement: true
+  };
   const clock24h = canonicalClock24h(state.time);
   const storyTime = ruleChangeStory
     ? { ...(state.time ?? {}), ...(clock24h ? { clock_24h: clock24h } : {}) }
@@ -116,6 +126,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     literal_action: storyLiteralAction,
     player_agency_contract: PLAYER_AGENCY_CONTRACT,
     player_movement_authority_contract: PLAYER_MOVEMENT_AUTHORITY_CONTRACT,
+    current_turn_player_movement_authority: currentTurnPlayerMovementAuthority,
     canonical_player_identity: canonicalPlayerIdentity,
     player_identity_contract: PLAYER_IDENTITY_CONTRACT,
     canonical_actor_identity_contract: CANONICAL_ACTOR_IDENTITY_CONTRACT,

@@ -7,6 +7,7 @@ import { buildStoryContext } from '../runtime-r3/domain/memory.js';
 import { applyNavigationPostcondition, projectNavigationContext, resolvePlayerNavigationIntent } from '../runtime-r3/domain/navigation.js';
 import { normalizeObserver } from '../runtime-r3/domain/observer-normalizer.js';
 import { reduceObservation } from '../runtime-r3/domain/reducer.js';
+import { createR3Provider } from '../runtime-r3/server/provider.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 
@@ -98,6 +99,53 @@ test('exact canonical location navigation projects the destination before Story 
   const after = applyNavigationPostcondition(source, staleObservation, intent, content);
   assert.equal(after.scene.location_id, 'employee_lounge');
   assert.deepEqual(after.scene.present_actor_ids, []);
+});
+
+test('current-turn player movement authority binds resolver output for NPC-only and explicit navigation', () => {
+  const state = createInitialState({ name: 'Player' }, 'brand_strategy_office', ['heroine1', 'heroine2']);
+  const npcOnlyLiteral = '\uC11C\uC6D0\uD76C\uAC00 \uBC15\uC815\uC6B0\uAC00 2\uCE35 \uACF5\uC6A9 \uD68C\uC758\uC2E4\uB85C \uC774\uB3D9\uD55C\uB2E4.';
+  const npcIntent = resolvePlayerNavigationIntent({ content, state, literalAction: npcOnlyLiteral });
+  assert.equal(npcIntent, null);
+  const npcStoryContext = buildStoryContext(projectNavigationContext({ state: { state }, turns: [] }, npcIntent, content), npcOnlyLiteral, { content });
+  assert.equal(npcStoryContext.current_turn_player_movement_authority.authorized, false);
+  assert.equal(npcStoryContext.current_turn_player_movement_authority.player_voluntary_navigation_authorized, false);
+  assert.equal(npcStoryContext.current_turn_player_movement_authority.preserve_location_id, 'brand_strategy_office');
+  assert.equal(npcStoryContext.current_turn_player_movement_authority.destination_location_id, null);
+  assert.equal(npcStoryContext.current_turn_player_movement_authority.npc_or_remote_movement_cannot_authorize_player_bridge, true);
+
+  const explicitLiteral = '\uB098\uB294 2\uCE35 \uACF5\uC6A9 \uD68C\uC758\uC2E4\uB85C \uC774\uB3D9\uD55C\uB2E4.';
+  const explicitIntent = resolvePlayerNavigationIntent({ content, state, literalAction: explicitLiteral });
+  assert.deepEqual(explicitIntent, { kind: 'player_navigation', destination_location_id: 'meeting_room', source: 'explicit_player_binding' });
+  const explicitStoryContext = buildStoryContext(projectNavigationContext({ state: { state }, turns: [] }, explicitIntent, content), explicitLiteral, { content });
+  assert.equal(explicitStoryContext.current_turn_player_movement_authority.authorized, true);
+  assert.equal(explicitStoryContext.current_turn_player_movement_authority.player_voluntary_navigation_authorized, true);
+  assert.equal(explicitStoryContext.current_turn_player_movement_authority.destination_location_id, 'meeting_room');
+});
+
+test('R3 Story provider gives current-turn movement binding precedence over narrative convenience', async () => {
+  const state = createInitialState({ name: 'Player' }, 'brand_strategy_office', ['heroine1']);
+  const literal = '\uC11C\uC6D0\uD76C\uAC00 \uBC15\uC815\uC6B0\uAC00 2\uCE35 \uACF5\uC6A9 \uD68C\uC758\uC2E4\uB85C \uC774\uB3D9\uD55C\uB2E4.';
+  const requests = [];
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    fetchImpl: async (_url, init) => {
+      requests.push(JSON.parse(init.body));
+      return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: 'grounded Story' } }] })}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+    }
+  });
+  const intent = resolvePlayerNavigationIntent({ content, state, literalAction: literal });
+  for await (const _ of provider.story({
+    context: projectNavigationContext({ state: { state }, turns: [] }, intent, content),
+    content,
+    literalAction: literal
+  })) {}
+  assert.equal(requests.length, 1);
+  const payload = JSON.parse(requests[0].messages[1].content);
+  assert.equal(payload.current_turn_player_movement_authority.authorized, false);
+  assert.equal(payload.current_turn_player_movement_authority.preserve_location_id, 'brand_strategy_office');
+  assert.match(requests[0].messages[0].content, /current_turn_player_movement_authority/);
+  assert.match(requests[0].messages[0].content, /preserve_location_id/);
+  assert.match(requests[0].messages[0].content, /cannot be overridden/);
 });
 
 test('NPC-only movement does not bind player navigation, while explicit player clauses still win', () => {
@@ -197,8 +245,10 @@ test('R3 player location authority rejects NPC-only compound movement at the wor
   const normalizedPlayer = normalizeObserver({ location: { location_id: 'brand_strategy_office', quote: explicitPlayerStory } }, { storyText: explicitPlayerStory, content, currentState: state });
   assert.equal(normalizedPlayer.location.location_id, 'employee_lounge');
 
+  const storyContexts = [];
   const provider = {
-    async *story({ opening = false }) {
+    async *story({ opening = false, context }) {
+      if (!opening) storyContexts.push(structuredClone(context));
       yield (opening ? '\uCCAB \uCD9C\uADFC \uC624\uD508\uB2DD\uC774 \uC5F4\uB9B0\uB2E4.' : npcOnlyStory) + '\n1. ' + choices[0] + '\n2. ' + choices[1] + '\n3. ' + choices[2] + '\n4. ' + choices[3];
     },
     async observe({ literalAction = '' }) {
@@ -225,6 +275,8 @@ test('R3 player location authority rejects NPC-only compound movement at the wor
   assert.deepEqual(terminal.context.state.state.scene.present_actor_ids, []);
   assert.equal(terminal.context.turns.at(-1).observer_applied.location, undefined);
   assert.equal(terminal.context.turns.at(-1).literal_action, npcOnlyLiteral);
+  assert.equal(storyContexts[0].current_turn_player_movement_authority.authorized, false);
+  assert.equal(storyContexts[0].current_turn_player_movement_authority.preserve_location_id, 'brand_strategy_office');
 });
 
 test('ambiguous or non-movement location mentions fail open without fabricated navigation', () => {

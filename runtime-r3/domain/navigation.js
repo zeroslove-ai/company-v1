@@ -97,11 +97,23 @@ export function resolvePlayerNavigationIntent({ content, state = {}, literalActi
 }
 
 export function projectNavigationContext(context, navigationIntent, content) {
-  if (navigationIntent?.kind !== 'player_navigation') return context;
   const next = structuredClone(context);
   const state = next?.state?.state;
   if (!state || typeof state !== 'object') return context;
   const scene = state.scene && typeof state.scene === 'object' ? state.scene : {};
+  const currentLocationId = identity(scene.location_id);
+  const authorized = navigationIntent?.kind === 'player_navigation';
+  next.current_turn_player_movement_authority = {
+    authorized,
+    player_voluntary_navigation_authorized: authorized,
+    current_location_id: currentLocationId,
+    destination_location_id: authorized ? navigationIntent.destination_location_id : null,
+    preserve_location_id: authorized ? null : currentLocationId,
+    source: authorized ? navigationIntent.source : 'no_explicit_player_navigation',
+    npc_or_remote_movement_cannot_authorize_player_bridge: true,
+    external_consequence_only_displacement: true
+  };
+  if (!authorized) return next;
   state.scene = {
     ...scene,
     location_id: navigationIntent.destination_location_id,
