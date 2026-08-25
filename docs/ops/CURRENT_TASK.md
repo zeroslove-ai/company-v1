@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-rule-change-private-app-context-isolation-p1-continuation-v1
 Mode: TARGETED CORE P1 CONTINUATION — RULE-CHANGE STORY CONTEXT ISOLATION FROM PRIVATE APP PRESENTATION
-Updated: 2026-08-25 11:15 KST
+Updated: 2026-08-25 11:58 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `138f88f6987415cc8e09114c0d878b1a109444a4`
@@ -319,3 +319,19 @@ Blocked:
 `RULE_CHANGE_PRIVATE_APP_CONTEXT_ISOLATION_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task. Operator must run the mandatory post-live whole-canon audit before choosing the next lane.
+
+## 11. Terminal evidence — BLOCKED
+
+Terminal: `RULE_CHANGE_PRIVATE_APP_CONTEXT_ISOLATION_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Start / implementation / final main SHA: start `3d38f74dd6c18fd5be31489a7817f25c0f5ef9f1`; implementation `2c6d0be380a891978a163e44400748b6d6362fff`; final source SHA before this lifecycle edit `2c6d0be380a891978a163e44400748b6d6362fff`.
+- Changed files: `runtime-r3/domain/memory.js`, `test/r3-source-correction.test.mjs`; lifecycle-only change: this file. The owning boundary is field-level rule-change Story context construction: structured scene/location/actors/player/clothing/active-rule/operation/binding remain, while `product`, prior `recent_turns`, `older_summaries`, prior `scene_note`, and rule-change feedback text are structurally omitted for this request only. Opening and ordinary Story context retain their normal private-app/recent continuity.
+- Tests: changed JS/MJS syntax passed; `git diff --check` passed; focused suite 76 passed, 0 failed; full `npm.cmd test` ran exactly once with deterministic `NPM_TEST_EXIT=0`.
+- No keyword/string Story redaction, second Story, verifier, retry, parser/classifier/action executor, provider/model/config/secret change, DB/schema/migration, or frontend change was added.
+- TEST deployment: `game-proxy-company-r3`, Worker version `9ed28a71-5bda-47aa-89f0-8814ee9447d9`; one authorized API deployment, frontend deployment 0, Production 0.
+- One fresh disposable browser game: `4457dcab-72f8-4d79-b24d-788c73db8252`. Preserved games, including `51141ee0-60f8-428b-9066-a5a69eb20c4e`, were not opened or changed.
+- Opening: committed Turn 0. Passive unfamiliar `상식개변` app discovery remained present as allowed; Opening completed with choices/free input. Opening MM was visible in the UI; raw/applied DB payload was not collected because the campaign later stopped at the first P1.
+- S1 APPLY: committed Turn 1 using visible `강함 · 성적 업무지시권`, subject `서원희`, counterparty `박정우`, female/male scopes. The Story showed exactly one server-owned `[공식 공지]` with the exact recipient/counterparty labels and grounded institutional reactions. No private-app screen, notification, self-opening, flash, disappearance, supernatural activation, NPC app awareness, or second pseudo-notice appeared in the visible Story. Observer/durable readback was not collected before the later stop.
+- Supported probe A: committed Turn 2 literal `나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.` Story preserved actor/target direction and executed the kiss in the same Story turn.
+- First new P1 / stop point: committed Turn 3 literal `나는 서원희 차장에게 박정우 팀장의 성기를 직접 검사하라고 공식적으로 지시한다.` Story preserved the addressed pair but deferred execution into a confirmation/choice branch asking to reconfirm scope and location. This violates the preserved supported S1 same-turn invariant. No further turn, unsupported probe, stop/change-of-mind, refresh/re-entry, DB readback, retry, or second game followed.
+- Findings: P0 0 observed; P1 1 — supported S1 genital inspection did not begin in the same Story turn; the target private-app context leak was not reproduced at S1 APPLY. P2/P3 not broadened. Forbidden counts: Production 0; preserved-game mutation/reset 0; DB writes/migrations 0; provider/model/config/secret workaround 0; retry/sample loops 0; second Story/Observer/parser/classifier/action executor 0; new branch/PR/task file 0; frontend source/deploy 0; OWNER_READY 0.
