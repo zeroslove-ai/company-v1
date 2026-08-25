@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-registered-npc-formal-identity-p1-correction-v1
 Mode: TARGETED CORE P1 — REGISTERED NPC FORMAL ROLE / RANK IDENTITY
-Updated: 2026-08-25 KST
+Updated: 2026-08-25 KST — execution terminalized; awaiting independent operator review
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `9ff29a3c0182ca6ac714302af08dbe0e1cd026d4`
@@ -24,6 +24,17 @@ Success terminal:
 
 Blocked terminal:
 `REGISTERED_NPC_FORMAL_IDENTITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+## Execution record — 2026-08-25
+
+- Execution identity: `company-r3-registered-npc-formal-identity-p1-correction-v1` / READY blob `7436d239eb453a41913c39cf63105695ce9018c5` / `main`.
+- Source commit: `298bfd0af86caca679039fadf431089c8e372531` (pushed to `origin/main`).
+- Changed files: `runtime-r3/domain/content.js`, `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-player-identity-contract.test.mjs`.
+- Verification: focused identity `6/6`; Story/source/Opening `57/57`; broader R3 regression `119/119`; full `npm.cmd test` `584/584`; `node --check` and `git diff --check` passed.
+- TEST deploy: API `game-proxy-company-r3`, version `299df93b-024b-43ab-a4af-a0b3e14244ad`; frontend `gamebuilder-company-r3`, version `4e5c1396-dff9-41f8-be1e-842600d1e4a6`.
+- Fresh disposable live game (READ ONLY): `f4a8ae85-5b34-44f9-9348-97754633d3fe`.
+- Live A–F: Opening exact identity/choices/free input; B official S1 `서원희 → 박정우`; C explicit player move to 신사업TF; D neutral two-actor conversation; E NPC-only movement with player stationary; F refresh/re-entry at committed Turn 4 with one active S1 rule. No new P0/P1 observed.
+- Terminal: `REGISTERED_NPC_FORMAL_IDENTITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`.
 
 ## 0. Authority / reuse law
 
