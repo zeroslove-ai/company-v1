@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-conflict-copy-core-p1-continuation-v1
 Mode: TARGETED P1 CONTINUATION — STRUCTURED CSA CONFLICT ERROR ENVELOPE / PLAYER-FACING COPY / DEFERRED CORE ACCEPTANCE
-Updated: 2026-08-25 08:27 KST
+Updated: 2026-08-25 09:02 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main before this overwrite: `362c3762f183c03fb832c1502951749ed48c40cf`
@@ -279,3 +279,49 @@ Blocked:
 `CSA_CONFLICT_COPY_CORE_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, post exactly one terminal report to Issue #68, then STOP. Do not self-register another task. The operator must run the mandatory post-live whole-canon audit before choosing the following lane.
+
+## Terminal evidence — 2026-08-25
+
+Result: `CSA_CONFLICT_COPY_CORE_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+- Lease comment: Issue #68 `5402917758`.
+- Start HEAD: `02f5814113ffae90b826b9a63909adb5dd756684`.
+- Implementation/final main SHA: `795450189c24093446f236a2f0c7e2225b76b70d`; `origin/main` matched after push.
+- Current task blob after lifecycle update: recorded after the terminal commit.
+- Changed implementation files: `runtime-r3/server/worker.js`, `frontend-r3/status.js`, `frontend-r3/app.js`, `frontend-r3/csa.js`, `test/r3-csa-contract.test.mjs`.
+- First broken boundary before the fix: real `createR3Worker.fetch()` rejected its Promise with `r3_csa_compatibility_conflict:...` instead of returning an HTTP 400 envelope, so the frontend catch path treated the deterministic conflict as generic transport failure. The fix awaits `turnResponse()` at the worker boundary; the frontend classifies and preserves the exact catalog-owned conflict copy without transport reconciliation.
+- Focused tests: `node --test test/r3-csa-contract.test.mjs test/r3-frontend-contract.test.mjs test/r3-turn-transport.test.mjs` — 48 passed.
+- Full regression: `npm.cmd test` — 578 passed, 0 failed.
+- Syntax: changed JS/MJS files passed `node --check`; `git diff --check` passed.
+- CI: no workflow runs were returned for commit `7954501` by the read-only GitHub Actions lookup.
+- TEST API deploy: `game-proxy-company-r3`, Version ID `66973faf-9c59-4afa-92a2-209c6f39963c`, one direct Wrangler deploy from `7954501`.
+- TEST frontend deploy: `gamebuilder-company-r3`, Version ID `773b2ca0-7116-450e-a318-44e14bdd8649`, one direct Wrangler deploy from `7954501`.
+- The repository DB contract wrapper was attempted with the available Supabase connection material but could not run because `psql` is unavailable (`spawn psql ENOENT`); Wrangler API dry-run passed, and the explicitly authorized TEST deploy proceeded without changing DB, migration, provider, model, or secret configuration.
+- Fresh disposable browser game: `fdc0d96a-8d6f-49dc-b8cf-6550612a0324`. Preserved games, including `4261b592-e6b9-44cb-a5a7-05057a22ee83`, were not opened, reset, or modified.
+
+### Fresh browser chain
+
+Scenario numbers are separate from committed turns. The opening was Turn 0; the final deliberate refresh re-entered at Turn 12 with exactly one visible `Turn 12` marker.
+
+1. Scenario 1, Turn 1: literal `나는 자리에 그대로 서 있고, 서원희 차장은 회의실로 이동한다.`. Story showed only 서원희 이동 to the meeting room while the player remained standing; commit/UI showed Turn 1 and four new choices.
+2. Scenario 2, Turn 2: literal `나는 서원희 차장이 있는 회의실로 걸어가 차장님께 인사한다.`. Story and UI showed explicit player movement and the meeting-room interaction; Mind Monitor appeared for 서원희; commit/UI showed Turn 2.
+3. Scenario 3, Turn 3: structured CSA `activate cleavage_exposed_work / W3 / female_employee`. Story began with the official company-channel announcement and named the female scope; commit/UI showed Turn 3 and the rule in the CSA app.
+4. Scenario 4, Turn 4: structured CSA `activate sexual_work_training_designation / S7 / trainer heroine1 서원희 / trainee heroine2 윤민아 / female_employee`. Official Story announcement named both trainer and trainee; commit/UI showed Turn 4.
+5. Scenario 5, Turn 5: literal `나는 서원희 차장에게 윤민아에게 업무 교육을 시작해 달라고 요청한다.` under S7. Story preserved the trainer as actor and 윤민아 as trainee/topic, rather than redirecting the request into rule explanation; commit/UI showed Turn 5.
+6. Scenario 6, Turn 6: structured CSA `activate player_request_executes_immediately / S1 / actor heroine1 서원희 / counterparty general_park_jungwoo 박정우 / female→male scope`. Official Story announcement named the configured pair; commit/UI showed Turn 6.
+7. Scenario 7, Turn 7: supported S1 literal `나는 서원희 차장에게 박정우 팀장의 성기를 직접 검사하라고 공식적으로 지시한다.`. Story preserved the actor/target and finite supported work-instruction context; commit/UI showed Turn 7.
+8. Scenario 8, Turn 8: unsupported S1 literal `나는 서원희 차장에게 박정우 팀장에게 사랑을 고백하라고 지시한다.`. Story preserved the request, explained that love confession is outside the supported S1 families, and did not erase it or make it institutionally mandatory; commit/UI showed Turn 8.
+9. Conflict attempt at committed Turn 10 (scenario 9; no new turn): through the visible CSA app, staged a new `activate work_in_underwear_only / M1 / female_employee` while W3 was active and applied it. The UI showed exactly `선택한 규칙은 현재 적용 중인 규칙과 함께 사용할 수 없습니다. 가슴골 노출 근무와 속옷 근무는 같은 여성 직원 범위에서 동시에 적용할 수 없습니다.` Story did not run, committed turn remained 10, and the re-opened CSA app showed exactly three active rules W3, S7, S1; M1 was only a catalog card, not active. No retry/reconcile/resend was observed.
+10. Scenario 10, Turn 11: after clearing the rejected draft, structured CSA `activate no_bra_under_work_clothes / W1 / female_employee` succeeded as a compatible second rule. Official Story named W1; UI showed the added rule.
+11. Scenario 11, Turn 12: structured CSA `deactivate` of W1 succeeded once. Official Story announced expiry; UI showed W1 inactive while W3, S7, S1 remained active.
+12. Refresh/re-entry: browser reload reconstructed the same game at Turn 12 with one Story and usable four-choice/free-input/CSA controls; no duplicate Story/Commit and no resurrected conflict turn appeared.
+
+### Findings and forbidden-operation counts
+
+- P0: 0 observed.
+- P1: 0 observed on the corrected `activate` conflict path; the targeted transport/copy P1 is closed by the implementation and live evidence.
+- P2: observed known removed-rule residue in the W1 removal Story (the announcement correctly said expiry, while narrative discussion still referenced the former W1 context); also observed `csa-app-field...` developer tokens in the browser accessibility/text surface. Neither became active enforcement or a new P1; both remain for the next P2 integrity lane.
+- P3: no new finding recorded.
+- Forbidden counts: new branch/PR/CURRENT_TASK file 0; Production deploy/access 0; preserved-game reset/mutation 0; DB/migration write 0; provider/model/config/secret change 0; retry-until-pass/semantic retry 0; extra Story/observer/reaction call 0; new parser/DSL/engine 0; OWNER_READY claim 0.
+
+Operator action required: perform the mandatory post-live whole-canon audit before selecting the following lane. Do not generate or self-register a new task from this file.
