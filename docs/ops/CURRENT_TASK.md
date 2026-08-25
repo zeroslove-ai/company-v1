@@ -1,29 +1,31 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-opening-exact-formal-rank-p1-correction-v1
-Mode: TARGETED CORE P1 — OPENING EXACT PLAYER IDENTITY / FORMAL RANK
+Status: READY
+Task ID: company-r3-opening-identity-agency-coexistence-p1-continuation-v1
+Mode: TARGETED CORE P1 — OPENING EXACT IDENTITY + PRE-LITERAL PLAYER AGENCY COEXISTENCE
 Updated: 2026-08-25 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `00ab1ad01a2f6b2cfec09e703adcc0778c7c6512`
-Previous task: `company-r3-opening-no-invented-player-action-p1-correction-v1`
-Previous terminal: Issue #68 `5405479240`
-Operator / whole-canon review: Issue #68 `5405540092`
+Registration base main: `7cc6033d938023185b14565d38637d55fc199c79`
+Previous task: `company-r3-opening-exact-formal-rank-p1-correction-v1`
+Previous terminal: Issue #68 `5405683085`
+Operator / whole-canon review: Issue #68 `5405764133`
 Whole-canon conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE`
-Preserve accepted Opening agency implementation: `b719831396436913e4a0ea414064c17040cee1c5`
-Preserve accepted player-movement implementation: `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`
-Preserve Observer re-entry implementation: `ae27e7805065118657869ba90a7cf52bc3890982`
-Fresh decisive evidence game: `e5292172-a34e-4be5-972d-a8c48e77d81a` — READ ONLY
+Preserve accepted exact-rank implementation: `49d12d5e2b4c939d0923c70b31823d39b6b1d13e`
+Preserve accepted Opening no-invented-player-action implementation: `b719831396436913e4a0ea414064c17040cee1c5`
+Preserve accepted ordinary player-movement implementation: `bd643fa026f2c1a0bcf8e3db6abf18b0294ee004`
+Preserve Observer scene re-entry implementation: `ae27e7805065118657869ba90a7cf52bc3890982`
+Fresh decisive evidence game: `6eb13fb7-cf0e-4192-b503-5996cd5523e4` — READ ONLY
+Prior accepted Opening-agency evidence game: `e5292172-a34e-4be5-972d-a8c48e77d81a` — READ ONLY
 Preserved remote-S1 evidence game: `f235369d-ae36-46fe-abfa-3e4a1d0e65c1` — READ ONLY
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 Operator-approved TEST catalog artifact: Issue #68 `5404426864`
 
 Success terminal:
-`OPENING_EXACT_FORMAL_RANK_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`OPENING_IDENTITY_AGENCY_COEXISTENCE_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`OPENING_EXACT_FORMAL_RANK_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`OPENING_IDENTITY_AGENCY_COEXISTENCE_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
@@ -36,8 +38,8 @@ Mandatory read order before implementation:
 4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
 5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
 6. `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`
-7. terminal `5405479240`
-8. operator whole-canon review `5405540092`
+7. terminal `5405683085`
+8. operator whole-canon review `5405764133`
 9. this CURRENT_TASK.
 
 Preserve A′/R3 exactly: server-owned turn kernel -> one Story LLM -> one post-Story Observer -> atomic Commit + optional sidecars.
@@ -47,73 +49,74 @@ Do NOT access Production.
 Do NOT mutate/reset/retry any preserved evidence game.
 
 At minimum preserve READ ONLY:
+- `6eb13fb7-cf0e-4192-b503-5996cd5523e4`
 - `e5292172-a34e-4be5-972d-a8c48e77d81a`
 - `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`
 - all other games already marked preserved in Issue #68.
 
-## 1. Why this task exists — fresh reproducible P1
+## 1. Why this task exists — exact rank fixed, Opening agency regressed
 
-Fresh game `e5292172-a34e-4be5-972d-a8c48e77d81a` has durable selected profile:
-- department_id: `brand_strategy`
-- position_id: `tf_lead`
-- canonical repository position label: `TF팀장`
+Fresh game `6eb13fb7-cf0e-4192-b503-5996cd5523e4` proves the exact-rank correction works:
+- selected department: `brand_strategy`;
+- selected position: `tf_lead`;
+- canonical formal label: `TF팀장`;
+- Story visibly establishes `브랜드전략팀 TF팀장` and does not normalize it to generic `팀장` / `신입 팀장`.
 
-Opening Story nevertheless repeatedly describes PLAYER as `신입 팀장` and never establishes the exact selected canonical `TF팀장` rank.
+But the same Opening has `literal_action=''` and Story still authors voluntary PLAYER actions before any submitted literal:
+- `한 번 심호흡을 했다`;
+- `주머니를 만지는 순간`.
 
-This is lower-layer failure under already-binding identity law, not a product-law change.
+This is a new live regression of the already accepted `b719831...` Opening agency boundary and violates binding `P-OPENING-001` / `P-AGENCY-001`.
 
-Current source already says:
-- `canonical_player_identity.position.name` is authoritative;
-- `PLAYER_IDENTITY_CONTRACT.formal_identity_boundary` forbids replacing, normalizing, downgrading, upgrading, or inventing another formal rank/title and requires exact canonical labels when formal identity is mentioned;
-- `opening_contract.selected_position` carries the exact selected position and `selected_rank_must_remain_true=true`;
-- `PLAYER_IDENTITY_PROMPT` says formal position/rank is immutable and exact canonical labels must be used;
-- `OPENING_PRODUCT_PROMPT` says every selected profile must preserve the selected department and rank.
+Read-only DB confirms the first broken boundary is Story itself. Observer later invents a player thought but runtime drops it safely; that is P2 evidence, not the cause of this P1.
 
-Live behavior proves that this exact-rank requirement is still not sufficiently dominant/explicit at the actual Opening Story boundary.
+The exact-rank behavior from `49d12d5...` is correct and must not be backed out.
 
-The accepted Opening no-invented-player-action correction from `b719831...` is valid and must not be reopened or weakened.
-
-## 2. First owning boundary / required correction
+## 2. First owning boundary / hypothesis to prove
 
 Inspect first:
 - `runtime-r3/server/provider.js`
-  - Opening prompt composition/order;
-  - `PLAYER_IDENTITY_PROMPT`;
-  - `OPENING_PRODUCT_PROMPT`;
-  - existing `OPENING_PLAYER_AGENCY_PRECEDENCE_PROMPT` ordering;
+  - `OPENING_IDENTITY_PRECEDENCE_PROMPT`;
+  - `OPENING_PLAYER_AGENCY_PRECEDENCE_PROMPT`;
+  - `OPENING_STORY_SYSTEM_PROMPT`;
+  - `OPENING_PRODUCT_PROMPT` final composition/order;
 - `runtime-r3/domain/memory.js`
-  - `canonical_player_identity`;
-  - `PLAYER_IDENTITY_CONTRACT`;
-  - `opening_contract.selected_position`;
-  - only if a small explicit `opening_identity_contract` or equivalent existing-context field is needed;
+  - `opening_contract` exact formal-position fields;
+  - `opening_agency_contract`;
 - focused Opening/player-identity/source-correction tests.
 
-Hypothesis to prove or disprove:
-- exact identity information is already present, but Opening-specific prompt precedence only strongly protects voluntary-action authority; the exact selected formal rank remains a later/general instruction and the Story normalizes `TF팀장` to generic `팀장`/`신입 팀장`.
+Current source has two individually correct but separate Opening directives:
+1. exact formal identity must be explicitly established;
+2. voluntary PLAYER action authority is empty before first literal.
 
-Correct the smallest existing Story request boundary so that:
-1. The exact selected canonical formal position label is an immutable Opening world/setup fact.
-2. Opening explicitly establishes the exact canonical formal position label at least once whenever a selected formal position exists.
-3. A generic or inferred title must not replace it. For the decisive profile, `TF팀장` may not be normalized to `팀장`, `신입 팀장`, another rank, or an inferred seniority label.
-4. Natural first-arrival wording is allowed around the exact label, e.g. a newly arrived/first-day `TF팀장`; first-day/new-arrival adjectives must not become a different formal rank.
-5. The exact selected department remains preserved as already required.
-6. Later ordinary turns retain the existing general exact-identity contract; do not create a second identity system.
-7. Do not solve this after generation. The Story request itself must own the correction before Observer.
+The live failure shows their coexistence is not sufficiently explicit. Current trailing Opening wording also asks for a plausible immediate arrival/introduction context, and Story filled that context with PLAYER-authored bridge actions.
 
-A narrow Opening identity precedence prompt/structured contract is allowed if it reuses the existing canonical identity fields. Do not invent a parallel catalog or rank ontology.
+Required correction: make the **same final Opening Story boundary** explicitly own both facts together.
+
+Before the first submitted literal:
+- selected exact canonical name / department / formal rank are validated setup/world facts;
+- first arrival / first appointment are already true setup facts, not a command to narrate PLAYER traveling, breathing, gesturing, touching, checking, acknowledging, or otherwise doing something;
+- exact formal rank must be established through narrator/world presentation, company artifact/signage if naturally available, or NPC initiative/address/dialogue — not through a voluntary PLAYER action;
+- the unfamiliar private app may be passively present/visible/available to notice, but no PLAYER hand/phone/app manipulation, deliberate checking, opening, tapping, pocket-touching, or decision may be invented;
+- NPCs may act, speak, approach, introduce, open a door, point out a seat, hand over material, or otherwise make the Opening living and interactive;
+- PLAYER remains free, silent, and without a completed voluntary action until the first actual literal/native-choice submission;
+- passive state/setup descriptions are allowed only when they do not imply a chosen action (for example, being present at the validated starting scene or being the newly appointed `TF팀장`).
+
+A small combined Opening identity+agency precedence prompt or existing-context field is allowed if it reuses the existing canonical identity and opening-agency fields. Prefer one final coherent precedence block over adding another competing independent instruction.
 
 If source proof identifies an earlier existing boundary, fix that instead and explain in the terminal.
 
 ## 3. Preserve accepted behavior
 
 Do not regress:
-- `b719831...` Opening voluntary PLAYER action authority is empty before first literal;
-- passive unfamiliar private-app discovery without player manipulation;
+- `49d12d5...` exact canonical formal rank establishment (`TF팀장` stays exact when selected);
+- selected exact department and player name;
+- `b719831...` empty voluntary PLAYER action authority before first literal;
+- passive unfamiliar private-app discovery without manipulation;
 - NPC ignorance of private app unless PLAYER later reveals it;
-- first-day / first-arrival semantics;
+- first-day / first-arrival / first-appointment semantics;
 - rich living Company Opening with NPC initiative;
-- exactly four full Story choices + free input;
-- canonical player name and department;
+- Story-owned exactly four full choices + free input;
 - `bd643fa...` no-invented voluntary PLAYER travel on ordinary turns;
 - accepted explicit player navigation and self-stay behavior;
 - `ae27e780...` Observer scene re-entry implementation;
@@ -126,44 +129,45 @@ Do not regress:
 - one Story + one Observer only.
 
 Known separate P1, **not this implementation**:
-- preserved game `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`, Turn 3 remote configured pair 서원희 -> 박정우;
-- literal `나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.` is canonical supported family `kiss`;
-- Story stops at questioning instead of executing the kiss in the same turn.
+- preserved game `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`, active S1 configured 서원희 -> 박정우;
+- literal supported `kiss` instruction did not execute same turn while PLAYER was remote/stationary.
 
-Do not modify S1 semantics in this task. It remains queued after exact Opening identity is live-clean and no earlier P0/P1 appears.
+Do not modify S1 semantics in this task. It remains queued after Opening is jointly live-clean and no earlier P0/P1 appears.
 
 ## 4. Forbidden approaches
 
 Do NOT add:
-- post-Story regex/string replacement of `팀장` -> `TF팀장` or any title repair;
-- a title/rank parser, classifier, fuzzy matcher, semantic validator, or second identity catalog;
+- post-Story regex/string repair or deletion of PLAYER-action phrases;
+- a Korean action parser/classifier/NER/fuzzy detector solely to police Opening prose;
 - deterministic replacement Opening story/template;
 - second Story, second Observer, verifier/repair/reaction LLM;
 - retry/regeneration/sample-until-pass;
 - provider/model/temperature/token/secret/config workaround;
+- a parallel player-identity catalog or action ontology;
 - generic scene/physical/relation/consent/emotion engine;
-- S1 semantic changes in this task;
+- S1 semantic changes;
 - DB/schema/RPC/migration/backfill;
 - Production;
 - frontend executable changes unless directly proven necessary (not expected);
 - preserved-game mutation;
 - new branch/PR/task file;
-- OWNER_READY.
+- `OWNER_READY`.
 
 ## 5. Deterministic regressions
 
 Add the smallest regressions at the actual Opening Story request/context boundary.
 
 Required before deploy:
-1. Opening context/request exposes selected exact formal position label from canonical repository content, not only `position_id`.
-2. Actual Opening prompt gives explicit precedence to that exact label and requires it to be established in Opening when a selected formal position exists.
-3. The decisive normalization shape is explicitly forbidden at contract level: selected `TF팀장` cannot be replaced by generic `팀장` / `신입 팀장` as the player's formal rank.
-4. First-day/new-arrival descriptors remain allowed around the exact rank and do not count as a new rank.
-5. Selected department and player name remain exact and immutable.
-6. `b719831...` Opening no-invented-player-action precedence stays dominant and green.
-7. Four Story choices + free input remain unchanged.
-8. Ordinary-turn player identity, no-invented-travel, temporal/private-app-rule-change/official-announcement/S1 closed-world/S7/compatibility/conflict-copy/Observer-reentry focused regressions remain green.
-9. No post-Story repair, second Story/Observer/verifier, or retry path exists.
+1. Opening context still exposes selected exact formal position label (`TF팀장` for decisive profile).
+2. Exact formal-position establishment remains mandatory and cannot normalize to generic/inferred rank.
+3. Opening agency remains `empty_before_first_submitted_literal`.
+4. The combined/final Opening contract explicitly states that exact identity / arrival / app premise must be established without any voluntary PLAYER bridge action.
+5. Exact rank can be established by narrator/world/NPC initiative/address while PLAYER remains action-free.
+6. First-arrival context cannot authorize PLAYER movement, breathing/gesture, touch, phone/pocket/app manipulation, acknowledgement, decision, work, reply, or another intentional action.
+7. Passive unfamiliar-app exposure remains allowed without manipulation.
+8. Story-owned four-choice requirement remains explicit and unchanged; Observer must not become a choice author.
+9. Ordinary-turn player identity, no-invented-travel, temporal/private-app-rule-change/official-announcement/S1 closed-world/S7/compatibility/conflict-copy/Observer-reentry focused regressions remain green.
+10. No post-Story repair, second Story/Observer/verifier, or retry path exists.
 
 Do not make tests green by scanning/replacing generated Story text.
 
@@ -171,6 +175,7 @@ Then run:
 - `node --check` for changed JS/MJS;
 - `git diff --check`;
 - focused affected tests;
+- broader canon/CSA/turn-kernel/navigation/Observer focused regressions;
 - exactly one full `npm test` after focused green, recording exit and count.
 
 Automated green is not product acceptance.
@@ -195,33 +200,37 @@ Use the real deployed TEST frontend/UI. Create exactly ONE fresh disposable adul
 No second game, reset, regenerate, direct gameplay API substitute, semantic retry, or sample-until-pass.
 Preserve the game READ ONLY after the campaign.
 
-Use a profile whose selected position is `TF팀장` for direct reproduction.
+Use a profile whose selected position is `TF팀장` for direct joint reproduction.
 Target 2–4 committed turns. Stop at the first reproducible P0/P1.
 
-### A. Opening — decisive exact-identity gate
+### A. Opening — decisive joint identity+agency gate
 
-PASS requires simultaneously:
-- normal first arrival in the selected registered department;
-- Story explicitly establishes PLAYER's exact canonical formal position label `TF팀장` at least once;
-- Story does not substitute/normalize that formal position into `팀장`, `신입 팀장`, another rank, or an inferred title;
-- ordinary natural wording such as first-day/newly arrived may surround `TF팀장` without changing the rank;
+PASS requires **simultaneously**:
+- normal living first-arrival scene in the selected registered department;
+- Story explicitly establishes PLAYER exact canonical formal position `TF팀장` at least once;
+- no substitution/normalization to `팀장`, `신입 팀장`, another rank, or inferred title;
 - canonical player name/department are not contradicted;
-- unfamiliar private app remains passively present/discoverable;
-- no voluntary PLAYER action is authored before first literal;
-- NPC initiative remains natural;
-- four meaningful full choices + free input are available.
+- no voluntary PLAYER speech, reply, breath-as-action, gesture, nod, movement, touch, phone/pocket/app manipulation, work/review, acknowledgement, decision, acceptance/refusal, or other completed intentional action before the first literal;
+- validated setup facts may state PLAYER is present/newly appointed without inventing how PLAYER chose to act;
+- unfamiliar private app is passively present/discoverable and NPCs remain ignorant;
+- NPC initiative remains natural and the scene does not become a static dossier;
+- Story itself ends with exactly four meaningful full literal choices, and free input is available.
 
-Record the exact Opening Story and inspect identity semantically. Do not claim PASS merely because durable profile state still says `tf_lead`; Story identity must agree visibly.
+Record exact Opening Story and full chain:
+`literal='' -> Story -> observer raw -> observer applied -> durable scene/profile/time -> rendered UI`.
+
+Do not infer PASS from durable profile alone.
 
 ### B. One ordinary player-chosen action
 
 Only if Opening passes, submit one simple explicit social free input/native choice.
 
 PASS:
-- Story preserves the chosen action;
-- PLAYER is not assigned a different formal rank/title;
-- Opening identity precedence does not leak into ordinary action execution;
-- `bd643fa...` ordinary no-invented-travel authority remains intact.
+- Story preserves the chosen actor/target/action/topic;
+- PLAYER exact formal identity remains unchanged when referenced;
+- ordinary PLAYER action is now allowed because it came from the literal;
+- no extra invented player travel/action is inserted as a bridge;
+- four Story-owned choices + free input remain available.
 
 ### C. Refresh / re-entry
 
@@ -229,32 +238,35 @@ Only if no P0/P1:
 - one deliberate refresh/re-entry;
 - no duplicate Story/Commit;
 - exact committed Opening/Turn history reconstructs once;
-- selected identity shown in Story remains unchanged;
+- selected exact identity remains unchanged;
 - input/choices remain usable.
 
 Do NOT run the known remote S1 kiss probe in this task. It is already preserved as the expected next separate P1 and must not be mixed into this implementation.
-
-For decisive turns record:
-`literal -> Story -> observer raw -> observer applied -> durable scene/profile -> next context/UI`.
 
 ## 8. Whole-canon observations — measure, do not broaden
 
 During the campaign record but do not fix:
 - MM raw -> applied retention/drop;
 - player_inner_thought invention/drop;
+- Story-owned choices vs Observer/fallback choice drops;
 - dialogue projection drops;
 - Story/current-state disagreement;
 - player-facing/internal CSA text leakage if naturally visible;
 - removed/replaced-rule residue only if naturally encountered.
 
-Fresh `e5292172...` evidence already shows raw player thought invented and safely dropped on both reached turns, while MM retained 10/10 heroine entries; retain as P2 evidence only.
+Fresh `6eb13fb7...` evidence already shows:
+- MM retained 5/5 valid heroine entries on Opening;
+- raw player thought was invented and safely dropped;
+- Story omitted final four choices, Observer invented four, applied projection dropped them.
+Treat these as P2 evidence unless a new earlier P0/P1 is directly proven.
+
 Media/TTS remain paused.
 
 ## 9. Next lanes — do not pre-register
 
 After terminal, operator must perform the mandatory independent whole-canon audit before selecting anything.
 
-If exact Opening identity is live-clean and no earlier P0/P1 appears, the currently known next P1 is:
+If Opening exact identity + no-preliteral-action coexistence is live-clean and no earlier P0/P1 appears, the currently known next P1 is:
 `remote supported S1 same-turn execution` — exact supported `kiss` for active 서원희 -> 박정우 must actually execute in the same Story turn while PLAYER remains remote/stationary; instruction delivery/questioning alone is not execution.
 
 After core P1 closure:
@@ -278,51 +290,10 @@ At first reproducible P0/P1:
 On success:
 - set this same file to `WAITING_REVIEW`;
 - post exactly one terminal:
-`OPENING_EXACT_FORMAL_RANK_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`OPENING_IDENTITY_AGENCY_COEXISTENCE_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 - STOP.
 
 On blocker/failure:
-`OPENING_EXACT_FORMAL_RANK_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`OPENING_IDENTITY_AGENCY_COEXISTENCE_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the next task. After any deployed browser campaign, operator performs `POST_LIVE_CANON_AUDIT_CONTRACT` before the next CURRENT_TASK.
-
-## 11. Terminal report — 2026-08-25 KST
-
-Status: BLOCKED
-Terminal: `OPENING_EXACT_FORMAL_RANK_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
-TASK_ID: `company-r3-opening-exact-formal-rank-p1-correction-v1`
-CURRENT_TASK_BLOB_BEFORE_TERMINAL: `609fb3a26e698b435f4156e59a39965ca4ef5f1a`
-EXPECTED_BRANCH: `main`
-STARTING_SHA: `6c6a2f0e2c6c367bdeccfe4a8aabb8136a2dcf9c`
-IMPLEMENTATION_SHA: `49d12d5e2b4c939d0923c70b31823d39b6b1d13e`
-RUNNER: `company-v1-codex-watcher / WATCHER`
-EXECUTION_LEASE: `5405585962`
-
-### Result
-
-- The narrow source correction was implemented only at the Opening Story request/context boundary.
-- `runtime-r3/domain/memory.js` now exposes the exact selected formal position label and explicit Opening requirements to establish it without normalization.
-- `runtime-r3/server/provider.js` now places an Opening formal-identity precedence prompt before generic Story wording. It requires the exact canonical label, forbids generic/inferred replacement, and allows first-day/new-arrival descriptors only around the exact label.
-- Regressions were added in `test/r3-opening-contract.test.mjs` and `test/r3-source-correction.test.mjs`.
-- No post-Story repair, title parser/classifier, deterministic Opening, second Story/Observer/verifier, retry, provider/model/config, S1 semantic, DB/migration, Production, frontend, or preserved-game change was made.
-
-### Validation
-
-- Focused Opening/source/owner-P0 tests: `39 passed, 0 failed`.
-- Broader canon/CSA/turn-kernel/navigation/Observer regressions: `118 passed, 0 failed`.
-- Exactly one full `npm.cmd test`: `583 passed, 0 failed`.
-- Syntax checks and `git diff --check`: passed.
-
-### TEST / live blocker
-
-- TEST API was deployed only through the unchanged contract-gated R3 path from `49d12d5e2b4c939d0923c70b31823d39b6b1d13e`.
-- Worker: `game-proxy-company-r3`; version: `4006b70f-25a4-4f6e-ab9f-d6fad19f425f`; frontend source unchanged and not deployed.
-- Exactly one fresh disposable adult-profile game was created: `6eb13fb7-cf0e-4192-b503-5996cd5523e4`. It is preserved READ ONLY; no second game, reset, retry, regeneration, or direct gameplay API substitute was used.
-- Opening exact-rank gate: PASS for visible canonical `브랜드전략팀 TF팀장`; the Story established `TF팀장` and did not normalize it to `팀장` or `신입 팀장`.
-- First P1 blocker at the earlier Story boundary: before any submitted literal (`literal_action=''`), the Opening authored PLAYER actions in `출입문 앞에 선 나는 ... 한 번 심호흡을 했다.` This regresses the accepted no-invented-player-action boundary from `b719831396436913e4a0ea414064c17040cee1c5` and violates the current Opening contract.
-- The campaign stopped at that first P1. No ordinary player action or refresh/re-entry lane was run. The captured Story/UI and game identity are the decisive evidence; no later lane is claimed green.
-- Observer raw/applied and durable chain were not used to override the first broken Story boundary. The game remains preserved READ ONLY.
-
-### Required stop
-
-Await the mandatory independent `POST_LIVE_CANON_AUDIT_CONTRACT` review. Do not register or select the next task, and do not reopen the accepted agency implementation except through the next owner-authorized task.
