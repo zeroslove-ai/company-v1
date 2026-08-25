@@ -3,6 +3,7 @@ import { actorDirectory } from './content.js';
 const text = value => typeof value === 'string' ? value.trim() : '';
 const identity = value => text(value) || null;
 const EXPLICIT_MOVEMENT = /\b(?:go|move|walk|enter|visit|leave)\b|(?:\uC774\uB3D9|\uAC00\uB2E4|\uAC04\uB2E4|\uB098\uAC00|\uB4E4\uC5B4\uAC00|\uBC29\uBB38|\uCC3E\uC544\uAC00|\uB9CC\uB098\uB7EC)/iu;
+const EXPLICIT_MOVEMENT_GLOBAL = /\b(?:go|move|walk|enter|visit|leave)\b|(?:\uC774\uB3D9|\uAC00\uB2E4|\uAC04\uB2E4|\uB098\uAC00|\uB4E4\uC5B4\uAC00|\uBC29\uBB38|\uCC3E\uC544\uAC00|\uB9CC\uB098\uB7EC)/igu;
 const PLAYER_BINDING = /\b(?:I|me|myself)\b|(?:나는|내가|제가|저는|저\b)/iu;
 const CLAUSE_BOUNDARY = /[.!?\u3002\uFF01\uFF1F;]|\s+(?:그리고|하지만|그러나|한\s*뒤(?:에도)?|뒤에|후에)\s*/u;
 
@@ -41,6 +42,27 @@ function actorDestinationCandidates(content, clause) {
   return [...new Set(destinations)];
 }
 
+function hasCanonicalNpcSubjectBeforeDestination(clause, destinationLabel, names) {
+  const destinationIndex = clause.indexOf(destinationLabel);
+  if (destinationIndex < 0) return false;
+  const beforeDestination = clause.slice(0, destinationIndex);
+  const previousMovement = [...beforeDestination.matchAll(EXPLICIT_MOVEMENT_GLOBAL)].at(-1);
+  const movementSubject = previousMovement
+    ? beforeDestination.slice(previousMovement.index + previousMovement[0].length)
+    : beforeDestination;
+  return names.some(name => {
+    const subjectPattern = new RegExp(`${name}(?:\\s+\\S+){0,2}\\s*(?:은|는|이|가|께서)(?=\\s|$|[^\\p{L}])`, 'u');
+    return subjectPattern.test(movementSubject);
+  });
+}
+
+function hasCanonicalNpcSubject(clause, names) {
+  return names.some(name => {
+    const subjectPattern = new RegExp(`${name}(?:\\s+\\S+){0,2}\\s*(?:은|는|이|가|께서)(?=\\s|$|[^\\p{L}])`, 'u');
+    return subjectPattern.test(clause);
+  });
+}
+
 export function resolvePlayerNavigationIntent({ content, state = {}, literalAction = '' } = {}) {
   const source = text(literalAction);
   if (!source || !EXPLICIT_MOVEMENT.test(source)) return null;
@@ -49,14 +71,15 @@ export function resolvePlayerNavigationIntent({ content, state = {}, literalActi
   const candidates = [];
   for (const clause of movementClauses(source)) {
     if (!EXPLICIT_MOVEMENT.test(clause)) continue;
-    const namedActor = names.some(name => clause.includes(name));
     const playerBound = PLAYER_BINDING.test(clause);
-    if (namedActor && !playerBound) continue;
     const matches = locationCandidates(content).filter(candidate => clause.includes(candidate.label));
     if (matches.length) {
       const longest = Math.max(...matches.map(candidate => candidate.label.length));
-      candidates.push(...matches.filter(candidate => candidate.label.length === longest).map(candidate => candidate.id));
-    } else if (playerBound) {
+      const playerDestinations = matches
+        .filter(candidate => candidate.label.length === longest)
+        .filter(candidate => !hasCanonicalNpcSubjectBeforeDestination(clause, candidate.label, names));
+      candidates.push(...playerDestinations.map(candidate => candidate.id));
+    } else if (playerBound && !hasCanonicalNpcSubject(clause, names)) {
       candidates.push(...actorDestinationCandidates(content, clause));
     }
   }

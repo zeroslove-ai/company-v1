@@ -77,6 +77,24 @@ test('NPC-only movement does not bind player navigation, while explicit player c
   assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: '서원희 차장은 회의실로 이동한 뒤 나는 직원 라운지로 이동한다.' }), { kind: 'player_navigation', destination_location_id: 'employee_lounge', source: 'explicit_player_binding' });
 });
 
+test('exact self-stay frame does not bind an NPC-owned destination to player navigation', () => {
+  const state = createInitialState({ name: 'Player' }, 'brand_strategy_office', ['heroine1', 'heroine2']);
+  const selfStay = '나는 자리에 그대로 남은 채 서원희 차장과 박정우 팀장이 브랜드전략팀 회의실로 이동하는 모습을 지켜본다.';
+  const observesNpcMovement = '나는 서원희 차장과 박정우 팀장이 브랜드전략팀 회의실로 이동하는 모습을 본다.';
+  assert.equal(resolvePlayerNavigationIntent({ content, state, literalAction: selfStay }), null);
+  assert.equal(resolvePlayerNavigationIntent({ content, state, literalAction: observesNpcMovement }), null);
+  assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: '나는 브랜드전략팀 회의실로 이동한다.' }), { kind: 'player_navigation', destination_location_id: 'brand_strategy_meeting_room', source: 'explicit_player_binding' });
+
+  const observerOffice = {
+    location: { location_id: 'brand_strategy_office' },
+    present_actor_ids: ['heroine2', 'heroine3', 'heroine4', 'heroine5'],
+    scene_note: 'The player remains in the office while the NPC pair leaves.'
+  };
+  const after = applyNavigationPostcondition(state, observerOffice, null, content);
+  assert.equal(after.scene.location_id, 'brand_strategy_office');
+  assert.deepEqual(after.scene.present_actor_ids, ['heroine1', 'heroine2']);
+});
+
 test('registered heroine destination is explicit player navigation, not NPC motion', () => {
   const state = createInitialState({ name: 'Player' }, 'employee_lounge', []);
   assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: '나는 서원희에게 간다.' }), { kind: 'player_navigation', destination_location_id: 'brand_strategy_office', source: 'explicit_player_binding' });
