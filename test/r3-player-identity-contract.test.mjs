@@ -95,6 +95,43 @@ test('ordinary Story provider sends canonical identity and hard boundary, not on
   assert.match(payloads[0].messages[0].content, /Never replace, normalize, downgrade, upgrade, or invent/i);
 });
 
+test('registered actor Story context preserves canonical formal identity without forcing dossier references', async () => {
+  const location = content.locations.find(item => item.default_npc_ids?.includes('general_park_jungwoo')) ?? content.locations[0];
+  const state = createInitialState({ name: '?쒖쑄??', department_id: 'brand_strategy', position_id: 'manager' }, location.location_id, ['heroine1', 'general_park_jungwoo', 'general_oh_sehoon']);
+  const context = { state: { state }, turns: [] };
+  const projected = buildStoryContext(context, '紐낇븿???뺤씤?쒕떎.', { content });
+  const heroine = projected.actors.find(actor => actor.id === 'heroine1');
+  const park = projected.actors.find(actor => actor.id === 'general_park_jungwoo');
+  const oh = projected.actors.find(actor => actor.id === 'general_oh_sehoon');
+  assert.equal(projected.canonical_actor_identity_contract.canonical_facts_are_authoritative, true);
+  assert.deepEqual(projected.canonical_actor_identity_contract.preserve_exactly, ['id', 'name', 'department', 'position/rank', 'role_title', 'role']);
+  assert.equal(heroine.name, content.characters.heroine1.name);
+  assert.equal(heroine.department, content.characters.heroine1.department);
+  assert.equal(heroine.position, content.characters.heroine1.position);
+  assert.equal(heroine.role_title, content.characters.heroine1.role_title);
+  assert.equal(park.role, content.generalNpcs.find(actor => actor.id === 'general_park_jungwoo').role);
+  assert.equal(oh.role, content.generalNpcs.find(actor => actor.id === 'general_oh_sehoon').role);
+  assert.equal('position' in oh, false);
+  assert.match(projected.canonical_actor_identity_contract.formal_identity_boundary, /downgrade, upgrade, swap, or substitute/i);
+  assert.match(projected.canonical_actor_identity_contract.no_inference_boundary, /does not supply a canonical formal rank or title.*do not invent/i);
+  assert.match(projected.canonical_actor_identity_contract.natural_reference_boundary, /name-only references are allowed/i);
+
+  const payloads = [];
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    fetchImpl: async (_url, init) => {
+      payloads.push(JSON.parse(init.body));
+      return storyStream('grounded story\n\n1. one\n2. two\n3. three\n4. four');
+    }
+  });
+  for await (const _ of provider.story({ context, content, literalAction: '紐낇븿???뺤씤?쒕떎.' })) {}
+  const sentContext = JSON.parse(payloads[0].messages[1].content);
+  assert.deepEqual(sentContext.canonical_actor_identity_contract, projected.canonical_actor_identity_contract);
+  assert.match(payloads[0].messages[0].content, /REGISTERED ACTOR FORMAL-IDENTITY PRECEDENCE/i);
+  assert.match(payloads[0].messages[0].content, /Never downgrade, upgrade, swap, normalize, or invent/i);
+  assert.match(payloads[0].messages[0].content, /name-only or canonical-role references are allowed/i);
+});
+
 test('Observer/reducer path has no authority to mutate canonical player identity', () => {
   const player = profile('new_business_tf', 'executive', '서윤호');
   const state = createInitialState(player, content.locations[0].location_id, ['heroine1']);

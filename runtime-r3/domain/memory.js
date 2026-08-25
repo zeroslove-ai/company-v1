@@ -36,6 +36,13 @@ const PLAYER_IDENTITY_CONTRACT = Object.freeze({
   formal_identity_boundary: 'The canonical player name, department, and formal position/rank supplied in canonical_player_identity are authoritative Story facts on every turn. Do not replace, normalize, downgrade, upgrade, or invent a different formal department, rank, title, business-card identity, badge identity, introduction, signature, or address. If Story mentions one of those identity artifacts, use the exact canonical labels supplied here.',
   no_inference_boundary: 'Do not derive the player formal department, rank, or title from department names, NPC roles, scene context, seniority stereotypes, or model inference. Do not let Observer or any post-processing change player identity.'
 });
+const CANONICAL_ACTOR_IDENTITY_CONTRACT = Object.freeze({
+  canonical_facts_are_authoritative: true,
+  preserve_exactly: Object.freeze(['id', 'name', 'department', 'position/rank', 'role_title', 'role']),
+  formal_identity_boundary: 'For every registered actor supplied in actors, canonical name and formal department, position/rank, role title, or role are authoritative Story facts. Whenever Story states one of those formal identity references, use the exact canonical value supplied for that actor; do not downgrade, upgrade, swap, or substitute a different title or rank.',
+  no_inference_boundary: 'If a registered actor does not supply a canonical formal rank or title, do not invent one from scene context, another actor, seniority stereotypes, or model inference. Name-only or canonical-role references remain valid.',
+  natural_reference_boundary: 'Natural name-only references are allowed. Do not mechanically repeat a full dossier or formal title when Story does not choose to mention one.'
+});
 const STORY_DRAMATIZATION_CONTRACT = Object.freeze({
   use_as_scene_behavior: true,
   boundary: 'Use each registered heroine dramatization as behavior, speech, initiative, private routine, conflict/care, hierarchy, attraction boundary, and continuity evidence in the scene. Do not print field names, profile labels, dossiers, or hidden canon as exposition.',
@@ -111,6 +118,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     player_movement_authority_contract: PLAYER_MOVEMENT_AUTHORITY_CONTRACT,
     canonical_player_identity: canonicalPlayerIdentity,
     player_identity_contract: PLAYER_IDENTITY_CONTRACT,
+    canonical_actor_identity_contract: CANONICAL_ACTOR_IDENTITY_CONTRACT,
     story_dramatization_contract: STORY_DRAMATIZATION_CONTRACT,
     continuity_memory_contract: CONTINUITY_MEMORY_CONTRACT,
     profile: state.profile ?? {},
