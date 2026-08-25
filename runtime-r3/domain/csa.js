@@ -237,6 +237,14 @@ export function buildActiveS1StoryBinding({ rule, content, playerIdentity = null
     unsupported_or_ambiguous_is_ordinary: true,
     unsupported_boundary: 'Only a positive semantic match to one of the listed finite supported action families receives mandatory S1 institutional authority. An unmatched or ambiguous action remains an ordinary player request or instruction and is not mandatory merely because S1 is active or the literal uses official/order language.',
     literal_agency_boundary: 'Preserve the player literal actor, target, action, direction, request, and intent; a supported literal may not be replaced with rule discussion, confirmation, future deferral, a different act, or an unrelated participant.',
+    remote_pair_execution_contract: {
+      exact_pair_scope_required: true,
+      player_colocation_required: false,
+      grounded_remote_pair_is_executable: true,
+      remote_delivery_is_not_confirmation: true,
+      grounding_source: 'committed_or_recent_story_context',
+      boundary: 'When committed or recent Story context already grounds this exact configured subject/counterparty pair together away from PLAYER, the supported instruction remains mandatory in this same Story turn. Remote separation changes the pair scene, not the institutional force; deliver it plausibly and begin the supported act there without moving PLAYER.'
+    },
     authority: { label: item.authority_label ?? '', official_work_order_same_turn: true, compliance_is_not_desire_or_private_consent: true }
   };
 }

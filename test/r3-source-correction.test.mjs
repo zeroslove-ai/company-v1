@@ -326,6 +326,14 @@ test('R3 active S1 adds a finite same-turn authority exception without weakening
   assert.equal(context.active_s1_literal_contract.closed_world_supported_families, true);
   assert.equal(context.active_s1_literal_contract.positive_supported_family_match_required, true);
   assert.equal(context.active_s1_literal_contract.ambiguous_or_unmatched_action_is_ordinary, true);
+  assert.match(context.active_s1_literal_contract.remote_pair_execution_exception, /committed or recent Story context.*exact configured subject\/counterparty pair.*remotely away from PLAYER/i);
+  assert.match(context.active_s1_literal_contract.remote_pair_execution_exception, /co-location is not required.*same Story turn/i);
+  assert.match(context.active_s1_literal_contract.remote_pair_execution_exception, /not confirmation, clarification, refusal, future deferral, or a veto/i);
+  assert.equal(context.active_s1_story_binding.remote_pair_execution_contract.exact_pair_scope_required, true);
+  assert.equal(context.active_s1_story_binding.remote_pair_execution_contract.player_colocation_required, false);
+  assert.equal(context.active_s1_story_binding.remote_pair_execution_contract.grounded_remote_pair_is_executable, true);
+  assert.equal(context.active_s1_story_binding.remote_pair_execution_contract.remote_delivery_is_not_confirmation, true);
+  assert.equal(context.active_s1_story_binding.remote_pair_execution_contract.grounding_source, 'committed_or_recent_story_context');
 });
 
 test('R3 rule-change Story request structurally omits private presentation continuity while retaining operation facts', async () => {

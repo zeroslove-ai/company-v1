@@ -146,6 +146,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       ambiguous_or_unmatched_action_is_ordinary: true,
       unsupported_literal_remains_ordinary: true,
       mandatory_supported_action_exception: 'When the exact active S1 subject/counterparty scope matches and the literal is one of the finite supported action families, rule-owned institutional authority takes precedence over the ordinary external-outcome boundary and the supported action must begin in this same Story turn; this exception does not apply outside the listed families.',
+      remote_pair_execution_exception: 'When committed or recent Story context already grounds the exact configured subject/counterparty pair together remotely away from PLAYER, PLAYER co-location is not required for the supported action to begin in this same Story turn. Remote separation is not confirmation, clarification, refusal, future deferral, or a veto; preserve PLAYER location and execute only in the grounded remote pair scene.',
       precedence: 'The submitted literal_action is the latest and highest-priority ordinary player intent; active CSA context may classify its finite authority but may not erase, replace, or redirect it.'
     } } : {}),
     ...(ruleChangeEvent || csaOperation ? {

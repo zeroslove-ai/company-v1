@@ -329,6 +329,12 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(ordinarySystem, /NPC-only movement.*remote target location.*never authorizes PLAYER standing to go, following, walking, approaching, entering, knocking, accompanying, returning/i);
   assert.match(ordinarySystem, /An external consequence may displace PLAYER only when the world physically causes it/i);
   assert.match(ordinarySystem, /remote instruction must be delivered without moving PLAYER/i);
+  assert.match(ordinarySystem, /remote-pair execution contract is a precedence exception/i);
+  assert.match(ordinarySystem, /active_s1_story_binding positively matches the exact configured subject\/counterparty pair/i);
+  assert.match(ordinarySystem, /committed or recent Story context already grounds that pair together away from PLAYER/i);
+  assert.match(ordinarySystem, /PLAYER co-location is not required/i);
+  assert.match(ordinarySystem, /Remote separation is not a confirmation, clarification, refusal, future-deferral, or veto boundary/i);
+  assert.match(ordinarySystem, /begin\/perform the supported act in that grounded remote pair scene during this same Story turn/i);
   assert.match(ordinarySystem, /true explicit literal navigation remains supported/i);
   assert.deepEqual(ordinaryContext.player_movement_authority_contract, sentContext.player_movement_authority_contract);
   assert.equal(ordinaryContext.player_movement_authority_contract.submitted_literal_is_sole_voluntary_movement_authority, true);

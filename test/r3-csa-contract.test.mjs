@@ -185,6 +185,12 @@ test('active S1 projection exposes player authority and exact finite pair bindin
   assert.equal(binding.closed_world, true);
   assert.equal(binding.positive_supported_family_match_required, true);
   assert.equal(binding.unsupported_or_ambiguous_is_ordinary, true);
+  assert.equal(binding.remote_pair_execution_contract.exact_pair_scope_required, true);
+  assert.equal(binding.remote_pair_execution_contract.player_colocation_required, false);
+  assert.equal(binding.remote_pair_execution_contract.grounded_remote_pair_is_executable, true);
+  assert.equal(binding.remote_pair_execution_contract.remote_delivery_is_not_confirmation, true);
+  assert.match(binding.remote_pair_execution_contract.boundary, /committed or recent Story context.*exact configured subject\/counterparty pair.*away from PLAYER/i);
+  assert.match(binding.remote_pair_execution_contract.boundary, /begin the supported act there without moving PLAYER/i);
   assert.match(binding.unsupported_boundary, /unmatched or ambiguous.*ordinary/i);
   assert.equal(context.literal_action, literalAction);
   assert.equal(context.active_rules[0].selector, undefined);
