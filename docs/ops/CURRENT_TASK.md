@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-opening-identity-agency-coexistence-p1-continuation-v1
 Mode: TARGETED CORE P1 — OPENING EXACT IDENTITY + PRE-LITERAL PLAYER AGENCY COEXISTENCE
 Updated: 2026-08-25 KST
@@ -297,3 +297,23 @@ On blocker/failure:
 `OPENING_IDENTITY_AGENCY_COEXISTENCE_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the next task. After any deployed browser campaign, operator performs `POST_LIVE_CANON_AUDIT_CONTRACT` before the next CURRENT_TASK.
+
+## 11. Terminal report — 2026-08-25 KST
+
+`OPENING_IDENTITY_AGENCY_COEXISTENCE_P1_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Execution identity: `company-r3-opening-identity-agency-coexistence-p1-continuation-v1` + registered CURRENT_TASK blob `ae85b3a61158f1a97b1933d437ae52c69ec3ecff` + expected branch `main`.
+- Lease: Issue #68 comment `5405814062`.
+- Starting workflow HEAD: `cf88ea387f2c970ec165d6956ebe03814a8d6443`.
+- Implementation commit: `29457bf9c7a8f00a7b8a701319c3fc73e3f8d24c` (pushed to `origin/main`).
+- Changed files: `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-opening-contract.test.mjs`, `test/r3-source-correction.test.mjs`.
+- Root-cause change: the existing exact-rank and pre-literal agency directives are now one combined final Opening boundary; the context also records that identity/arrival/app premise must be established without PLAYER action and that PLAYER remains silent/action-free before the first literal. No post-Story repair, parser/classifier, second Story/Observer, verifier, retry, S1 change, provider/model/config change, frontend change, DB/schema/RPC/migration change, or preserved-game mutation was made.
+- Validation: changed-file syntax checks passed; `git diff --check` passed; focused R3 Opening/source/owner tests `39/39`; broader canon/CSA/turn-kernel/navigation/Observer focused tests `118/118`; exactly one full `npm test` completed `583/583` with exit `0`.
+- TEST contract gate: unchanged `company-v1-action-authority` stage `stage_a`, version `2`; dry-run passed and actual gate passed.
+- TEST deployment: Worker `game-proxy-company-r3`, version `edc4a3b3-68b4-499f-afad-776ce57eb290`, source implementation SHA `29457bf9c7a8f00a7b8a701319c3fc73e3f8d24c`.
+- Fresh disposable game: `9601b7cc-fa1f-4410-9d66-18dc151cd28b`, adult profile `민준 / 신사업TF / TF팀장 / 32`; preserved READ ONLY after campaign. Existing preserved games, including `6eb13fb7-cf0e-4192-b503-5996cd5523e4`, were not touched.
+- Decisive Opening chain: `literal=''` -> deployed Story -> rendered `이야기` region -> four Story choice lines + visible `직접 입력` textbox. Exact visible identity: `신사업TF TF팀장 민준`. The Opening also established the passive `상식개변` app premise and NPC initiative through 오세훈.
+- First P1: the Story included `회사 정문에 처음 발을 들인 순간`, which authors a voluntary PLAYER arrival/movement before any submitted literal. Therefore the joint identity+agency gate failed even though exact `TF팀장` identity passed. The campaign stopped immediately; no ordinary-turn action, refresh/re-entry, S1 probe, retry, or second game was run.
+- Exact captured Story evidence: `1층 로비의 자동문이 조용히 열렸다. ... 회사 정문에 처음 발을 들인 순간, 차가운 공조 바람과 함께 낯선 공간의 소음이 밀려온다. ... \"신사업TF TF팀장 민준 님이시죠? ...\" ... 주머니 속에서 낯선 진동이 느껴진다. ... **'상식개변'**이라는 이름의 그것. ...` followed by four visible choices and free input.
+- Database writes: none. Migration/schema/RPC: none. Production: not accessed. Preserved evidence: unchanged and READ ONLY.
+- Stop state: `WAITING_REVIEW`. Do not generate or register a next task; operator must perform the independent whole-canon review before any further lane.
