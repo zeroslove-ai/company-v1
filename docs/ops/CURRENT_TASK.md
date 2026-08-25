@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-rule-change-temporal-continuity-p1-correction-v1
 Mode: TARGETED CORE P1 CORRECTION — RULE-CHANGE STORY TEMPORAL CONTINUITY
-Updated: 2026-08-25 11:36 KST
+Updated: 2026-08-25 11:46 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `b519d58eb9278d63c44e159dee0f68c27889bdda`
@@ -229,3 +229,18 @@ Blocked:
 `RULE_CHANGE_TEMPORAL_CONTINUITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Finish by changing only this same `docs/ops/CURRENT_TASK.md` lifecycle to `WAITING_REVIEW`, posting exactly one terminal report to Issue #68, then STOP. Do not self-register another task. Operator must run the mandatory post-live whole-canon audit before choosing the next lane.
+
+## 10. Terminal evidence — BLOCKED
+
+`RULE_CHANGE_TEMPORAL_CONTINUITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+- Start / reviewed executable SHA: `b0be361c3a8686aef200fda03bee23f34a1d9c96` on `main`.
+- Implementation SHA: `b0efb2c56d53dc9e7f85de9953f1ff05a08507dd`, pushed to `origin/main`.
+- Changed files: `runtime-r3/domain/memory.js`, `test/r3-source-correction.test.mjs`.
+- First owning boundary: rule-change `buildStoryContext()` projection. The durable `{day, minute}` remains unchanged; only rule-change Story context receives presentation-only `time.clock_24h`, plus a bounded same-scene/no-hour-scale-jump Story boundary. Private-app field-level isolation remains intact.
+- Focused verification: changed JS/MJS syntax passed; `git diff --check` passed; requested focused suite `76/76` passed.
+- Full verification: `npm.cmd test` ran exactly once after focused green with deterministic `NPM_TEST_EXIT=0`; `580/580` passed.
+- TEST deployment: authorized API-only deploy was attempted through the repository contract-gated R3 deploy path. The initial gate required a read-only catalog URL; with the configured TEST DB URL supplied, the gate stopped at `spawn psql ENOENT` before Wrangler. Worker deploy count `0`; Worker version `none`; frontend deploy count `0`.
+- Live acceptance: no fresh browser game was created because the corrected source was not deployed. Opening/S1 temporal gate/kiss preservation/refresh were not run and are not claimed. Fresh-game count `0`; all preserved games remain read-only and untouched.
+- DB/migration/Production: DB writes `0`; migration applications `0`; Production access/deploy `0`; provider/model/config workaround `0`; retry/sample loops `0`; second Story/Observer/parser/classifier/action executor `0`; new branch/PR/task file `0`; `OWNER_READY` `0`.
+- Required operator action: provide the approved TEST read-only contract-gate execution environment with `psql` available (or an approved catalog artifact), run the R3 TEST API deployment, record the exact Worker version/source SHA, then run exactly one fresh disposable browser campaign per this task and perform the independent whole-canon audit before registering any next task.
