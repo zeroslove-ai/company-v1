@@ -1,9 +1,15 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-scene-presence-player-movement-integrity-p1-correction-v1
 Mode: TARGETED CORE P1 CORRECTION — NPC TRANSITION / PRESENT-ACTOR / PLAYER-MOVEMENT INTEGRITY
 Updated: 2026-08-25 KST
+Implementation SHA: `d5a841bb37c8340e40ee421d806bdb37436fcbc4`
+Final main SHA: pending lifecycle commit
+TEST Worker after implementation: `game-proxy-company-r3` / `31eaf5c6-6383-46af-9024-bb6ea8cbba6b`
+Fresh disposable live game: `044f71c1-e4da-443e-a186-a01477a1b50f`
+Terminal: `SCENE_PRESENCE_PLAYER_MOVEMENT_INTEGRITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+Blocked reason: the supported kiss turn reproduced a P1 where Story invented player movement into the NPC meeting room although the literal bound only an NPC-to-NPC action.
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `f0451910acceba5dd47a000760188bbe3d1bb175`
