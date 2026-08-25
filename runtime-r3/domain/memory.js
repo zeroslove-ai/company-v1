@@ -2,6 +2,11 @@ import { canonicalActors, canonicalLocation, productPremise, relevantActorIds } 
 import { buildActiveS1StoryBinding, buildRuleChangeStoryBinding } from './csa.js';
 
 const bounded = (value, max) => String(value ?? '').slice(0, max);
+const canonicalClock24h = time => {
+  const minute = Number(time?.minute);
+  if (!Number.isInteger(minute) || minute < 0 || minute >= 24 * 60) return null;
+  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+};
 const REQUEST_TRIGGER_VALUES = new Set(['on_player_request', 'on_counterparty_request']);
 const PLAYER_AGENCY_CONTRACT = Object.freeze({
   literal_action_is_player_choice: true,
@@ -62,6 +67,10 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const rules = state.csa_rules && typeof state.csa_rules === 'object' ? state.csa_rules : {};
   const exactRuleChangeBinding = ruleChangeBinding ?? (ruleChangeEvent ? buildRuleChangeStoryBinding({ event: ruleChangeEvent, content }) : null);
   const ruleChangeStory = Boolean(ruleChangeEvent || csaOperation);
+  const clock24h = canonicalClock24h(state.time);
+  const storyTime = ruleChangeStory
+    ? { ...(state.time ?? {}), ...(clock24h ? { clock_24h: clock24h } : {}) }
+    : state.time ?? {};
   const activeRules = [...new Set(Array.isArray(state.csa_active) ? state.csa_active : [])]
     .map(id => rules[id])
     .filter(rule => rule?.active)
@@ -93,7 +102,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     story_dramatization_contract: STORY_DRAMATIZATION_CONTRACT,
     continuity_memory_contract: CONTINUITY_MEMORY_CONTRACT,
     profile: state.profile ?? {},
-    time: state.time ?? {},
+    time: storyTime,
     location,
     scene: ruleChangeStory
       ? { location_id: state.scene?.location_id ?? null, present_actor_ids: actorIds }
@@ -122,7 +131,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       pending_rule_change_turn: {
         type: 'rule_change_turn',
         ...(ruleChangeEvent ?? { operation: csaOperation }),
-        boundary: 'This structured server-owned rule-change operation is the player action for this turn. The official institutional announcement is the single world-issuance source already rendered by the server; continue with grounded reactions and only its bounded immediate consequence. Do not expose private presentation history, invent a second authority source, or infer affection, desire, consent, or app awareness from compliance.'
+        boundary: 'This structured server-owned rule-change operation is the player action for this turn. The official institutional announcement is the single world-issuance source already rendered by the server; continue with grounded reactions and only its bounded immediate consequence. Continue in the current scene at the canonical 24-hour time unless the Story itself narrates a small plausible elapsed interval; do not invent an hour-scale or daypart jump merely because prior free-text continuity is unavailable. Do not expose private presentation history, invent a second authority source, or infer affection, desire, consent, or app awareness from compliance.'
       }
     } : {}),
     ...(exactRuleChangeBinding ? { rule_change_story_binding: exactRuleChangeBinding } : {}),

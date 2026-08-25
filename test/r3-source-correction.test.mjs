@@ -255,6 +255,7 @@ test('R3 active S1 adds a finite same-turn authority exception without weakening
 test('R3 rule-change Story request structurally omits private presentation continuity while retaining operation facts', async () => {
   const heroine = Object.values(content.characters)[0];
   const state = createInitialState({ name: 'R3 context projection player' }, heroine.default_location_id, ['heroine5', 'general_park_jungwoo']);
+  state.time = { day: 1, minute: 545 };
   const operation = { operation: 'activate', template_id: 'sexual_work_instruction_authority', subject_scope: 'female_employee', counterparty_scope: 'male_employee', subject_actor_id: 'heroine5', counterparty_actor_id: 'general_park_jungwoo' };
   const changed = applyR3Csa({ state, content, rawOperations: [operation] });
   const binding = buildRuleChangeStoryBinding({ event: changed.last_rule_change, content });
@@ -264,6 +265,7 @@ test('R3 rule-change Story request structurally omits private presentation conti
   }, 'ignored free text', { content, csaOperation: operation, ruleChangeEvent: changed.last_rule_change, ruleChangeBinding: binding });
   const payloadText = JSON.stringify(context);
   assert.equal('product' in context, false);
+  assert.deepEqual(context.time, { day: 1, minute: 545, clock_24h: '09:05' });
   assert.deepEqual(context.scene, { location_id: state.scene.location_id, present_actor_ids: ['heroine5', 'general_park_jungwoo'] });
   assert.deepEqual(context.recent_turns, []);
   assert.deepEqual(context.older_summaries, []);
@@ -271,7 +273,10 @@ test('R3 rule-change Story request structurally omits private presentation conti
   assert.deepEqual(context.rule_change_story_binding.selected_actor_ids, ['heroine5', 'general_park_jungwoo']);
   assert.match(context.pending_rule_change_turn.boundary, /structured server-owned rule-change operation/i);
   assert.match(context.pending_rule_change_turn.boundary, /single world-issuance source/i);
+  assert.match(context.pending_rule_change_turn.boundary, /current scene at the canonical 24-hour time/i);
+  assert.match(context.pending_rule_change_turn.boundary, /do not invent an hour-scale or daypart jump/i);
   assert.doesNotMatch(payloadText, /app_name|private_discovery|This exact visible app operation|Opening: the unfamiliar|private app notification/i);
+  assert.doesNotMatch(payloadText, /21:05|evening|after-work/i);
 
   const requests = [];
   const provider = createR3Provider({
@@ -286,12 +291,15 @@ test('R3 rule-change Story request structurally omits private presentation conti
   const storyPayload = JSON.parse(requests[0].messages[1].content);
   assert.equal('product' in storyPayload, false);
   assert.deepEqual(storyPayload.scene, context.scene);
+  assert.deepEqual(storyPayload.time, context.time);
   assert.deepEqual(storyPayload.recent_turns, []);
   assert.equal(storyPayload.pending_rule_change_turn.template_id, operation.template_id);
   assert.doesNotMatch(requests[0].messages[1].content, /private app appears|app_name|private_discovery|visible app operation/i);
+  assert.doesNotMatch(requests[0].messages[1].content, /21:05|evening|after-work/i);
 
   const ordinary = buildStoryContext({ state: { state }, turns: [{ turn_number: 0, story_text: 'Opening retains the private app premise.' }] }, 'ordinary action', { content });
   assert.equal(typeof ordinary.product.app_name, 'string');
+  assert.deepEqual(ordinary.time, state.time);
   assert.equal(ordinary.recent_turns.length, 1);
 });
 
