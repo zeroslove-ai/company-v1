@@ -21,6 +21,13 @@ function groundedActorEvidence(item, storyText, directory) {
   return actorId && actorName && quote && quote.includes(actorName) ? { actor_id: actorId, quote } : null;
 }
 
+function groundedPresenceReconciliation(item, storyText, directory) {
+  const status = item?.status;
+  if (status !== 'absent' && status !== 'present') return null;
+  const grounded = groundedActorEvidence(item, storyText, directory);
+  return grounded ? { ...grounded, status } : null;
+}
+
 function heroineDirectory(content) {
   return Object.fromEntries(Object.entries(content?.characters ?? {}).filter(([id, actor]) => actor?.character_id === id && text(actor?.name)).map(([id, actor]) => [id, actor]));
 }
@@ -143,21 +150,30 @@ export function normalizeObserver(input, { storyText = '', literalAction = '', c
       return [grounded];
     });
   }
-  if (Array.isArray(observer.present_actor_ids)) {
-    const valid = observer.present_actor_ids.filter(id => actors.has(id));
-    if (valid.length === observer.present_actor_ids.length) {
-      const reconciled = new Set(valid);
-      for (const actorId of groundedTransitions.exited) {
-        if (reconciled.delete(actorId)) warnings.push('present_actor_reconciled_exited');
-      }
-      for (const actorId of groundedTransitions.entered) {
-        if (reconciled.add(actorId)) warnings.push('present_actor_reconciled_entered');
-      }
-      normalized.present_actor_ids = [...reconciled];
-      for (const actorId of normalized.present_actor_ids) eligibleMonitorActors.add(actorId);
-      for (const actorId of actors) if (!normalized.present_actor_ids.includes(actorId)) eligibleMonitorActors.delete(actorId);
+  const groundedPresence = Array.isArray(observer.presence_reconciliation) ? observer.presence_reconciliation.flatMap(item => {
+    const grounded = groundedPresenceReconciliation(item, storyText, directory);
+    if (!grounded) { warnings.push('presence_reconciliation_projection_dropped'); return []; }
+    return [grounded];
+  }) : [];
+  if (Array.isArray(observer.presence_reconciliation)) normalized.presence_reconciliation = groundedPresence;
+  const validPresentIds = Array.isArray(observer.present_actor_ids) ? observer.present_actor_ids.filter(id => actors.has(id)) : null;
+  if (Array.isArray(observer.present_actor_ids) && validPresentIds.length !== observer.present_actor_ids.length) warnings.push('present_actor_projection_dropped');
+  if ((Array.isArray(observer.present_actor_ids) && validPresentIds.length === observer.present_actor_ids.length) || groundedTransitions.entered.size || groundedTransitions.exited.size || groundedPresence.length) {
+    const reconciled = new Set(Array.isArray(observer.present_actor_ids) && validPresentIds.length === observer.present_actor_ids.length ? validPresentIds : [...currentState?.scene?.present_actor_ids ?? []].filter(actorId => actors.has(actorId)));
+    for (const actorId of groundedTransitions.exited) {
+      if (reconciled.delete(actorId)) warnings.push('present_actor_reconciled_exited');
     }
-    else warnings.push('present_actor_projection_dropped');
+    for (const actorId of groundedTransitions.entered) {
+      if (reconciled.add(actorId)) warnings.push('present_actor_reconciled_entered');
+    }
+    for (const { actor_id: actorId, status } of groundedPresence) {
+      if (status === 'absent') {
+        if (reconciled.delete(actorId)) warnings.push('present_actor_reconciled_absent_evidence');
+      } else if (reconciled.add(actorId)) warnings.push('present_actor_reconciled_present_evidence');
+    }
+    normalized.present_actor_ids = [...reconciled];
+    for (const actorId of normalized.present_actor_ids) eligibleMonitorActors.add(actorId);
+    for (const actorId of actors) if (!normalized.present_actor_ids.includes(actorId)) eligibleMonitorActors.delete(actorId);
   }
   const postStoryPresentActors = new Set(normalized.present_actor_ids ?? [...eligibleMonitorActors]);
   const focal = observer.focal_actor === null || observer.focal_actor === undefined ? null : groundedFocalActor(observer.focal_actor, storyText, content, postStoryPresentActors);

@@ -46,6 +46,36 @@ async function setup(worker) {
   return gameId;
 }
 
+test('R3 Worker Opening applies grounded final-presence evidence instead of copied prior/default presence', async () => {
+  const absentActor = content.characters.heroine5;
+  const currentActor = content.characters.heroine1;
+  const choices = ['one', 'two', 'three', 'four'];
+  const absenceQuote = `${absentActor.name} is absent because she has not arrived and her seat is empty.`;
+  const story = `${absenceQuote} ${currentActor.name} remains in the office.\n1. ${choices[0]}\n2. ${choices[1]}\n3. ${choices[2]}\n4. ${choices[3]}`;
+  const provider = {
+    async *story() { yield story; },
+    async observe() {
+      return {
+        present_actor_ids: [absentActor.character_id, currentActor.character_id],
+        presence_reconciliation: [{ actor_id: absentActor.character_id, status: 'absent', quote: absenceQuote }],
+        scene_note: `${currentActor.name} remains in the office.`,
+        turn_summary: 'The absent actor is not in the final scene.',
+        choices
+      };
+    }
+  };
+  const store = new InMemoryR3Store();
+  const worker = createR3Worker({ store, provider, content, gameAccessSecret: SECRET });
+  const gameId = await setup(worker);
+  const gameState = store.states.get(gameId);
+  gameState.state.scene.present_actor_ids = [absentActor.character_id, currentActor.character_id];
+  const events = await sseEvents(await actionRequest(worker, `/api/r3/games/${gameId}/opening`, { method: 'POST' }));
+  const terminal = events.at(-1).data;
+  assert.equal(terminal.status, 'committed');
+  assert.deepEqual(terminal.context.state.state.scene.present_actor_ids, [currentActor.character_id]);
+  assert.deepEqual(terminal.context.turns.at(-1).observer_applied.presence_reconciliation, [{ actor_id: absentActor.character_id, quote: absenceQuote, status: 'absent' }]);
+});
+
 test('owner P0 agency contract keeps an addressed request from authorizing private-app interaction', () => {
   const state = createInitialState({ name: 'Player' }, content.locations[0].location_id, ['general_park_jungwoo']);
   const literal = '박정우 팀장에게 상식개변 앱에 대해 먼저 묻는다.';

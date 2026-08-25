@@ -106,7 +106,7 @@ test('R3 provider keeps Story at 5000 tokens and raises only Observer to 2400', 
   assert.equal(observerRequestContext.observer_evidence_contract.story_text_is_sole_positive_outcome_evidence, true);
   assert.equal(observerRequestContext.observer_evidence_contract.literal_action_is_intent_only, true);
   assert.equal(observerRequestContext.observer_evidence_contract.current_context_is_prior_baseline_only, true);
-  assert.deepEqual(observerRequestContext.observer_evidence_contract.coherent_scene_fields, ['location', 'entered', 'exited', 'present_actor_ids', 'scene_note', 'turn_summary']);
+  assert.deepEqual(observerRequestContext.observer_evidence_contract.coherent_scene_fields, ['location', 'entered', 'exited', 'present_actor_ids', 'presence_reconciliation', 'scene_note', 'turn_summary']);
   assert.match(requests[1].messages[0].content, /story_text is the sole positive evidence source/i);
   assert.match(requests[1].messages[0].content, /literal_action is player input\/intent context only/i);
   assert.match(requests[1].messages[0].content, /Never copy literal wording as a completed result/i);

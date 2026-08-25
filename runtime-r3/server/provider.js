@@ -16,7 +16,7 @@ const OBSERVER_COMPLETED_STORY_EVIDENCE_CONTRACT = Object.freeze({
   literal_action_is_intent_only: true,
   current_context_is_prior_baseline_only: true,
   completed_story_reality_required: true,
-  coherent_scene_fields: Object.freeze(['location', 'entered', 'exited', 'present_actor_ids', 'scene_note', 'turn_summary']),
+  coherent_scene_fields: Object.freeze(['location', 'entered', 'exited', 'present_actor_ids', 'presence_reconciliation', 'scene_note', 'turn_summary']),
   omitted_or_blocked_literal_outcome: 'Never complete a requested movement, action, or outcome from literal_action when story_text omits, blocks, contradicts, or fails to establish it. Describe the completed Story reality instead.'
 });
 
@@ -66,9 +66,12 @@ function observerSceneContract(state) {
 
 const STORY_PROMPT_EXTERNAL_OUTCOME_PRECEDENCE = 'For ordinary requests without an applicable rule-owned same-turn authority exception, player input is not automatic proof of external outcome or NPC compliance. When the exact active S1 subject/counterparty scope matches one of its finite supported action families, rule-owned institutional authority takes precedence over this ordinary boundary and the supported action must begin in this same Story turn.';
 
+const OBSERVER_PRESENCE_RECONCILIATION_PROMPT = 'Presence reconciliation is a bounded evidence field inside this one Observer call. Return presence_reconciliation as an array of {actor_id,status,quote} only for registered actors whose final scene membership is explicitly grounded by the completed Story. status is exactly "absent" or "present" and quote is an exact contiguous Story quote containing the actor\'s canonical name. Use absent when a prior actor explicitly left, remained away, had not arrived, or is otherwise outside the final player scene; use present when a prior-absent actor explicitly entered, returned, arrived, or is physically present in the player scene. Do not infer from literal_action, default-location/candidate context, omission, or remote/history mentions. Omit ungrounded actors. The normalizer will use this evidence to reconcile a copied or contradictory present_actor_ids list while preserving ordinary continuity when no evidence exists.';
+
 function withPromptContent(payload, promptContent = null) {
   if (!promptContent) return payload;
-  return { ...payload, messages: [{ ...payload.messages[0], content: String(promptContent).replace('Player input is not automatic proof of external outcome or NPC compliance.', STORY_PROMPT_EXTERNAL_OUTCOME_PRECEDENCE) }, ...payload.messages.slice(1)] };
+  const effectivePrompt = String(promptContent).includes('For presentation-only media routing') ? `${promptContent} ${OBSERVER_PRESENCE_RECONCILIATION_PROMPT}` : promptContent;
+  return { ...payload, messages: [{ ...payload.messages[0], content: String(effectivePrompt).replace('Player input is not automatic proof of external outcome or NPC compliance.', STORY_PROMPT_EXTERNAL_OUTCOME_PRECEDENCE) }, ...payload.messages.slice(1)] };
 }
 
 const deterministicChoices = Object.freeze([

@@ -273,6 +273,9 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /A remote or historical actor mention is not physical presence/i);
   assert.match(observerSystem, /present_actor_ids is the exact set of registered actors physically co-located in that player scene/i);
   assert.match(observerSystem, /Grounded entered\/exited evidence must agree with present_actor_ids/i);
+  assert.match(observerSystem, /presence_reconciliation/);
+  assert.match(observerSystem, /status is exactly "absent" or "present"/i);
+  assert.match(observerSystem, /normalizer will use this evidence to reconcile/i);
   assert.match(observerSystem, /NPC-only movement never moves the player/i);
   assert.match(observerSystem, /If the current Story explicitly says.*enters, arrives at, moves to, or is now in/i);
   assert.match(observerSystem, /this evidence overrides merely copying the previous location from current_context/i);

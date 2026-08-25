@@ -188,6 +188,71 @@ test('R3 normalizer reconciles grounded exits and entries against contradictory 
   assert.equal(reduced.state.scene.location_id, currentActor.default_location_id);
 });
 
+test('R3 final-presence evidence removes a prior/default actor explicitly absent in completed Opening Story', () => {
+  const absentActor = content.characters.heroine5;
+  const currentActor = content.characters.heroine1;
+  const state = createInitialState({ name: 'Opening presence player' }, currentActor.default_location_id, [absentActor.character_id, currentActor.character_id]);
+  const absenceQuote = `${absentActor.name} is absent because she has not arrived and her seat is empty.`;
+  const story = `${absenceQuote} ${currentActor.name} remains in the office.`;
+  const normalized = normalizeObserver({
+    present_actor_ids: [absentActor.character_id, currentActor.character_id],
+    presence_reconciliation: [{ actor_id: absentActor.character_id, status: 'absent', quote: absenceQuote }],
+    scene_note: `${currentActor.name} remains in the office.`,
+    turn_summary: 'The absent actor is not in the final scene.'
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.present_actor_ids, [currentActor.character_id]);
+  assert.deepEqual(normalized.presence_reconciliation, [{ actor_id: absentActor.character_id, quote: absenceQuote, status: 'absent' }]);
+  assert.ok(normalized.warnings.includes('present_actor_reconciled_absent_evidence'));
+  const reduced = reduceObservation({ state, observation: normalized, turnNumber: 0 });
+  assert.deepEqual(reduced.state.scene.present_actor_ids, [currentActor.character_id]);
+  assert.equal(reduced.state.scene.scene_note, normalized.scene_note);
+});
+
+test('R3 final-presence evidence preserves ordinary continuity when completed Story gives no membership change', () => {
+  const currentActor = content.characters.heroine1;
+  const state = createInitialState({ name: 'Continuity player' }, currentActor.default_location_id, [currentActor.character_id]);
+  const story = `${currentActor.name} remains seated and continues the conversation.`;
+  const normalized = normalizeObserver({ present_actor_ids: [currentActor.character_id] }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.present_actor_ids, [currentActor.character_id]);
+  assert.equal(normalized.presence_reconciliation, undefined);
+  assert.equal(normalized.warnings.some(warning => warning.includes('presence_reconciliation')), false);
+});
+
+test('R3 final-presence evidence adds a grounded prior-absent return without inventing remote presence', () => {
+  const returningActor = content.characters.heroine1;
+  const currentActor = content.characters.heroine2;
+  const remoteActor = content.characters.heroine3;
+  const state = createInitialState({ name: 'Return player' }, currentActor.default_location_id, [currentActor.character_id]);
+  const returnQuote = `${returningActor.name} returns to the office and stands beside the player.`;
+  const story = `${returnQuote} ${remoteActor.name} is mentioned in a remote phone update.`;
+  const normalized = normalizeObserver({
+    present_actor_ids: [currentActor.character_id],
+    presence_reconciliation: [{ actor_id: returningActor.character_id, status: 'present', quote: returnQuote }],
+    scene_note: `${returningActor.name} and ${currentActor.name} are in the office.`
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.present_actor_ids, [currentActor.character_id, returningActor.character_id]);
+  assert.equal(normalized.present_actor_ids.includes(remoteActor.character_id), false);
+  const reduced = reduceObservation({ state, observation: normalized, turnNumber: 1 });
+  assert.deepEqual(reduced.state.scene.present_actor_ids, [currentActor.character_id, returningActor.character_id]);
+});
+
+test('R3 final-presence evidence rejects ungrounded or non-canonical reconciliation entries fail-open', () => {
+  const currentActor = content.characters.heroine1;
+  const state = createInitialState({ name: 'Evidence player' }, currentActor.default_location_id, [currentActor.character_id]);
+  const story = `${currentActor.name} remains in the office.`;
+  const normalized = normalizeObserver({
+    present_actor_ids: [currentActor.character_id],
+    presence_reconciliation: [
+      { actor_id: currentActor.character_id, status: 'absent', quote: 'not in Story' },
+      { actor_id: 'unknown_actor', status: 'absent', quote: 'unknown actor is absent' },
+      { actor_id: currentActor.character_id, status: 'unknown', quote: story }
+    ]
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.present_actor_ids, [currentActor.character_id]);
+  assert.deepEqual(normalized.presence_reconciliation, []);
+  assert.equal(normalized.warnings.filter(warning => warning === 'presence_reconciliation_projection_dropped').length, 3);
+});
+
 test('R3 Observer re-entry output retains prior-absent co-located actors without promoting remote mentions', () => {
   const returningHeroine = content.characters.heroine1;
   const currentHeroine = content.characters.heroine2;
