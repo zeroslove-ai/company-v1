@@ -236,6 +236,9 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   assert.equal(opening.opening_contract.selected_formal_position_must_be_explicitly_established, Boolean(expectedFormalPosition));
   assert.equal(opening.opening_contract.selected_formal_position_may_not_be_normalized, true);
   assert.equal(opening.opening_contract.first_day_descriptors_may_surround_exact_position, true);
+  assert.equal(opening.opening_contract.identity_arrival_and_app_premise_must_be_established_without_player_action, true);
+  assert.equal(opening.opening_contract.identity_arrival_establishment_authority, 'narrator_world_artifact_or_npc_initiative');
+  assert.equal(opening.opening_contract.player_remains_silent_and_action_free_before_first_literal, true);
   assert.equal(opening.opening_contract.selected_rank_must_remain_true, true);
   assert.equal(opening.opening_agency_contract.voluntary_player_action_authority, 'empty_before_first_submitted_literal');
   assert.equal(opening.opening_agency_contract.validated_setup_facts_are_not_player_action_authority, true);
