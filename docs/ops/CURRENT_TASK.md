@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-observer-completed-story-evidence-integrity-p1-correction-v1
 Mode: TARGETED CORE P1 — OBSERVER COMPLETED-STORY EVIDENCE INTEGRITY
-Updated: 2026-08-25 KST
+Updated: 2026-08-25 KST — terminal COMPLETE, awaiting operator review
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `486dc08eb787f694608773d44c3ca94878e7e14e`
@@ -309,3 +309,17 @@ On blocker/failure terminal:
 `OBSERVER_COMPLETED_STORY_EVIDENCE_INTEGRITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 After any deployed browser campaign, operator must perform independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing/registering the next task.
+
+## 11. Execution terminal — COMPLETE / awaiting operator review
+
+Terminal token:
+`OBSERVER_COMPLETED_STORY_EVIDENCE_INTEGRITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+- Reviewed executable/source commit: `72292961a0ad9ed2861ce62a645bad629bbc2e60` (pushed to `origin/main`).
+- Implementation: `runtime-r3/server/provider.js` now sends an explicit completed-Story evidence contract; `literal_action` is intent-only, `story_text` is the sole positive outcome evidence, and the coherent scene fields are constrained to one completed Story reality. `test/r3-observer-failure-provenance.test.mjs` asserts the built request contract/prompt.
+- Verification: syntax checks and `git diff --check` passed; focused 40/40 passed; broader R3/CSA/navigation/Opening set 236/236 passed; exactly one full `npm.cmd test` passed 583/583.
+- TEST deploy: unchanged contract-gate deploy passed; Worker `game-proxy-company-r3`, version `17e0bc12-b7da-475a-84f2-3b7160b846fe`, URL `https://game-proxy-company-r3.zeros.workers.dev`.
+- Fresh disposable browser game: `9c72745b-a7d0-4436-af5a-ea03abd317da` (adult profile 민준 / 신사업TF / TF팀장 / 32 / 180 / 75 / 16), preserved READ ONLY after campaign. Opening passed; exact S1 UI APPLY passed for 서원희 → 박정우; committed turns 0–4 only.
+- Live evidence chain: turn 2 PLAYER office movement had `story_text`, `observer_raw`, `observer_applied`, and durable `state_after.scene.location_id` all at `office`, with entered actors `heroine1` and `general_park_jungwoo`. Turn 3 kept PLAYER at `office`, recorded both NPC exits, and left durable `present_actor_ids` empty; raw/applied/durable scene facts agreed. Turn 4 neutral continuity and deliberate refresh restored the same office scene; `csa_active` remained `["r3_csa_1"]` and the UI reconstructed one active S1 rule.
+- No new P0/P1 was observed. No remote kiss/genital_touch probe, second game, reset, retry, preserved-game mutation, Provider/model/config change, DB write/migration, or Production action was performed.
+- Operator must independently review this fresh game under `POST_LIVE_CANON_AUDIT_CONTRACT` before registering another task.
