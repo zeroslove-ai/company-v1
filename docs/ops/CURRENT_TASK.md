@@ -5,7 +5,7 @@ Task ID: company-r3-navigation-actor-binding-self-stay-p1-continuation-v1
 Mode: TARGETED CORE P1 CONTINUATION — DETERMINISTIC PLAYER-NAVIGATION ACTOR BINDING
 Updated: 2026-08-25 KST
 Implementation SHA: `bdd7a99e2a9a6762f6fb1e315d38b6496d22390a`
-Final main SHA: pending lifecycle commit
+Final main SHA: `ef34b8abebfe0a3d348465d5040d1a30efc1ee60`
 TEST Worker after implementation: `game-proxy-company-r3` / `34d9b74f-55f5-4ff1-93db-c5ad6cdd3a0d`
 Fresh disposable live game: `9fcd03d0-4daf-4fb2-8ae8-fc438a46d6cf`
 Terminal: `NAVIGATION_ACTOR_BINDING_SELF_STAY_P1_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
