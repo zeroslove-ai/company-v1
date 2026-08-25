@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-s1-remote-supported-same-turn-execution-p1-correction-v1
 Mode: TARGETED CORE P1 — REMOTE ACTIVE-S1 SUPPORTED SAME-TURN EXECUTION
 Updated: 2026-08-25 KST
@@ -309,3 +309,55 @@ On blocker/failure terminal:
 
 After any deployed browser campaign, operator must perform independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing/registering the next task.
 Do not self-register the later genital-touch semantic-grounding task or any P2/media/TTS lane.
+
+## 11. Terminal report — BLOCKED at first live P1
+
+Terminal: `S1_REMOTE_SUPPORTED_SAME_TURN_EXECUTION_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+Task ID: `company-r3-s1-remote-supported-same-turn-execution-p1-correction-v1`
+Current task blob at start: `5975b338e86a78886e8961c3dea4659353a1e984`
+Registration main: `32773195d59b3b1809ef5d66b80520b4f278de1b`
+Starting HEAD: `32773195d59b3b1809ef5d66b80520b4f278de1b`
+Implementation SHA: `1cc59e3718ab255da531ccd0b1029893143f9381`
+Branch: `main`
+
+Implementation files:
+- `runtime-r3/domain/csa.js`
+- `runtime-r3/domain/memory.js`
+- `runtime-r3/server/provider.js`
+- `test/r3-csa-contract.test.mjs`
+- `test/r3-opening-contract.test.mjs`
+- `test/r3-source-correction.test.mjs`
+
+Validation before live acceptance:
+- Changed-file `node --check`: PASS.
+- `git diff --check`: PASS.
+- Focused S1/source/opening tests: PASS, 59/59.
+- Broader R3/CSA/navigation/turn-kernel/Opening regression set: PASS, 236/236.
+- Exactly one full `npm.cmd test` was executed after focused green; its output exceeded the runner capture limit, so this report does not invent an exit code or count.
+- Existing unchanged action contract gate: PASS (stage_a, contract `company-v1-action-authority` v2).
+- TEST API deploy through the unchanged R3 gate: PASS.
+- TEST Worker: `game-proxy-company-r3`.
+- TEST version: `be2a4d18-25aa-409f-8e0b-d03cf4c19213`.
+- TEST source: `1cc59e3718ab255da531ccd0b1029893143f9381`.
+
+Fresh browser campaign (exactly one, disposable adult game, preserved READ ONLY):
+- Game: `af323e14-b157-4c25-ba90-fd0dbeed78e6`.
+- Profile: 민준, age 32, 신사업TF, TF팀장, height 180, weight 75, length 16.
+- Opening: PASS. Story opened at 1층 로비; the private `상식개변` app was passively exposed only to PLAYER; no NPC/company provenance appeared; four Story-owned choices and free input were visible.
+- Exact S1 APPLY: PASS. The visible CSA UI selected `서원희` as designated recipient and `박정우` as designated counterparty under the strong `성적 업무지시권` rule and applied one structured rule-change turn. The resulting Story contained one official announcement with the exact direction.
+- First decisive P1 occurred at NPC-only movement, Turn 2. Literal submitted: `서원희 차장과 박정우 팀장은 함께 브랜드전략팀 회의실로 이동한다. 나는 신사업TF 사무실에서 업무를 계속한다.`
+- Expected: the configured pair becomes grounded together in the meeting room while PLAYER remains in the office and does not travel.
+- Observed Story: `1층 로비, 오전 9시 6분.`; the pair appeared from the lobby elevator, spoke in the lobby, and remained there. The Story did not move them to the meeting room. This is a reproducible live P1 at the prerequisite remote-pair grounding boundary.
+- Because the first P1 occurred at Turn 2, the remote supported `kiss` probe was not submitted; no unsupported probe, refresh/re-entry, second game, reset, retry, direct gameplay API substitute, or preserved-game access occurred.
+- Browser campaign was finalized with no tab kept. The disposable game remains preserved READ ONLY.
+
+Decisive live chain:
+`NPC-only movement literal -> Story remained in lobby -> remote pair was not grounded in meeting room -> stop before supported same-turn kiss acceptance.`
+
+Safety/scope:
+- DB writes: 0.
+- Migration/schema/RPC changes: 0.
+- Production access/change: 0.
+- Preserved evidence game `f235369d-ae36-46fe-abfa-3e4a1d0e65c1`: unchanged, READ ONLY.
+- No provider/model/config/frontend change, second Story/Observer/verifier, retry, new game, reset, or later task registration.
