@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-rule-change-temporal-continuity-live-acceptance-continuation-v1
 Mode: DEPLOY + LIVE ACCEPTANCE CONTINUATION — PRESERVE IMPLEMENTATION, NO NEW RUNTIME DESIGN
-Updated: 2026-08-25 11:47 KST
+Updated: 2026-08-25 12:02 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `e5428e4d3afa6de46e0c1fcd0795b923dfb4b4a3`
@@ -191,3 +191,21 @@ On blocker/failure:
 `RULE_CHANGE_TEMPORAL_CONTINUITY_LIVE_ACCEPTANCE_CONTINUATION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 Do not self-register the S1 semantic-grounding task. After any deployed browser campaign, operator must perform the independent whole-canon audit before choosing the next CURRENT_TASK.
+
+## 6. Terminal evidence — COMPLETE
+
+`RULE_CHANGE_TEMPORAL_CONTINUITY_LIVE_ACCEPTANCE_CONTINUATION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+
+- Start / registration main: `546a29ab93442442461eeea860fb39635206dbd1` on `main`.
+- Reviewed executable / preserved implementation: `b0efb2c56d53dc9e7f85de9953f1ff05a08507dd`; no executable delta exists from that implementation to registration main.
+- TEST contract gate: unchanged R3 gate evaluated the exact operator-approved ephemeral catalog artifact from Issue #68 `5404426864`; dry-run and deploy gate both passed at `stage_a`, contract `company-v1-action-authority` v2. Artifact was outside the repo and was not committed.
+- TEST deployment: API-only `game-proxy-company-r3`, Worker version `302dc331-a4f0-4336-a64d-d72689887104`, source `b0efb2c...`; frontend deploy `0`.
+- Fresh disposable game: exactly one new game, `98e070d9-b491-47a9-881b-45dc496a4046`; preserved read-only after campaign. Existing preserved games were not opened, reset, or mutated.
+- Opening: browser UI completed normal first arrival; passive unfamiliar private-app discovery remained present and NPCs were not shown as knowing it. Final committed Opening time was `Day 1 · 09:05`.
+- S1 APPLY primary gate: visible `강함 · 성적 업무지시권`, recipient `서원희`, counterparty `박정우`, female/male scopes. UI committed exactly one turn (`Turn 1`, `Day 1 · 09:10`) from pre-turn `09:05`. Story began with one server-owned `[공식 공지]`, grounded the institutional announcement through company monitor/company messenger channels, preserved PLAYER issuer and recipient/counterparty direction, and did not expose private-app screen/notification/self-open/flash/disappearance/supernatural authority or NPC app awareness. Story remained in the morning/current office scene; no `21:05`, evening, after-work, night, or hour-scale jump appeared. The committed UI showed the expected four Story-authored choices and no contradictory scene-time signal.
+- Supported kiss preservation: exact configured-pair literal `나는 서원희 차장에게 박정우 팀장에게 키스하라고 공식적으로 지시한다.` committed as `Turn 2`, `Day 1 · 09:15`. Story preserved the named actor/target direction and executed the kiss in the same Story turn, with no confirmation branch, future deferral, substitution, or second author. Character reaction remained grounded and separate from desire/affection.
+- Refresh/re-entry: one deliberate refresh only. The same game reconstructed `Turn 2`, `Day 1 · 09:15`, the exact committed Story and four choices; opening the visible app showed `현재 턴 2` and `활성 규칙 1`. No duplicate Story/Commit, phantom pending turn, or rejected-turn residue was visible; input/choices/app remained usable.
+- Observer / MM evidence: the UI showed no Mind Monitor projection on the S1 APPLY turn (fail-open, recorded as P2 evidence only) and showed applied surface/subconscious entries for `서원희` and `이메이` on the supported kiss turn. Raw Observer payload was not directly inspected in the browser-only acceptance path; no P0/P1 was inferred from that absence. This remains for the mandatory independent whole-canon audit.
+- Findings: new P0 `0`; new P1 `0`; P2 evidence: S1 MM projection absent in UI and raw/applied MM rate not measured; P3 `0`. The preserved known S1 genital-touch semantic-grounding P1 was not sampled or modified.
+- Forbidden counts: runtime/content/frontend/test edits `0`; DB writes `0`; migrations `0`; preserved-game mutation/reset `0`; Production access/deploy `0`; provider/model/config changes `0`; retry/sample loops `0`; second game `0`; duplicate Story/Observer/Commit `0`; new branch/PR/task file `0`; `OWNER_READY` `0`.
+- Required next stop: operator must perform the independent `POST_LIVE_CANON_AUDIT_CONTRACT` whole-canon review and record its `WHOLE_CANON_AUDIT_*` conclusion before registering any next task.
