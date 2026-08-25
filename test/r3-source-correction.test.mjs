@@ -231,6 +231,11 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   assert.ok(turn.actors.some(actor => actor.id === npcId && actor.role && actor.age));
   assert.equal(opening.opening_contract.first_day_at_company, true);
   assert.equal(opening.opening_contract.first_arrival_at_company, true);
+  const expectedFormalPosition = content.positions.find(item => item.position_id === profile.position_id)?.name ?? null;
+  assert.equal(opening.opening_contract.selected_formal_position_label, expectedFormalPosition);
+  assert.equal(opening.opening_contract.selected_formal_position_must_be_explicitly_established, Boolean(expectedFormalPosition));
+  assert.equal(opening.opening_contract.selected_formal_position_may_not_be_normalized, true);
+  assert.equal(opening.opening_contract.first_day_descriptors_may_surround_exact_position, true);
   assert.equal(opening.opening_contract.selected_rank_must_remain_true, true);
   assert.equal(opening.opening_agency_contract.voluntary_player_action_authority, 'empty_before_first_submitted_literal');
   assert.equal(opening.opening_agency_contract.validated_setup_facts_are_not_player_action_authority, true);

@@ -14,7 +14,7 @@ const GAME_ACCESS_SECRET = 'r3-test-secret';
 const profile = {
   name: 'R3 Opening Player',
   department_id: content.departments[0].department_id,
-  position_id: content.positions[0].position_id,
+  position_id: 'tf_lead',
   age: 29,
   height_cm: 178,
   weight_kg: 72,
@@ -76,6 +76,10 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(openingContext.opening_contract.first_appointment_context, true);
   assert.equal(openingContext.opening_contract.selected_department.id, profile.department_id);
   assert.equal(openingContext.opening_contract.selected_position.id, profile.position_id);
+  assert.equal(openingContext.opening_contract.selected_formal_position_label, 'TF팀장');
+  assert.equal(openingContext.opening_contract.selected_formal_position_must_be_explicitly_established, true);
+  assert.equal(openingContext.opening_contract.selected_formal_position_may_not_be_normalized, true);
+  assert.equal(openingContext.opening_contract.first_day_descriptors_may_surround_exact_position, true);
   assert.equal(openingContext.opening_contract.selected_rank_must_remain_true, true);
   assert.equal(openingContext.opening_contract.no_prior_tenure_or_company_relationships, true);
   assert.equal(openingContext.opening_contract.player_must_discover_private_app, true);
@@ -151,6 +155,13 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.doesNotMatch(storySystem, /masturbate_for_recipient|vaginal_sex_with_recipient|player_request_executes_immediately/i);
   assert.match(storySystem, /preserve that exact canonical destination name/i);
   assert.match(storySystem, /Opening-only product and agency law/i);
+  assert.match(storySystem, /OPENING FORMAL-IDENTITY PRECEDENCE/i);
+  assert.match(storySystem, /exact canonical string.*immutable validated PLAYER setup fact/i);
+  assert.match(storySystem, /must be explicitly established at least once in the Opening/i);
+  assert.match(storySystem, /use that exact canonical label character-for-character/i);
+  assert.match(storySystem, /Never normalize, shorten, paraphrase, infer, replace, downgrade, upgrade/i);
+  assert.match(storySystem, /first-day or newly-arrived descriptor may surround the exact label but may not replace it/i);
+  assert.match(storySystem, /generic or inferred title/i);
   assert.match(storySystem, /OPENING PLAYER-AGENCY PRECEDENCE/i);
   assert.match(storySystem, /before the first submitted literal.*voluntary PLAYER action authority is empty/i);
   assert.match(storySystem, /overrides any generic ordinary-turn consequence wording/i);
