@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-player-location-authority-p1-correction-v1
 Mode: TARGETED CORE P1 — PLAYER LOCATION / NPC-ONLY MOVEMENT EVIDENCE AUTHORITY
-Updated: 2026-08-25 KST
+Updated: 2026-08-25 KST — execution terminalized; blocked awaiting independent operator review
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Registration base main: `05845a3bedfd6b5c9cad5b3b0f1825e8d9b75edd`
@@ -22,6 +22,18 @@ Success terminal:
 
 Blocked terminal:
 `PLAYER_LOCATION_AUTHORITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+
+## Execution record — 2026-08-25
+
+- Execution identity: \`company-r3-player-location-authority-p1-correction-v1\` / READY blob \`feda8769e9f45ed194bb20cc4384eacb9d4070a4\` / \`main\`.
+- Source commit: \`df1a884\` (pushed to \`origin/main\`).
+- Changed files: \`runtime-r3/domain/navigation.js\`, \`runtime-r3/domain/observer-normalizer.js\`, \`test/r3-owner-p0-contract.test.mjs\`.
+- Verification: focused R3 acceptance \`86/86\`; full \`npm.cmd test\` \`585/585\`; \`node --check\` and \`git diff --check\` passed.
+- TEST deploy: API \`game-proxy-company-r3\`, version \`49cbcbee-37f5-4408-80ea-243a6a01fafb\`; frontend was not changed or redeployed.
+- Fresh disposable live game (READ ONLY): \`cc05bd1f-b8b7-4776-8436-47da43e5467d\`.
+- Live A: Opening committed at Turn 0 with canonical \`브랜드전략팀 사무실\` map location, registered characters, four Story choices, and free input.
+- Live B: submitted literal \`서원희와 박정우가 사무실을 나가 2층 공용 회의실로 이동한다.\`; the committed Story preserved the literal and narrated 서원희/박정우 leaving the office, while the visible durable company map kept PLAYER at \`브랜드전략팀 사무실\` but still marked 박정우 present. This is a first-turn NPC exits/presence coherence P1, so C/D/E were not run and no live retry/reset/second game was performed.
+- Terminal: \`PLAYER_LOCATION_AUTHORITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW\`.
 
 ## 0. Authority / reuse law
 
