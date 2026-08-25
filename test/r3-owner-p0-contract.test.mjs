@@ -5,6 +5,8 @@ import { loadCanonicalCompanyR3Content } from '../runtime-r3/domain/content-load
 import { createInitialState } from '../runtime-r3/domain/contracts.js';
 import { buildStoryContext } from '../runtime-r3/domain/memory.js';
 import { applyNavigationPostcondition, projectNavigationContext, resolvePlayerNavigationIntent } from '../runtime-r3/domain/navigation.js';
+import { normalizeObserver } from '../runtime-r3/domain/observer-normalizer.js';
+import { reduceObservation } from '../runtime-r3/domain/reducer.js';
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 
@@ -126,6 +128,73 @@ test('R3 Worker carries exact navigation through Story/Observer/Commit and does 
   assert.deepEqual(terminal.context.state.state.scene.present_actor_ids, []);
   assert.equal(terminal.context.turns.at(-1).literal_action, literal);
   assert.ok(terminal.context.turns.at(-1).warnings.includes('canonical_navigation_applied'));
+});
+
+test('R3 player location authority rejects NPC-only compound movement at the worker boundary', async () => {
+  const seowonhui = Object.values(content.characters).find(actor => actor.name === '\uC11C\uC6D0\uD76C');
+  const park = content.generalNpcs.find(actor => actor.name === '\uBC15\uC815\uC6B0');
+  assert.ok(seowonhui && park);
+  const state = createInitialState({ name: 'Player' }, 'brand_strategy_office', [seowonhui.character_id, park.id]);
+  const npcOnlyLiteral = seowonhui.name + '\uC640 ' + park.name + '\uAC00 \uC0AC\uBB34\uC2E4\uC744 \uB098\uAC00 2\uCE35 \uACF5\uC6A9 \uD68C\uC758\uC2E4\uB85C \uC774\uB3D9\uD55C\uB2E4.';
+  const npcOnlyQuote = seowonhui.name + '\uC640 ' + park.name + '\uAC00 2\uCE35 \uACF5\uC6A9 \uD68C\uC758\uC2E4\uB85C \uB4E4\uC5B4\uAC04\uB2E4.';
+  const seowonhuiExitQuote = seowonhui.name + '\uC640 ' + park.name + '\uAC00 \uC0AC\uBB34\uC2E4\uC744 \uB098\uAC14\uB2E4.';
+  const parkExitQuote = park.name + '\uAC00 \uC0AC\uBB34\uC2E4\uC744 \uB098\uAC14\uB2E4.';
+  const npcOnlyStory = npcOnlyQuote + ' ' + seowonhuiExitQuote + ' ' + parkExitQuote + ' \uD50C\uB808\uC774\uC5B4\uB294 \uBE0C\uB79C\uB4DC\uC804\uB7B5\uD300 \uC0AC\uBB34\uC2E4 \uBCF5\uB3C4\uC5D0 \uB0A8\uC544 \uC788\uB2E4.';
+  const choices = ['one', 'two', 'three', 'four'];
+  assert.equal(resolvePlayerNavigationIntent({ content, state, literalAction: npcOnlyLiteral }), null);
+  assert.equal(resolvePlayerNavigationIntent({ content, state, literalAction: seowonhui.name + '\uAC00 2\uCE35 \uACF5\uC6A9 \uD68C\uC758\uC2E4\uB85C \uC774\uB3D9\uD55C\uB2E4.' }), null);
+  assert.equal(resolvePlayerNavigationIntent({ content, state, literalAction: '\uB098\uB294 \uC2E0\uC0AC\uC5C5TF \uC0AC\uBB34\uC2E4\uB85C \uC774\uB3D9\uD55C\uB2E4.' }), null);
+  assert.deepEqual(resolvePlayerNavigationIntent({ content, state, literalAction: seowonhui.name + '\uAC00 \uD68C\uC758\uC2E4\uB85C \uC774\uB3D9\uD55C \uB4A4 \uB098\uB294 \uC9C1\uC6D0 \uB77C\uC6B4\uC9C0\uB85C \uC774\uB3D9\uD55C\uB2E4.' }), { kind: 'player_navigation', destination_location_id: 'employee_lounge', source: 'explicit_player_binding' });
+
+  const normalizedNpcOnly = normalizeObserver({
+    location: { location_id: 'meeting_room', quote: npcOnlyQuote },
+    exited: [
+      { actor_id: seowonhui.character_id, quote: seowonhuiExitQuote },
+      { actor_id: park.id, quote: parkExitQuote }
+    ],
+    present_actor_ids: [],
+    scene_note: '\uD50C\uB808\uC774\uC5B4\uB294 \uBE0C\uB79C\uB4DC\uC804\uB7B5\uD300 \uC0AC\uBB34\uC2E4 \uBCF5\uB3C4\uC5D0 \uB0A8\uC544 \uC788\uB2E4.'
+  }, { storyText: npcOnlyStory, content, currentState: state });
+  assert.equal(normalizedNpcOnly.location, undefined);
+  assert.ok(normalizedNpcOnly.warnings.includes('location_projection_dropped'));
+  assert.equal(normalizedNpcOnly.exited.length, 2);
+  const reducedNpcOnly = reduceObservation({ state, observation: normalizedNpcOnly, turnNumber: 1 });
+  assert.equal(reducedNpcOnly.state.scene.location_id, 'brand_strategy_office');
+  assert.deepEqual(reducedNpcOnly.state.scene.present_actor_ids, []);
+  assert.equal(reducedNpcOnly.state.scene.scene_note, normalizedNpcOnly.scene_note);
+
+  const explicitPlayerStory = '\uB098\uB294 \uC9C1\uC6D0 \uB77C\uC6B4\uC9C0\uC5D0 \uB3C4\uCC29\uD588\uB2E4.';
+  const normalizedPlayer = normalizeObserver({ location: { location_id: 'brand_strategy_office', quote: explicitPlayerStory } }, { storyText: explicitPlayerStory, content, currentState: state });
+  assert.equal(normalizedPlayer.location.location_id, 'employee_lounge');
+
+  const provider = {
+    async *story({ opening = false }) {
+      yield (opening ? '\uCCAB \uCD9C\uADFC \uC624\uD508\uB2DD\uC774 \uC5F4\uB9B0\uB2E4.' : npcOnlyStory) + '\n1. ' + choices[0] + '\n2. ' + choices[1] + '\n3. ' + choices[2] + '\n4. ' + choices[3];
+    },
+    async observe({ literalAction = '' }) {
+      if (!literalAction) return { present_actor_ids: [seowonhui.character_id, park.id], choices };
+      return {
+        location: { location_id: 'meeting_room', quote: npcOnlyQuote },
+        exited: [
+          { actor_id: seowonhui.character_id, quote: seowonhuiExitQuote },
+          { actor_id: park.id, quote: parkExitQuote }
+        ],
+        present_actor_ids: [],
+        scene_note: '\uD50C\uB808\uC774\uC5B4\uB294 \uBE0C\uB79C\uB4DC\uC804\uB7B5\uD300 \uC0AC\uBB34\uC2E4 \uBCF5\uB3C4\uC5D0 \uB0A8\uC544 \uC788\uB2E4.',
+        choices
+      };
+    }
+  };
+  const worker = createR3Worker({ store: new InMemoryR3Store(), provider, content, gameAccessSecret: SECRET });
+  const gameId = await setup(worker);
+  assert.equal((await sseEvents(await actionRequest(worker, '/api/r3/games/' + gameId + '/opening', { method: 'POST' }))).at(-1).data.status, 'committed');
+  const events = await sseEvents(await actionRequest(worker, '/api/r3/games/' + gameId + '/turn', { method: 'POST', body: { action_id: 'npc-only-authority', expected_turn: 1, literal_action: npcOnlyLiteral } }));
+  const terminal = events.at(-1).data;
+  assert.equal(terminal.status, 'committed');
+  assert.equal(terminal.context.state.state.scene.location_id, 'brand_strategy_office');
+  assert.deepEqual(terminal.context.state.state.scene.present_actor_ids, []);
+  assert.equal(terminal.context.turns.at(-1).observer_applied.location, undefined);
+  assert.equal(terminal.context.turns.at(-1).literal_action, npcOnlyLiteral);
 });
 
 test('ambiguous or non-movement location mentions fail open without fabricated navigation', () => {

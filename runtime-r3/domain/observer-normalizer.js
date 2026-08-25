@@ -87,6 +87,16 @@ function locationIdFromCanonicalName(quote, content) {
     .sort((left, right) => right.name.length - left.name.length)[0]?.location_id ?? null;
 }
 
+const PLAYER_LOCATION_SUBJECT = /\b(?:I|me|myself|you|player)\b|(?:\uB098\uB294|\uB0B4\uAC00|\uC81C\uAC00|\uC800\uB294|\uD50C\uB808\uC774\uC5B4|\uB2F9\uC2E0)/iu;
+const NON_PLAYER_LOCATION_SUBJECT = /\b(?:npc|they|he|she|employee|colleague)\b|(?:\uADF8\uB4E4|\uADF8\uB140|\uC9C1\uC6D0|\uB3D9\uB8CC)/iu;
+
+function hasPlayerLocationEvidence(quote, content) {
+  if (PLAYER_LOCATION_SUBJECT.test(quote)) return true;
+  const actorMention = Object.values(actorDirectory(content))
+    .some(actor => text(actor?.name) && quote.includes(actor.name));
+  return !actorMention && !NON_PLAYER_LOCATION_SUBJECT.test(quote);
+}
+
 function groundedMediaHint(item, storyText, content, presentActorIds) {
   if (!item || typeof item !== 'object') return null;
   const actorId = text(item.actor_id);
@@ -111,12 +121,13 @@ export function normalizeObserver(input, { storyText = '', literalAction = '', c
   const location = observer.location && typeof observer.location === 'object' ? observer.location : null;
   const locationQuote = location ? evidenceQuote(location.quote, storyText) : '';
   const canonicalLocationId = locationQuote ? locationIdFromCanonicalName(locationQuote, content) : null;
-  if (location && locations.has(location.location_id) && locationQuote) {
+  const playerLocationEvidence = locationQuote ? hasPlayerLocationEvidence(locationQuote, content) : false;
+  if (location && locations.has(location.location_id) && locationQuote && playerLocationEvidence) {
     const locationId = canonicalLocationId ?? location.location_id;
     if (canonicalLocationId && canonicalLocationId !== location.location_id) warnings.push('location_projection_corrected');
     normalized.location = { location_id: locationId, quote: locationQuote };
   }
-  else if (location && canonicalLocationId) normalized.location = { location_id: canonicalLocationId, quote: locationQuote };
+  else if (location && canonicalLocationId && playerLocationEvidence) normalized.location = { location_id: canonicalLocationId, quote: locationQuote };
   else if (location) warnings.push('location_projection_dropped');
   const directory = actorDirectory(content);
   const eligibleMonitorActors = new Set([...currentState?.scene?.present_actor_ids ?? []].filter(actorId => actors.has(actorId)));
