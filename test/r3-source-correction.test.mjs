@@ -188,6 +188,27 @@ test('R3 normalizer reconciles grounded exits and entries against contradictory 
   assert.equal(reduced.state.scene.location_id, currentActor.default_location_id);
 });
 
+test('R3 Observer re-entry output retains prior-absent co-located actors without promoting remote mentions', () => {
+  const returningHeroine = content.characters.heroine1;
+  const currentHeroine = content.characters.heroine2;
+  const returningNpc = content.generalNpcs.find(actor => actor.id === 'general_park_jungwoo');
+  const remoteNpc = content.generalNpcs.find(actor => actor.id !== returningNpc.id);
+  const state = createInitialState({ name: 'Player' }, 'brand_strategy_office', [currentHeroine.character_id, 'heroine3', 'heroine4', 'heroine5']);
+  const story = `${returningHeroine.name} and ${returningNpc.name} return to the office and physically face each other after leaving the meeting room. ${remoteNpc.name} is mentioned only in a remote phone update.`;
+  const normalized = normalizeObserver({
+    entered: [
+      { actor_id: returningHeroine.character_id, quote: `${returningHeroine.name} and ${returningNpc.name} return to the office` },
+      { actor_id: returningNpc.id, quote: `${returningNpc.name} return to the office and physically face each other` }
+    ],
+    present_actor_ids: [...state.scene.present_actor_ids, returningHeroine.character_id, returningNpc.id],
+    scene_note: `${returningHeroine.name} and ${returningNpc.name} are physically present in the office; ${remoteNpc.name} remains remote.`
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.entered.map(item => item.actor_id), [returningHeroine.character_id, returningNpc.id]);
+  assert.deepEqual(normalized.present_actor_ids, [...state.scene.present_actor_ids, returningHeroine.character_id, returningNpc.id]);
+  assert.equal(normalized.present_actor_ids.includes(remoteNpc.id), false);
+  assert.equal(normalized.scene_note.includes(remoteNpc.name), true);
+});
+
 test('R3 Story context carries canonical product, location, heroine cards, and general-NPC facts', () => {
   const heroine = Object.values(content.characters)[0];
   const locationId = heroine.default_location_id;

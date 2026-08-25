@@ -189,6 +189,11 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(observerContext.current_context.scene.scene_note, undefined);
   assert.equal(observerContext.current_context.scene.location_id, state.scene.location_id);
   assert.deepEqual(observerContext.current_context.scene.present_actor_ids, state.scene.present_actor_ids);
+  assert.deepEqual(observerContext.observer_scene_contract.prior_scene, {
+    location_id: state.scene.location_id,
+    present_actor_ids: state.scene.present_actor_ids
+  });
+  assert.match(observerContext.observer_scene_contract.post_story_snapshot, /prior_scene is a baseline only and is never the answer/i);
   assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, player_inner_thought, mind_monitor, choices, media_hint, and warnings/i);
   assert.match(observerSystem, /bounded registered character canon/i);
   assert.match(observerSystem, /canonical_location_directory.*exact registered \{location_id,name\} pairs/i);
@@ -196,6 +201,12 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /exact canonical actor IDs.*never actor names/i);
   assert.match(observerSystem, /exact contiguous quote must contain that actor's exact canonical name/i);
   assert.match(observerSystem, /Scene fields are one post-Story snapshot/i);
+  assert.match(observerSystem, /present_actor_ids only as the prior-state baseline/i);
+  assert.match(observerSystem, /enumerate every registered actor physically co-located/i);
+  assert.match(observerSystem, /including a registered actor absent from the baseline who explicitly returns/i);
+  assert.match(observerSystem, /Never omit a returning actor merely because that actor was absent from the baseline/i);
+  assert.match(observerSystem, /do not invent a quote merely for bookkeeping/i);
+  assert.match(observerSystem, /A remote or historical actor mention is not physical presence/i);
   assert.match(observerSystem, /present_actor_ids is the exact set of registered actors physically co-located in that player scene/i);
   assert.match(observerSystem, /Grounded entered\/exited evidence must agree with present_actor_ids/i);
   assert.match(observerSystem, /NPC-only movement never moves the player/i);
