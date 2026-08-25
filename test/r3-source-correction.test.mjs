@@ -232,6 +232,10 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   assert.equal(opening.opening_contract.first_day_at_company, true);
   assert.equal(opening.opening_contract.first_arrival_at_company, true);
   assert.equal(opening.opening_contract.selected_rank_must_remain_true, true);
+  assert.equal(opening.opening_agency_contract.voluntary_player_action_authority, 'empty_before_first_submitted_literal');
+  assert.equal(opening.opening_agency_contract.validated_setup_facts_are_not_player_action_authority, true);
+  assert.equal(opening.opening_agency_contract.passive_app_discovery_without_player_manipulation, true);
+  assert.equal(opening.opening_agency_contract.no_completed_player_action_before_first_literal, true);
 });
 
 test('R3 player inner thought is a bounded committed JSON projection with no migration-shaped state', () => {

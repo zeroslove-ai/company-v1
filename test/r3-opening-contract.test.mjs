@@ -86,7 +86,10 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(openingContext.next_action_contract.current_story_only, true);
   assert.equal(openingContext.player_agency_contract.literal_action_is_player_choice, true);
   assert.equal(openingContext.opening_agency_contract.phase, 'before_first_player_input');
+  assert.equal(openingContext.opening_agency_contract.voluntary_player_action_authority, 'empty_before_first_submitted_literal');
+  assert.equal(openingContext.opening_agency_contract.validated_setup_facts_are_not_player_action_authority, true);
   assert.equal(openingContext.opening_agency_contract.passive_scene_exposure_allowed, true);
+  assert.equal(openingContext.opening_agency_contract.passive_app_discovery_without_player_manipulation, true);
   assert.deepEqual(openingContext.opening_agency_contract.passive_exposure_examples, ['app_present', 'app_appears', 'app_visible', 'player_can_notice_app']);
   assert.deepEqual(openingContext.opening_agency_contract.voluntary_player_action_forbidden, [
     'speech_or_reply', 'nod_or_gesture', 'movement', 'touching', 'clicking', 'typing',
@@ -94,6 +97,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
     'acknowledging', 'deciding', 'accepting_refusing', 'other_intentional_action'
   ]);
   assert.equal(openingContext.opening_agency_contract.player_choice_must_remain_unmade, true);
+  assert.equal(openingContext.opening_agency_contract.no_completed_player_action_before_first_literal, true);
   assert.equal(openingContext.opening_agency_contract.end_with_player_agency, true);
 
   const payloads = [];
@@ -147,6 +151,12 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.doesNotMatch(storySystem, /masturbate_for_recipient|vaginal_sex_with_recipient|player_request_executes_immediately/i);
   assert.match(storySystem, /preserve that exact canonical destination name/i);
   assert.match(storySystem, /Opening-only product and agency law/i);
+  assert.match(storySystem, /OPENING PLAYER-AGENCY PRECEDENCE/i);
+  assert.match(storySystem, /before the first submitted literal.*voluntary PLAYER action authority is empty/i);
+  assert.match(storySystem, /overrides any generic ordinary-turn consequence wording/i);
+  assert.match(storySystem, /Validated setup facts.*never permission to invent a player action/i);
+  assert.match(storySystem, /without the player placing.*picking up.*manipulating it/i);
+  assert.match(storySystem, /Leave the player choice unmade/i);
   assert.match(storySystem, /passive scene exposure is allowed/i);
   for (const forbidden of ['speech or reply', 'nod or gesture', 'movement', 'touching', 'clicking', 'typing', 'opening, closing, hiding the app', 'drinking, eating', 'reviewing, working', 'acknowledging, deciding', 'accepting, refusing', 'other intentional player action']) {
     assert.match(storySystem, new RegExp(forbidden.replace(/[.*+?^${}()|[\\]\\]/g, '\\\\$&'), 'i'));

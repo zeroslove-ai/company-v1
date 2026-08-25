@@ -166,7 +166,10 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     } : null,
     opening_agency_contract: opening ? {
       phase: 'before_first_player_input',
+      voluntary_player_action_authority: 'empty_before_first_submitted_literal',
+      validated_setup_facts_are_not_player_action_authority: true,
       passive_scene_exposure_allowed: true,
+      passive_app_discovery_without_player_manipulation: true,
       passive_exposure_examples: ['app_present', 'app_appears', 'app_visible', 'player_can_notice_app'],
       voluntary_player_action_forbidden: [
         'speech_or_reply', 'nod_or_gesture', 'movement', 'touching', 'clicking', 'typing',
@@ -174,6 +177,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
         'acknowledging', 'deciding', 'accepting_refusing', 'other_intentional_action'
       ],
       player_choice_must_remain_unmade: true,
+      no_completed_player_action_before_first_literal: true,
       end_with_player_agency: true
     } : null,
     next_action_contract: {
