@@ -261,6 +261,13 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(ordinarySystem, /actor, target, action, movement\/destination, request, refusal, self-state, topic, and intent/i);
   assert.match(ordinarySystem, /consequences are allowed.*replace, invert, redirect, or contradict/i);
   assert.match(ordinarySystem, /not automatic proof of external outcome or NPC compliance/i);
+  assert.match(ordinarySystem, /voluntary PLAYER movement.*sole authority/i);
+  assert.match(ordinarySystem, /NPC-only movement.*remote target location.*never authorizes PLAYER standing to go, following, walking, approaching, entering, knocking, accompanying, returning/i);
+  assert.match(ordinarySystem, /An external consequence may displace PLAYER only when the world physically causes it/i);
+  assert.match(ordinarySystem, /remote instruction must be delivered without moving PLAYER/i);
+  assert.match(ordinarySystem, /true explicit literal navigation remains supported/i);
+  assert.deepEqual(ordinaryContext.player_movement_authority_contract, sentContext.player_movement_authority_contract);
+  assert.equal(ordinaryContext.player_movement_authority_contract.submitted_literal_is_sole_voluntary_movement_authority, true);
 });
 
 test('R3 choice normalization keeps Story-owned choices when Observer choices are malformed', () => {

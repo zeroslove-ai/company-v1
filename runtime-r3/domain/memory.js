@@ -8,13 +8,23 @@ const canonicalClock24h = time => {
   return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
 };
 const REQUEST_TRIGGER_VALUES = new Set(['on_player_request', 'on_counterparty_request']);
+const PLAYER_MOVEMENT_AUTHORITY_CONTRACT = Object.freeze({
+  submitted_literal_is_sole_voluntary_movement_authority: true,
+  remote_target_or_npc_motion_never_implies_player_movement: true,
+  unchosen_bridge_actions_forbidden: Object.freeze([
+    'standing_to_go', 'following', 'walking', 'approaching', 'entering', 'knocking', 'accompanying', 'returning'
+  ]),
+  external_consequence_boundary: 'An independently grounded external consequence may displace PLAYER only when the world physically causes it; it never authorizes Story-authored voluntary standing, following, walking, approaching, entering, knocking, accompanying, or returning.',
+  explicit_literal_navigation_remains_supported: true,
+  boundary: 'The submitted literal is the sole authority for voluntary PLAYER movement in this Story turn. A remote target, NPC movement, stale scene, or narrative convenience may not add a voluntary PLAYER movement or bridge action that the literal did not choose. Preserve the canonical player location unless the literal explicitly binds player movement.'
+});
 const PLAYER_AGENCY_CONTRACT = Object.freeze({
   literal_action_is_player_choice: true,
   preserve_explicit_dimensions: Object.freeze([
     'actor', 'target', 'action', 'movement/destination', 'request', 'refusal', 'self-state', 'topic', 'intent'
   ]),
-  choice_boundary: 'Preserve explicit player choices; Story may narrate consequences around or after the chosen beat, but must not replace, invert, redirect, or contradict them.',
-  npc_movement_boundary: 'NPC-only movement, NPC-to-NPC action, remote target location, stale scene context, or narrative convenience never authorizes PLAYER follow, entry, accompaniment, teleport, or other movement; preserve the canonical player scene unless the literal explicitly binds player movement or an independently grounded external consequence does so.',
+  choice_boundary: 'Preserve explicit player choices; Story may narrate grounded non-movement consequences around or after the chosen beat, but must not replace, invert, redirect, contradict, or use a consequence to add voluntary PLAYER movement.',
+  npc_movement_boundary: 'NPC-only movement, NPC-to-NPC action, remote target location, stale scene context, or narrative convenience never authorizes PLAYER follow, entry, accompaniment, teleport, or other voluntary movement; preserve the canonical player scene unless the literal explicitly binds player movement. An external consequence is not permission for Story-authored voluntary travel.',
   self_state_boundary: 'An explicit player self-state remains true for the chosen scene beat; do not inject same-beat NPC approach or dialogue that makes that self-state impossible unless the literal permits that interaction.',
   external_outcome_boundary: 'For ordinary requests without an applicable rule-owned same-turn authority exception, player input is not automatic proof of external outcome or NPC compliance.',
   app_topic_boundary: 'Mentioning the private app, a rule, or a topic is not a player app interaction.',
@@ -98,6 +108,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     opening,
     literal_action: storyLiteralAction,
     player_agency_contract: PLAYER_AGENCY_CONTRACT,
+    player_movement_authority_contract: PLAYER_MOVEMENT_AUTHORITY_CONTRACT,
     canonical_player_identity: canonicalPlayerIdentity,
     player_identity_contract: PLAYER_IDENTITY_CONTRACT,
     story_dramatization_contract: STORY_DRAMATIZATION_CONTRACT,

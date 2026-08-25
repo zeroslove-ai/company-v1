@@ -260,11 +260,19 @@ test('R3 ordinary Story context carries one fixed generic player agency contract
   assert.deepEqual(first.player_agency_contract.preserve_explicit_dimensions, [
     'actor', 'target', 'action', 'movement/destination', 'request', 'refusal', 'self-state', 'topic', 'intent'
   ]);
-  assert.match(first.player_agency_contract.choice_boundary, /consequences.*replace, invert, redirect, or contradict/i);
+  assert.match(first.player_agency_contract.choice_boundary, /grounded non-movement consequences.*replace, invert, redirect, contradict/i);
   assert.match(first.player_agency_contract.self_state_boundary, /same-beat NPC approach or dialogue.*impossible.*literal permits/i);
   assert.match(first.player_agency_contract.external_outcome_boundary, /not automatic proof of external outcome or NPC compliance/i);
   assert.match(first.player_agency_contract.npc_movement_boundary, /NPC-only movement.*never authorizes PLAYER follow, entry, accompaniment, teleport/i);
   assert.match(first.player_agency_contract.npc_movement_boundary, /preserve the canonical player scene/i);
+  assert.equal(first.player_movement_authority_contract.submitted_literal_is_sole_voluntary_movement_authority, true);
+  assert.equal(first.player_movement_authority_contract.remote_target_or_npc_motion_never_implies_player_movement, true);
+  assert.deepEqual(first.player_movement_authority_contract.unchosen_bridge_actions_forbidden, [
+    'standing_to_go', 'following', 'walking', 'approaching', 'entering', 'knocking', 'accompanying', 'returning'
+  ]);
+  assert.match(first.player_movement_authority_contract.external_consequence_boundary, /world physically causes it.*never authorizes Story-authored voluntary/i);
+  assert.equal(first.player_movement_authority_contract.explicit_literal_navigation_remains_supported, true);
+  assert.match(first.player_movement_authority_contract.boundary, /sole authority for voluntary PLAYER movement/i);
 });
 
 test('R3 active S1 adds a finite same-turn authority exception without weakening ordinary agency', () => {
