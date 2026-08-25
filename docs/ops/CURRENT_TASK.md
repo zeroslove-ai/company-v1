@@ -1,28 +1,29 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-observer-completed-story-evidence-integrity-p1-correction-v1
-Mode: TARGETED CORE P1 — OBSERVER COMPLETED-STORY EVIDENCE INTEGRITY
-Updated: 2026-08-25 KST — terminal COMPLETE, awaiting operator review
+Status: READY
+Task ID: company-r3-registered-npc-formal-identity-p1-correction-v1
+Mode: TARGETED CORE P1 — REGISTERED NPC FORMAL ROLE / RANK IDENTITY
+Updated: 2026-08-25 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Registration base main: `486dc08eb787f694608773d44c3ca94878e7e14e`
-Previous task: `company-r3-s1-remote-supported-same-turn-execution-p1-correction-v1`
-Previous terminal: Issue #68 `5406451023`
-Operator whole-canon review: Issue #68 `5406495285`
-Operator review narrowing/correction: Issue #68 `5406502460`
-Whole-canon conclusion: `WHOLE_CANON_AUDIT_REORDERS_NEXT_LANE`
-Previous implementation to preserve but NOT yet claim live-accepted: `1cc59e3718ab255da531ccd0b1029893143f9381`
-Fresh decisive evidence game: `af323e14-b157-4c25-ba90-fd0dbeed78e6` — READ ONLY
-Preserve remote-S1 evidence game: `f235369d-ae36-46fe-abfa-3e4a1d0e65c1` — READ ONLY
+Registration base main: `9ff29a3c0182ca6ac714302af08dbe0e1cd026d4`
+Previous task: `company-r3-observer-completed-story-evidence-integrity-p1-correction-v1`
+Previous terminal: Issue #68 `5406616718`
+Operator whole-canon review: Issue #68 `5406676505`
+Owner recurrence-root addendum: Issue #68 `5406605153`
+Promoted CSA authority commit: `87e24a37795d63dbf3777c3fe3ae5052bff4eda6`
+Promoted live-acceptance commit: `9ff29a3c0182ca6ac714302af08dbe0e1cd026d4`
+Accepted Observer executable/source SHA: `72292961a0ad9ed2861ce62a645bad629bbc2e60`
+Preserve remote-S1 implementation awaiting valid live acceptance: `1cc59e3718ab255da531ccd0b1029893143f9381`
+Fresh decisive evidence game: `9c72745b-a7d0-4436-af5a-ea03abd317da` — READ ONLY
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 Operator-approved TEST catalog artifact when local psql is unavailable: Issue #68 `5404426864`
 
 Success terminal:
-`OBSERVER_COMPLETED_STORY_EVIDENCE_INTEGRITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+`REGISTERED_NPC_FORMAL_IDENTITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
 
 Blocked terminal:
-`OBSERVER_COMPLETED_STORY_EVIDENCE_INTEGRITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+`REGISTERED_NPC_FORMAL_IDENTITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 ## 0. Authority / reuse law
 
@@ -35,9 +36,9 @@ Mandatory read order before implementation:
 4. `docs/redesign/CSA_COMPATIBILITY_AND_AUTHORITY_CONTRACT.md`
 5. `docs/redesign/LIVE_ACCEPTANCE_MATRIX.md`
 6. `docs/redesign/POST_LIVE_CANON_AUDIT_CONTRACT.md`
-7. terminal `5406451023`
-8. operator review `5406495285`
-9. operator narrowing/correction `5406502460`
+7. owner addendum `5406605153`
+8. previous terminal `5406616718`
+9. operator whole-canon review `5406676505`
 10. this CURRENT_TASK.
 
 Preserve A′/R3 exactly: server-owned turn kernel -> one Story LLM -> one post-Story Observer -> atomic Commit + optional sidecars.
@@ -46,152 +47,152 @@ Do NOT create a new CURRENT_TASK file, branch, ops branch, feature branch, PR, r
 Do NOT access Production.
 Do NOT mutate/reset/retry any preserved evidence game.
 
-## 1. Why this task exists — Observer promoted unexecuted literal outcomes into committed scene reality
+## 1. Why this task exists — fresh Story changes registered NPC formal identity across turns
 
-Fresh game `af323e14-b157-4c25-ba90-fd0dbeed78e6`, Turn 2, proves the defect read-only.
+Fresh game `9c72745b-a7d0-4436-af5a-ea03abd317da` is preserved READ ONLY.
 
-Turn 1 durable scene before the failing turn was still:
-- `location_id = lobby`
-- S1 active with exact pair `서원희 -> 박정우`.
+Canonical repository facts on current main:
+- `content/characters.json`
+  - `heroine1 / 서원희`
+  - department: `브랜드전략팀`
+  - position: `차장`
+  - role_title: `브랜드전략팀 팀장`
+- `content/general_npcs.json`
+  - `general_park_jungwoo / 박정우`
+  - role: `브랜드전략1팀 팀장`
+- `general_oh_sehoon / 오세훈`
+  - role: `시설·보안 담당`
+  - no canonical `과장` title is supplied.
 
-Submitted Turn 2 literal:
-`서원희 차장과 박정우 팀장은 함께 브랜드전략팀 회의실로 이동한다. 나는 신사업TF 사무실에서 업무를 계속한다.`
+Fresh Story contradicts those stable repository facts:
+- Turn 1: `서원희 사원`, `박정우 대리`, `오 과장`.
+- Turn 2: repeats `서원희 사원`, `박정우 대리`.
+- Turn 3: switches to `서원희 차장`, `박정우 팀장`.
 
-The prior acceptance setup itself was flawed: PLAYER had not first been moved from the lobby to the office, while the task simultaneously expected PLAYER to remain in the office without travel. Therefore this fresh turn is NOT clean authority to reopen the already accepted NPC-only/no-invented-player-travel Story implementation. Do not patch Story movement solely from this evidence.
+Names/IDs are correct, but formal company hierarchy changes from turn to turn. That is visible character/world continuity corruption in a company-life character simulation.
 
-However one independent P1 is clean regardless of that setup flaw.
-
-Actual completed Story stayed in the lobby and did NOT establish:
-- PLAYER working in the new-business TF office;
-- 서원희/박정우 reaching the brand-strategy meeting room.
-
-Observer raw nevertheless emitted those unexecuted literal outcomes as if they were completed Story facts:
-- `location.location_id = new_business_tf_office`, with a quote copied from the literal rather than the completed Story;
-- `scene_note`: PLAYER is working alone in the new-business TF office and 서원희/박정우 moved to the meeting room;
-- `turn_summary`: repeats the same successful outcomes.
-
-Runtime correctly rejected the unsupported structured location projection with `location_projection_dropped`, so durable `scene.location_id` remained `lobby`. But `scene_note` and `turn_summary` still committed the contradictory invented reality.
-
-This creates a split committed world:
-- structured canonical location = lobby;
-- durable natural-language scene = PLAYER in office, NPC pair in meeting room;
-- completed Story = lobby with the pair still there.
-
-This violates existing binding law:
-- `P-SCENE-001`: one immediate committed scene reality;
-- `P-AGENCY-001`: input may be blocked or fail, but the system may not silently pretend a different completed reality;
-- Observer is post-Story extraction, not a second narrative author;
-- `POST_LIVE_CANON_AUDIT_CONTRACT` requires Story / observer raw / applied / durable agreement.
-
-No new product decision is needed.
+The previous Observer P1 is accepted and must not be reopened: fresh Turn 3 proved Story -> observer raw -> observer applied -> durable scene agreement after `72292961...`.
 
 ## 2. First owning boundary / hypothesis to prove
 
 Inspect first:
+- `runtime-r3/domain/content.js`
+  - `canonicalActors()`;
+- `runtime-r3/domain/memory.js`
+  - Story context actor projection;
 - `runtime-r3/server/provider.js`
-  - `OBSERVER_SYSTEM_PROMPT`
-  - `OBSERVER_SCENE_PRESENCE_PROMPT`
-  - `OBSERVER_PRODUCT_PROMPT` / `OBSERVER_ACCEPTANCE_PROMPT`
-  - actual observer user payload construction;
-- existing Observer extraction/application validation only where already relevant;
-- `runtime-r3/domain/memory.js` only if a small explicit observer evidence contract belongs in the request context;
-- focused observer/source-correction/scene tests.
+  - Story system/product prompt and actual Story request construction;
+- focused Story/context/character/source-correction tests.
 
-Current source already says in places that:
-- Observer returns JSON for the completed current Story;
-- literal movement alone is intent/input, not successful movement evidence for `location`;
-- `scene_note` is synthesized from the completed current Story/current scene.
+Current source already projects:
+- heroine `name`, `department`, `position`;
+- general NPC `name`, `role`, `department_id`.
 
-Live evidence proves that evidence precedence is still ambiguous because `literal_action` is supplied beside `story_text`, and the model promoted literal outcome language into `location`, `scene_note`, and `turn_summary` despite the completed Story not establishing it.
+But unlike PLAYER, registered NPCs have no explicit hard formal-identity contract in Story context/prompt. Also heroine `role_title` is not currently exposed by `canonicalActors()` even though it is canonical repository content.
 
-Required correction is the smallest existing Observer-boundary clarification:
+Hypothesis:
+- the model receives actor facts as descriptive context but not as immutable formal identity;
+- it therefore normalizes/invents familiar office ranks (`사원`, `대리`, `과장`) despite canonical content.
 
-- `story_text` is the sole positive evidence source for completed external outcomes and post-Story scene facts;
-- `literal_action` is input/intent/context only, never proof that its requested movement/action/outcome happened;
-- `current_context` is prior-state baseline only, not proof of a changed outcome;
-- if Story omits, blocks, contradicts, or fails to establish a literal-requested outcome, Observer must represent the completed Story reality rather than completing the request itself;
-- `location`, `entered`, `exited`, `present_actor_ids`, `scene_note`, and `turn_summary` must describe one coherent completed-Story reality;
-- `scene_note`/`turn_summary` may mention an attempted/requested action only as an attempt/request when Story itself establishes that attempt, never as a completed fact merely because the literal contains it.
+Fix the smallest existing Story actor identity boundary. If another earlier existing boundary is proven, fix that instead and explain it in terminal.
 
-If the clean first broken boundary is instead an earlier existing Observer request/projection helper, fix that smallest boundary and explain it in the terminal.
+## 3. Required product behavior
 
-## 3. Allowed implementation
+For every registered actor supplied to Story:
+
+- canonical actor `id` and `name` remain exact;
+- when Story mentions a canonical heroine's formal department, position/rank, or role title, use the corresponding canonical repository value;
+- when Story mentions a general NPC's formal role/title, use the canonical repository `role` value or a faithful non-contradictory short reference only if it does not invent a different rank;
+- never downgrade/upgrade/swap a registered actor's formal identity across turns;
+- if canonical actor data supplies **no formal rank**, Story must not invent one merely for naturalness. Name-only or canonical-role reference is allowed;
+- Story is not required to mechanically print full titles on every mention. Natural name-only references are valid. The hard boundary applies whenever a formal department/rank/role is stated or used as address;
+- character prompt labels remain internal dramatization guidance and must not be recited as dossier prose.
+
+Examples for decisive regression:
+- `서원희 차장` is valid; `서원희 사원` is not.
+- `박정우 팀장` / canonical `브랜드전략1팀 팀장` context is valid; `박정우 대리` is not.
+- `오세훈 담당자` / `시설·보안 담당 오세훈` / name-only may be valid; `오 과장` is not supported by canonical content and must not be invented.
+
+This task does not create a new character engine or relationship system.
+
+## 4. Allowed implementation
 
 Allowed:
-- narrow Observer system/product prompt wording and precedence/order;
-- a small explicit structured `observer_evidence_contract` (or equivalent) in the existing Observer request payload if that makes the existing law unambiguous;
-- narrow existing pure-helper changes needed only to carry that contract;
-- focused regression tests that inspect the actual built Observer request/prompt and existing projection behavior.
+- narrow `canonicalActors()` projection additions needed to expose already-existing canonical formal identity, including heroine `role_title` if useful;
+- a small explicit `canonical_actor_identity_contract` or equivalent Story-context structure;
+- narrow Story system/product prompt wording/order that makes registered NPC formal identity immutable when mentioned;
+- focused tests against the **actual built Story request/context/prompt**.
 
-This task is NOT permission to add a semantic outcome validator.
+Prefer one canonical projection from repository content. Do not duplicate semantic catalogs.
 
-## 4. Forbidden approaches
+## 5. Forbidden approaches
 
 Do NOT add:
-- a second Observer, verifier, repair LLM, reaction LLM, or second Story;
+- post-Story text rewriting or title substitution;
+- regex/keyword rank fixer;
+- fuzzy actor matcher, NER, semantic classifier, or new parser generation;
+- new character/relationship/hierarchy engine;
 - retry/regeneration/sample-until-pass;
-- a Korean keyword/regex movement/action parser, NER, fuzzy matcher, semantic classifier, or third parser generation;
-- a generic physical/location graph or outcome engine;
-- post-Observer semantic rewrite of Story meaning;
-- deterministic natural-language `scene_note`/summary author that replaces Observer;
-- generic relation/consent/emotion/corruption/obedience engine;
+- second Story, verifier, repair LLM, or second Observer;
 - provider/model/temperature/token/secret/config workaround;
 - DB/schema/RPC/migration/backfill;
 - Production;
 - frontend change unless directly proven necessary (not expected);
-- S1 family expansion or semantic-grounding changes;
+- CSA family expansion or generic action executor;
 - preserved-game mutation;
 - branch/PR/new task file;
 - `OWNER_READY`.
 
-Do not use this task to fix the separate known `성기를 직접 검사` / `genital_touch` S1 semantic-grounding P1.
-Do not use this task to rework remote S1 execution; `1cc59e...` remains implemented but awaits a valid live prerequisite campaign.
+Do not use this task to:
+- rerun/fix remote supported S1 execution;
+- test/fix `성기를 직접 검사` / `genital_touch` semantic grounding;
+- fix CHANGE/REMOVE clothing provenance;
+- fix continuous-rule deferral;
+- fix MM/internal-copy/media/TTS.
 
-## 5. Preserve accepted/current behavior
+## 6. Preserve accepted/current behavior
 
 Do not regress:
-- Opening stationary start, exact identity/rank, private-app provenance separation;
+- Observer completed-Story evidence integrity from `72292961...`;
+- Opening stationary start and PLAYER exact identity/rank;
+- newly promoted private-app provenance negative boundary;
 - official rule issuance / private-app institutional-source separation;
 - temporal continuity;
 - PLAYER sole issuer and S1 exact pair direction;
-- S1 closed-world unsupported semantics and exact six families;
-- `1cc59e...` remote-S1 precedence additions;
-- ordinary no-rule external-outcome boundary;
-- accepted no-invented-player-travel / NPC-only movement behavior;
+- S1 closed-world unsupported semantics and exact six supported families;
+- remote-S1 source work `1cc59e...` as implemented-but-not-yet-live-accepted;
+- ordinary external-outcome boundary;
+- NPC-only/no-invented-PLAYER-travel behavior;
 - S7 literal agency;
 - finite compatibility + exact conflict copy;
-- Observer scene re-entry/presence rules;
-- player-thought safety fail-local behavior;
+- player-thought grounded-only fail-local safety;
 - Story-owned exactly four choices + free input;
 - exactly one Story + one Observer + one Commit.
 
-## 6. Deterministic regressions
+## 7. Deterministic regressions
 
-Tests must inspect the actual Observer request/prompt boundary and existing projection behavior. Do not sanitize generated output to make tests green.
+Required coverage must use the real current Story context/request construction rather than a disconnected constant test.
 
-Required coverage:
-1. Observer request keeps both `story_text` and literal input available where needed, but explicitly labels/defines literal as input-only non-outcome evidence.
-2. Completed `story_text` is the sole positive evidence for successful external action/movement/post-Story scene changes.
-3. `current_context` is prior baseline only and cannot prove a new outcome.
-4. Location evidence remains Story-quote-grounded; literal-only location outcome is invalid.
-5. `entered`/`exited` remain exact Story-quote-grounded.
-6. `scene_note` contract explicitly forbids promoting an unexecuted literal request into a completed fact.
-7. `turn_summary` contract explicitly summarizes completed Story reality and may not complete omitted/blocked literal outcomes.
-8. `present_actor_ids`, `scene_note`, and `location` are required to describe the same player scene.
-9. Observer remains extraction only, not second narrative.
-10. Existing player_inner_thought safety, MM shape/fail-local, dialogue/choices, scene re-entry, navigation, S1/S7, announcement/private-app, temporal, compatibility/conflict-copy and Opening focused regressions remain green.
-11. No second Story/Observer/verifier/retry path is introduced.
+1. `canonicalActors()` / Story context preserves exact `heroine1` name + department + position=`차장` and exposes canonical role title where the chosen boundary requires it.
+2. Story context preserves `general_park_jungwoo` role=`브랜드전략1팀 팀장`.
+3. Story context preserves `general_oh_sehoon` role=`시설·보안 담당` and does not fabricate a rank field.
+4. Actor identity contract explicitly forbids downgrade/upgrade/substitution/invented formal rank.
+5. Natural name-only reference remains allowed; implementation does not force dossier/full-title repetition.
+6. Rule-change selected actor identity/direction still remains exact.
+7. PLAYER identity contract remains unchanged and green.
+8. Observer completed-Story evidence, navigation/presence, private-app, temporal, S1/S7, compatibility/conflict-copy, choices, Opening focused regressions remain green.
+9. No post-Story rewrite/retry/second Story/second Observer path introduced.
 
 Then run:
 - `node --check` for changed JS/MJS;
 - `git diff --check`;
 - focused affected tests;
-- broader R3 observer/scene/source-correction/CSA/navigation/Opening regressions;
-- exactly one full `npm test` after focused green and record deterministic exit/count.
+- broader R3 Story/character/source-correction/Observer/CSA/navigation/Opening regressions;
+- exactly one full `npm test` after focused green and record deterministic count/exit.
 
 Automated green is not product acceptance.
 
-## 7. DB / deploy law
+## 8. DB / deploy law
 
 No DB/schema/RPC/migration change is expected or allowed.
 
@@ -205,94 +206,100 @@ If runtime executable source changes:
 
 No Production, DB write, provider/model/config change.
 
-## 8. Fresh deployed-browser acceptance — exactly one new game
+## 9. Fresh deployed-browser acceptance — exactly one new game
 
-After TEST API deployment, use the actual deployed TEST frontend/UI.
+After TEST API deployment, use actual deployed TEST frontend/UI.
 Create exactly ONE fresh disposable adult-profile game.
 No second game, reset, regenerate, semantic retry, direct gameplay API substitute, or sample-until-pass.
-Preserve the game READ ONLY after the campaign.
+Preserve the game READ ONLY after campaign.
 
 Target ~4–6 committed turns. Stop at first reproducible P0/P1.
 
-### A. Opening preservation
+### A. Opening identity/provenance preservation
+
 Complete normal Opening.
+
 PASS:
-- stationary start;
-- exact selected identity;
-- canonical private app remains PLAYER-private/passively exposed;
-- no NPC/company provenance;
+- PLAYER stationary first-arrival boundary and exact selected identity/rank remain correct;
+- private app is only passively/player-privately exposed and has no company/HR/security/NPC provenance;
+- any registered general NPC formal-role reference is canonical; specifically do not invent `오 과장` for `general_oh_sehoon` when canonical content only supplies `시설·보안 담당`;
 - four Story choices + free input.
 
-### B. APPLY exact canonical S1 pair
-Through visible CSA UI activate canonical S1 for exact pair `서원희 -> 박정우`.
+### B. Visible S1 APPLY — actor identity stress
+
+Through visible CSA UI APPLY canonical S1 exact pair `서원희 -> 박정우`.
+
 PASS:
 - one grounded official announcement;
-- PLAYER sole issuer;
-- exact direction;
-- private app not institutional source;
-- one Story/Observer/Commit;
-- active S1 reconstructable.
+- PLAYER sole issuer and exact pair direction;
+- private app is not institutional source;
+- Story does not call 서원희 `사원` or 박정우 `대리` or invent another contradictory formal title;
+- if their title/rank is mentioned, it agrees with canonical repository content;
+- one Story/Observer/Commit.
 
-This keeps the same high-risk environment as the failed campaign but is not testing remote S1 yet.
+Do not test supported action execution here.
 
-### C. Explicitly establish PLAYER in the office first
-Submit exactly or as close as UI permits:
+### C. Explicit PLAYER move to office — canonical actor encounter
+
+Submit:
 `나는 신사업TF 사무실로 이동한다.`
 
 PASS:
-- Story explicitly moves PLAYER to the canonical new-business TF office;
-- observer raw/applied/durable `location_id` agree with Story;
-- no unrelated actor/action substitution.
+- PLAYER canonical navigation works;
+- when 서원희/박정우 are encountered, Story keeps canonical formal identities stable: 서원희 position `차장`, 박정우 role/team-lead identity;
+- no title drift relative to B;
+- observer raw/applied/durable scene remains grounded in Story.
 
-Do not continue unless durable PLAYER location is actually the office.
+### D. One stationary conversation identity persistence probe
 
-### D. Decisive NPC-only movement / Observer evidence probe
-Only after C passes, submit:
-`나는 신사업TF 사무실에 그대로 남아 업무를 계속한다. 서원희 차장과 박정우 팀장은 함께 브랜드전략팀 회의실로 이동한다.`
-
-PASS requires simultaneously:
-- PLAYER remains in the already-established office; no invented PLAYER travel;
-- Story preserves the material NPC actor/target movement beat or, if it explicitly blocks/cannot establish it, narrates that reality rather than silently substituting another completed outcome;
-- Observer does not use the literal itself as proof of an outcome absent from Story;
-- `location`, `present_actor_ids`, `scene_note`, and `turn_summary` all describe the same completed Story reality;
-- no `scene_note`/summary claims the NPC pair reached the meeting room unless Story actually establishes that;
-- if Story establishes the pair in the meeting room, Observer/durable continuity may preserve that remote consequence naturally without moving PLAYER.
-
-Record full chain:
-`literal -> Story -> observer raw -> observer applied -> durable state -> next context/UI`.
-
-At first Story-level P1 or Observer/state contradiction, STOP; do not patch during campaign.
-
-### E. One neutral continuity turn + refresh
-Only if D passes, submit one simple stationary/non-movement follow-up that does not test remote S1 authority, then perform one deliberate refresh/re-entry.
+Submit a simple neutral literal addressing both registered actors without supplying their ranks, for example:
+`나는 서원희와 박정우에게 오늘 오전 일정에 대해 가볍게 묻는다.`
 
 PASS:
-- next Story consumes the same canonical scene truth rather than a contradictory literal-derived ghost;
+- Story preserves actor/target/topic;
+- Story may use names naturally, but any formal rank/department/role it chooses to mention must remain canonical;
+- it must not infer `사원/대리/과장` or another invented hierarchy label.
+
+### E. Observer/NPC movement preservation probe
+
+Only if A–D pass, run one simple NPC-only movement turn comparable to the accepted Observer campaign while PLAYER stays at the already-established office.
+
+PASS:
+- no invented PLAYER travel;
+- Story/observer raw/applied/durable scene agree;
+- formal actor identity remains stable through movement narration.
+
+### F. Refresh / re-entry
+
+Perform one deliberate refresh/re-entry.
+
+PASS:
 - no duplicate Story/Commit;
 - active S1 reconstructs once;
-- PLAYER location remains coherent;
-- choices/free input/CSA remain usable.
+- location/actor identities/choices/free input remain coherent.
 
-Do NOT submit the remote supported kiss probe in this campaign. That resumes only after this Observer lane is operator-accepted.
-Do NOT submit `성기를 직접 검사`.
+Do NOT test remote supported kiss in this campaign.
+Do NOT test `성기를 직접 검사`.
 
-## 9. Whole-canon observations — record, do not broaden
+## 10. Whole-canon observations — record, do not broaden
 
-During the single campaign record obvious evidence for later operator audit:
-- Story vs observer raw/applied/durable disagreement;
+Record for later operator audit:
+- any Story actor/rank/department/role drift;
+- Story vs observer raw/applied/durable scene disagreement;
 - MM raw `{surface,subconscious}` retention/drop for reached heroine turns;
 - player_inner_thought invention/drop;
-- dialogue projection drops;
-- choices projection drops;
-- removed/replaced rule ghosts only if naturally encountered;
-- player-facing internal CSA text leakage if visible.
+- dialogue/choices projection drops;
+- private-app provenance leakage;
+- continuous-rule deferral only if naturally encountered;
+- removed/replaced-rule residue only if naturally encountered;
+- player-facing internal CSA implementation text leakage if visible.
 
-Do not implement P2 fixes here.
+Do not implement unrelated fixes.
 Media/TTS remain paused.
 
-## 10. Stop / terminal law
+## 11. Stop / terminal law
 
-No runtime patching during the live campaign.
+No runtime patching during live campaign.
 At first reproducible P0/P1:
 - preserve fresh game READ ONLY;
 - record decisive chain;
@@ -300,26 +307,21 @@ At first reproducible P0/P1:
 - post exactly one BLOCKED terminal;
 - STOP.
 
-Success requires source/test/deploy gates plus exactly one fresh browser campaign passing A–E with no new P0/P1.
+Success requires source/test/deploy gates plus exactly one fresh browser campaign passing A–F with no new P0/P1.
 
-On success terminal:
-`OBSERVER_COMPLETED_STORY_EVIDENCE_INTEGRITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+On success:
+- set this same file to `WAITING_REVIEW`;
+- post exactly one terminal:
+`REGISTERED_NPC_FORMAL_IDENTITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
+- STOP.
 
-On blocker/failure terminal:
-`OBSERVER_COMPLETED_STORY_EVIDENCE_INTEGRITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
+On blocker/failure:
+`REGISTERED_NPC_FORMAL_IDENTITY_P1_CORRECTION_BLOCKED_AWAITING_OPERATOR_REVIEW`
 
 After any deployed browser campaign, operator must perform independent `POST_LIVE_CANON_AUDIT_CONTRACT` review before choosing/registering the next task.
 
-## 11. Execution terminal — COMPLETE / awaiting operator review
+Expected next lane only if this task + audit are clean:
+- resume the preserved remote-S1 live acceptance with a valid explicit PLAYER-location prerequisite;
+- then close the separate `성기를 직접 검사` / `genital_touch` semantic-grounding P1 before P2 work.
 
-Terminal token:
-`OBSERVER_COMPLETED_STORY_EVIDENCE_INTEGRITY_P1_CORRECTION_COMPLETE_AWAITING_OPERATOR_REVIEW`
-
-- Reviewed executable/source commit: `72292961a0ad9ed2861ce62a645bad629bbc2e60` (pushed to `origin/main`).
-- Implementation: `runtime-r3/server/provider.js` now sends an explicit completed-Story evidence contract; `literal_action` is intent-only, `story_text` is the sole positive outcome evidence, and the coherent scene fields are constrained to one completed Story reality. `test/r3-observer-failure-provenance.test.mjs` asserts the built request contract/prompt.
-- Verification: syntax checks and `git diff --check` passed; focused 40/40 passed; broader R3/CSA/navigation/Opening set 236/236 passed; exactly one full `npm.cmd test` passed 583/583.
-- TEST deploy: unchanged contract-gate deploy passed; Worker `game-proxy-company-r3`, version `17e0bc12-b7da-475a-84f2-3b7160b846fe`, URL `https://game-proxy-company-r3.zeros.workers.dev`.
-- Fresh disposable browser game: `9c72745b-a7d0-4436-af5a-ea03abd317da` (adult profile 민준 / 신사업TF / TF팀장 / 32 / 180 / 75 / 16), preserved READ ONLY after campaign. Opening passed; exact S1 UI APPLY passed for 서원희 → 박정우; committed turns 0–4 only.
-- Live evidence chain: turn 2 PLAYER office movement had `story_text`, `observer_raw`, `observer_applied`, and durable `state_after.scene.location_id` all at `office`, with entered actors `heroine1` and `general_park_jungwoo`. Turn 3 kept PLAYER at `office`, recorded both NPC exits, and left durable `present_actor_ids` empty; raw/applied/durable scene facts agreed. Turn 4 neutral continuity and deliberate refresh restored the same office scene; `csa_active` remained `["r3_csa_1"]` and the UI reconstructed one active S1 rule.
-- No new P0/P1 was observed. No remote kiss/genital_touch probe, second game, reset, retry, preserved-game mutation, Provider/model/config change, DB write/migration, or Production action was performed.
-- Operator must independently review this fresh game under `POST_LIVE_CANON_AUDIT_CONTRACT` before registering another task.
+Do not self-register that next task.
