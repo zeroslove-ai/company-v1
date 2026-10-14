@@ -89,3 +89,13 @@ Checkpoint: 2026-10-14 KST. Working tree is based on start SHA `7780759fd595247b
 - Live TEST game: not yet created. Preserved evidence game remains read-only. TEST API Worker remains baseline version `26fc1dd2-9354-4b99-b6ee-b4c53306c607` until gated deployment succeeds.
 - Remaining: review final diff; create and push small PR; deploy only `game-proxy-company-r3`; smoke TEST; create fresh visible-UI TEST game; run the 15–30-turn acceptance campaign and post-live whole-canon audit; merge only after that evidence and CI.
 - Next lane: complete diff/authority review, then proceed to TEST API deployment.
+
+## 7. Follow-up checkpoint — local in-memory smoke
+
+Checkpoint: 2026-10-14 KST. Commit `4f18126` is the source under test; this follow-up is local-only and does not change any TEST or Production Worker.
+
+- `deploy-api-with-contract-gate.mjs --config wrangler.r3.api.jsonc --expect-worker game-proxy-company-r3` stopped before Wrangler because neither `SUPABASE_DB_URL` nor `COMPANY_DB_CATALOG_PATH` is configured. No gate bypass was attempted. Supabase project listing identified the configured TEST project `fmcrspgxstsmxxsmkeee` as `INACTIVE`.
+- Local in-memory API smoke passed on a fresh ephemeral game `b95b4e9e-d87c-40dd-87d1-3ff44c845fbd`: opening plus APPLY → same-instance CHANGE → REMOVE → ordinary free input committed at turn 4; Story and Observer each ran five times; Story received the prospective W3 state; REMOVE left no active rule. The smoke used a scripted local fixture provider and in-memory store, so it is wiring/commit-boundary evidence only—not a real-model playtest, persistent reload test, or product-quality acceptance. The temporary script was removed and no game row was created in Supabase.
+- UI/browser play remains unverified. The computer-use surface could not determine the browser URL after navigating and halted that UI session. Do not count this local API smoke as the required 15–30-turn campaign.
+- Current TEST API and frontend Worker versions remain the baseline versions in Section 1. PR #104 remains draft and unmerged.
+- Next: resume with a permitted browser-control path and an available Stage A read-only DB catalog; deploy only the R3 API TEST Worker after the existing gate passes, then perform fresh-game live acceptance and the full post-live canon audit.
