@@ -124,14 +124,52 @@ function compatibilityConflict(candidate, activeRules, catalog, excludeId = null
   return null;
 }
 
-function applyClothing(state, activeRules, catalog, content) {
+function ruleAuthoritySnapshot(rule, catalog) {
+  if (!rule) return null;
+  const item = catalogItem(catalog, rule.template_id);
+  return {
+    template_id: rule.template_id ?? item?.id ?? null,
+    slot: item?.slot ?? rule.slot ?? null,
+    tier: item?.tier ?? rule.tier ?? null,
+    rule_text: item?.rule_text ?? rule.content ?? '',
+    authority_label: item?.authority_label ?? rule.authority_label ?? '',
+    subject_scope: rule.subject_scope ?? null,
+    counterparty_scope: rule.counterparty_scope ?? null,
+    selector: clone(rule.selector ?? {})
+  };
+}
+
+function applyClothing(state, activeRules, catalog, content, { retractedRules = [], independentClothingEvidence = [] } = {}) {
   const next = clone(state); next.clothing = next.clothing && typeof next.clothing === 'object' ? next.clothing : {};
-  for (const rule of Object.values(activeRules)) {
-    const item = catalogItem(catalog, rule.template_id);
-    if (rule.active !== false || !item?.execution?.required_state) continue;
-    for (const actorId of subjects(rule.subject_scope, next, content, rule.selector)) {
+  const independentlyGrounded = new Map();
+  for (const evidence of independentClothingEvidence) {
+    if (!evidence?.actor_id || !evidence.slots || typeof evidence.slots !== 'object') continue;
+    const slots = independentlyGrounded.get(evidence.actor_id) ?? {};
+    for (const [slot, value] of Object.entries(evidence.slots)) if (CLOTHING_SLOTS.has(slot) && CLOTHING_VALUES.has(value)) slots[slot] = value;
+    independentlyGrounded.set(evidence.actor_id, slots);
+  }
+  for (const rule of retractedRules) {
+    const item = catalogItem(catalog, rule?.template_id);
+    if (rule?.active === false || !item?.execution?.required_state) continue;
+    const candidates = new Set([
+      ...(next.scene?.present_actor_ids ?? []),
+      ...Object.keys(next.clothing),
+      ...(rule.selector?.subject_actor_id ? [rule.selector.subject_actor_id] : []),
+      ...(rule.subject_scope === 'player' ? ['player'] : [])
+    ]);
+    for (const actorId of candidates) {
+      if (!matchesScope(actorId, rule.subject_scope, content)) continue;
+      if (rule.selector?.subject_actor_id && actorId !== rule.selector.subject_actor_id) continue;
       const current = { ...(next.clothing[actorId] ?? {}) };
-      for (const slot of Object.keys(item.execution.required_state)) current[slot] = 'unknown';
+      for (const slot of Object.keys(item.execution.required_state)) {
+        const activeRuleValue = Object.values(activeRules).map(activeRule => {
+          if (activeRule.active === false || !matchesScope(actorId, activeRule.subject_scope, content)) return null;
+          if (activeRule.selector?.subject_actor_id && activeRule.selector.subject_actor_id !== actorId) return null;
+          return catalogItem(catalog, activeRule.template_id)?.execution?.required_state?.[slot] ?? null;
+        }).filter(Boolean).at(-1);
+        const groundedValue = independentlyGrounded.get(actorId)?.[slot];
+        current[slot] = activeRuleValue ?? groundedValue ?? 'unknown';
+      }
       next.clothing[actorId] = current;
     }
   }
@@ -144,11 +182,12 @@ function applyClothing(state, activeRules, catalog, content) {
   return next;
 }
 
-function ruleChangeRecord(operation, item, scope, id) {
+function ruleChangeRecord(operation, item, scope, id, previousRule = null, catalog = null) {
   return {
     type: 'rule_change_turn', operation: operation.operation, rule_id: id ?? null, template_id: item?.id ?? null,
     slot: item?.slot ?? null, tier: item?.tier ?? null, rule_text: item?.rule_text ?? '', subject_scope: scope?.subject ?? null, counterparty_scope: scope?.counterparty ?? null,
-    selector: clone(scope?.selector ?? {}), authority_label: item?.authority_label ?? '', supported_action_families: [...(item?.supported_action_families ?? [])]
+    selector: clone(scope?.selector ?? {}), authority_label: item?.authority_label ?? '', supported_action_families: [...(item?.supported_action_families ?? [])],
+    ...(previousRule ? { previous_rule: ruleAuthoritySnapshot(previousRule, catalog) } : {})
   };
 }
 
@@ -207,6 +246,7 @@ export function buildRuleChangeStoryBinding({ event, content } = {}) {
     selected_actor_ids: selectedActors.map(actor => actor.actor_id),
     selected_actors: selectedActors,
     direction,
+    ...(event.previous_rule ? { previous_rule: clone(event.previous_rule) } : {}),
     authority: { label: item?.authority_label ?? event.authority_label ?? '', announcement_channel: 'grounded institutional announcement', private_app_is_not_source: true, announcement_rendered_before_story_continuation: true, sole_institutional_issuance: true },
     supported_action_families: [...(item?.supported_action_families ?? event.supported_action_families ?? [])],
     boundary: 'The structured operation, selected actors, roles, and direction are immutable Story facts. The server-owned official announcement is already rendered as the single institutional issuance before the Story continuation. Continue with grounded reactions only; do not emit a second notice, pseudo-policy, code block, role relabeling, or private-app activation spectacle.'
@@ -262,23 +302,24 @@ export function buildRuleChangeInstitutionalAnnouncement({ event, binding } = {}
   return `[공식 공지] 사내 공용 모니터와 회사 메신저의 공식 기관 채널에 ${authority} 기준으로 ${operation} 즉시 적용된다고 게시되었다. 적용 범위는 ${scope}이며, 규정 내용은 “${event.rule_text}”이다.${designation}`;
 }
 
-export function applyR3Csa({ state, content, rawOperations, catalog = createR3CsaCatalog(content?.csaPresets) } = {}) {
+export function applyR3Csa({ state, content, rawOperations, catalog = createR3CsaCatalog(content?.csaPresets), independentClothingEvidence = [] } = {}) {
   if (!Array.isArray(rawOperations) || rawOperations.length !== 1) throw new Error('r3_csa_operations_invalid');
   const next = clone(state); const activeIds = Array.isArray(next.csa_active) ? [...next.csa_active] : []; const rules = { ...(next.csa_rules ?? {}) };
   const raw = rawOperations[0]; const operation = raw?.operation;
   if (!['activate', 'update', 'deactivate'].includes(operation)) throw new Error('r3_csa_operation_invalid');
   if (operation === 'deactivate') {
     const id = String(raw.id ?? ''); if (!rules[id]) throw new Error('r3_csa_rule_not_found');
-    const item = catalogItem(catalog, rules[id].template_id); rules[id] = { ...rules[id], active: false };
-    const index = activeIds.indexOf(id); if (index >= 0) activeIds.splice(index, 1); next.csa_active = [...new Set(activeIds)]; next.csa_rules = rules; next.active_rules = next.csa_active.map(ruleId => rules[ruleId]).filter(Boolean); next.last_rule_change = ruleChangeRecord(raw, item, { subject: rules[id].subject_scope, counterparty: rules[id].counterparty_scope, selector: rules[id].selector }, id); return applyClothing(next, rules, catalog, content);
+    const previousRule = rules[id]; const item = catalogItem(catalog, previousRule.template_id); rules[id] = { ...previousRule, active: false };
+    const index = activeIds.indexOf(id); if (index >= 0) activeIds.splice(index, 1); next.csa_active = [...new Set(activeIds)]; next.csa_rules = rules; next.active_rules = next.csa_active.map(ruleId => rules[ruleId]).filter(Boolean); next.last_rule_change = ruleChangeRecord(raw, item, { subject: previousRule.subject_scope, counterparty: previousRule.counterparty_scope, selector: previousRule.selector }, id, previousRule, catalog); return applyClothing(next, rules, catalog, content, { retractedRules: [previousRule], independentClothingEvidence });
   }
   const item = catalogItem(catalog, raw.template_id ?? rules[raw.id]?.template_id);
   if (!item || !STRENGTHS.has(item.tier)) throw new Error('r3_csa_template_invalid');
   const scope = validateScope(item, raw, content);
   const normalized = { template_id: item.id, slot: item.slot, tier: item.tier, authority_label: item.authority_label, subject_scope: scope.subject, counterparty_scope: scope.counterparty, selector: scope.selector, content: item.rule_text, mode: item.mode, trigger: item.trigger, supported_action_families: [...item.supported_action_families] };
-  let ruleId = null;
+  let ruleId = null; let previousRule = null;
   if (operation === 'update') {
     ruleId = String(raw.id ?? ''); if (!rules[ruleId]) throw new Error('r3_csa_rule_not_found');
+    previousRule = rules[ruleId];
     const conflict = compatibilityConflict({ ...normalized, id: ruleId, active: true }, rules, catalog, ruleId);
     if (conflict) throw new Error(`r3_csa_compatibility_conflict:${conflict.message}`);
     rules[ruleId] = { ...rules[ruleId], ...normalized, active: true }; if (!activeIds.includes(ruleId)) activeIds.push(ruleId);
@@ -287,5 +328,5 @@ export function applyR3Csa({ state, content, rawOperations, catalog = createR3Cs
     if (conflict) throw new Error(`r3_csa_compatibility_conflict:${conflict.message}`);
     ruleId = nextRuleId(rules); rules[ruleId] = { id: ruleId, ...normalized, active: true }; activeIds.push(ruleId);
   }
-  next.csa_active = [...new Set(activeIds.filter(id => rules[id]?.active))]; next.csa_rules = rules; next.active_rules = next.csa_active.map(id => rules[id]).filter(Boolean); next.last_rule_change = ruleChangeRecord(raw, item, scope, ruleId); return applyClothing(next, rules, catalog, content);
+  next.csa_active = [...new Set(activeIds.filter(id => rules[id]?.active))]; next.csa_rules = rules; next.active_rules = next.csa_active.map(id => rules[id]).filter(Boolean); next.last_rule_change = ruleChangeRecord(raw, item, scope, ruleId, previousRule, catalog); return applyClothing(next, rules, catalog, content, { retractedRules: previousRule ? [previousRule] : [], independentClothingEvidence });
 }
