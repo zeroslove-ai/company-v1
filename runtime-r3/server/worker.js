@@ -297,7 +297,22 @@ function streamTurn({ store, provider, content, gameId, job, executionCtx = null
 
 async function processTurn({ store, provider, content, gameId, job, emit }) {
   const startedAt = Date.now(); const mark = (stage, details) => timingMark(emit, startedAt, stage, details);
-  const before = await store.context(gameId); const csaOperation = job.csa_operation ?? job.rule_change_event ?? null; const ruleChangeEvent = csaOperation ? applyR3Csa({ state: before.state.state, content, rawOperations: [csaOperation], catalog: createR3CsaCatalog(content.csaPresets) }).last_rule_change : null; const ruleChangeBinding = ruleChangeEvent ? buildRuleChangeStoryBinding({ event: ruleChangeEvent, content }) : null; const institutionalAnnouncement = ruleChangeEvent ? buildRuleChangeInstitutionalAnnouncement({ event: ruleChangeEvent, binding: ruleChangeBinding }) : ''; const attempt = { gameId, turnNumber: job.turn_number, actionId: job.action_id, attemptNo: job.attempt_no, literalAction: job.literal_action, ...(csaOperation ? { csaOperation } : {}) }; const navigationIntent = resolvePlayerNavigationIntent({ content, state: before.state.state, literalAction: attempt.literalAction }); const storyContext = projectNavigationContext(before, navigationIntent, content); const storyLiteralAction = csaOperation ? '' : attempt.literalAction; let storyText = institutionalAnnouncement ? `${institutionalAnnouncement}\n\n` : ''; let lastProgress = 0; let writes = 0;
+  const before = await store.context(gameId);
+  const csaOperation = job.csa_operation ?? job.rule_change_event ?? null;
+  const prospectiveCsaState = csaOperation
+    ? applyR3Csa({ state: before.state.state, content, rawOperations: [csaOperation], catalog: createR3CsaCatalog(content.csaPresets) })
+    : null;
+  const ruleChangeEvent = prospectiveCsaState?.last_rule_change ?? null;
+  const ruleChangeBinding = ruleChangeEvent ? buildRuleChangeStoryBinding({ event: ruleChangeEvent, content }) : null;
+  const institutionalAnnouncement = ruleChangeEvent ? buildRuleChangeInstitutionalAnnouncement({ event: ruleChangeEvent, binding: ruleChangeBinding }) : '';
+  const attempt = { gameId, turnNumber: job.turn_number, actionId: job.action_id, attemptNo: job.attempt_no, literalAction: job.literal_action, ...(csaOperation ? { csaOperation } : {}) };
+  const navigationIntent = resolvePlayerNavigationIntent({ content, state: before.state.state, literalAction: attempt.literalAction });
+  const storyInputContext = prospectiveCsaState
+    ? { ...before, state: { ...before.state, state: prospectiveCsaState } }
+    : before;
+  const storyContext = projectNavigationContext(storyInputContext, navigationIntent, content);
+  const storyLiteralAction = csaOperation ? '' : attempt.literalAction;
+  let storyText = institutionalAnnouncement ? `${institutionalAnnouncement}\n\n` : ''; let lastProgress = 0; let writes = 0;
   emit('meta', { game_id: gameId, turn_number: job.turn_number, action_id: job.action_id }); mark('story_request_start');
   if (institutionalAnnouncement) emit('story_delta', { text: storyText });
   try {
@@ -307,7 +322,7 @@ async function processTurn({ store, provider, content, gameId, job, emit }) {
     const normalized = normalizeObserver(rawObserver, { storyText, literalAction: attempt.literalAction, content, currentState: storyContext.state.state }); if (observerFailed) normalized.warnings.unshift(...observerFailureWarnings);
     if (navigationIntent) normalized.warnings.unshift('canonical_navigation_applied');
     const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: attempt.turnNumber, navigationIntent, content });
-    const stateAfter = csaOperation ? applyR3Csa({ state: reduced.state, content, rawOperations: [csaOperation], catalog: createR3CsaCatalog(content.csaPresets) }) : reduced.state;
+    const stateAfter = csaOperation ? applyR3Csa({ state: reduced.state, content, rawOperations: [csaOperation], catalog: createR3CsaCatalog(content.csaPresets), independentClothingEvidence: normalized.clothing_changes }) : reduced.state;
     const context = await store.commitTurn({ gameId, turnNumber: attempt.turnNumber, attempt, expectedRevision: before.state.revision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: rawObserver, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter });
     mark('terminal_commit');
     emit('terminal', { status: 'committed', context });

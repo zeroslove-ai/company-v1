@@ -37,8 +37,8 @@ async function postTurn(worker, gameId, auth, payload) {
 
 function providerFor({ failCsa = false, calls = [] } = {}) {
   return {
-    async *story({ opening = false, literalAction = '', csaOperation = null, ruleChangeBinding = null }) {
-      calls.push({ stage: 'story', literalAction, csaOperation, ruleChangeBinding });
+    async *story({ opening = false, literalAction = '', csaOperation = null, ruleChangeEvent = null, ruleChangeBinding = null, context = null }) {
+      calls.push({ stage: 'story', literalAction, csaOperation, ruleChangeEvent, ruleChangeBinding, context });
       if (failCsa && csaOperation) throw new Error('csa_story_failed');
       const prefix = opening ? 'Opening' : `Story: ${literalAction}`;
       yield `${prefix}\n\n1. Continue naturally\n2. Move to the next scene\n3. Speak with the colleague\n4. Write a free action`;
@@ -89,6 +89,58 @@ test('bounded clothing projection remains a pure state projection; active UI pat
   const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', subject_actor_id: 'heroine1' }] });
   assert.equal(next.committed_turn, 4);
   assert.equal(next.clothing.heroine1.underwear_top, 'removed');
+});
+
+test('same-instance CHANGE retracts only the replaced rule clothing before applying the new preset', () => {
+  const state = {
+    scene: { present_actor_ids: ['heroine1'] },
+    csa_active: ['r3_csa_1'],
+    csa_rules: { r3_csa_1: { id: 'r3_csa_1', active: true, template_id: 'work_in_underwear_only', subject_scope: 'female_employee' } },
+    clothing: { heroine1: { uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'worn', underwear_bottom: 'worn' } }
+  };
+  const next = applyR3Csa({
+    state, content,
+    rawOperations: [{ operation: 'update', id: 'r3_csa_1', template_id: 'cleavage_exposed_work', subject_scope: 'female_employee' }]
+  });
+  assert.equal(next.csa_active[0], 'r3_csa_1');
+  assert.equal(next.csa_rules.r3_csa_1.template_id, 'cleavage_exposed_work');
+  assert.equal(next.clothing.heroine1.uniform_top, 'worn');
+  assert.equal(next.clothing.heroine1.uniform_bottom, 'unknown');
+  assert.equal(next.clothing.heroine1.underwear_top, 'unknown');
+  assert.equal(next.clothing.heroine1.underwear_bottom, 'unknown');
+});
+
+test('REMOVE retracts a rule-owned clothing value unless current Story independently supports it', () => {
+  const state = {
+    scene: { present_actor_ids: ['heroine1'] },
+    csa_active: ['r3_csa_1'],
+    csa_rules: { r3_csa_1: { id: 'r3_csa_1', active: true, template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee' } },
+    clothing: { heroine1: { underwear_top: 'removed' } }
+  };
+  const removed = applyR3Csa({ state, content, rawOperations: [{ operation: 'deactivate', id: 'r3_csa_1' }] });
+  assert.equal(removed.clothing.heroine1.underwear_top, 'unknown');
+  const evidenced = applyR3Csa({
+    state, content, rawOperations: [{ operation: 'deactivate', id: 'r3_csa_1' }],
+    independentClothingEvidence: [{ actor_id: 'heroine1', slots: { underwear_top: 'worn' } }]
+  });
+  assert.equal(evidenced.clothing.heroine1.underwear_top, 'worn');
+});
+
+test('CHANGE/REMOVE cleanup retains the same finite clothing slot when another active rule still requires it', () => {
+  const state = {
+    scene: { present_actor_ids: [] },
+    csa_active: ['r3_csa_1', 'r3_csa_2'],
+    csa_rules: {
+      r3_csa_1: { id: 'r3_csa_1', active: true, template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee' },
+      r3_csa_2: { id: 'r3_csa_2', active: true, template_id: 'work_nude', subject_scope: 'female_employee' }
+    },
+    clothing: { heroine1: { uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'removed', underwear_bottom: 'removed' } }
+  };
+  const next = applyR3Csa({ state, content, rawOperations: [{ operation: 'deactivate', id: 'r3_csa_1' }] });
+  assert.deepEqual(next.csa_active, ['r3_csa_2']);
+  assert.deepEqual(next.clothing.heroine1, {
+    uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'removed', underwear_bottom: 'removed'
+  });
 });
 
 test('worker.fetch returns the structured conflict before reserve, Story, Observer, or Commit', async () => {
@@ -308,6 +360,51 @@ test('CHANGE then REMOVE each consume one turn and preserve historical Story chr
   assert.equal(change.at(-1).data.status, 'committed'); assert.equal(change.at(-1).data.context.state.state.csa_rules[ruleId].template_id, 'work_in_underwear_only');
   const remove = await postTurn(worker, gameId, auth, { action_id: 'remove-2', expected_turn: 3, literal_action: 'Remove the selected rule', csa_operation: { operation: 'deactivate', id: ruleId } });
   const final = remove.at(-1).data.context; assert.equal(final.state.committed_turn, 3); assert.equal(final.state.state.csa_active.length, 0); assert.equal(final.turns.length, 4); assert.equal(final.turns[1].literal_action, 'Apply a rule'); assert.equal(final.turns[2].literal_action, 'Change the selected rule'); assert.equal(final.turns[3].literal_action, 'Remove the selected rule'); assert.ok(final.turns.slice(1).every(turn => turn.story_text.length > 0));
+});
+
+test('rule-change Story receives the prospective active set and an explicit previous-rule transition', async () => {
+  const calls = [];
+  const worker = createR3Worker({ store: new InMemoryR3Store(), provider: providerFor({ calls }), content, gameAccessSecret: GAME_ACCESS_SECRET });
+  const { gameId, auth } = await setupGame(worker); await openGame(worker, gameId, auth);
+  const apply = await postTurn(worker, gameId, auth, {
+    action_id: 'prospective-m1', expected_turn: 1, literal_action: 'Apply M1',
+    csa_operation: { operation: 'activate', template_id: 'work_in_underwear_only', subject_scope: 'female_employee' }
+  });
+  const ruleId = apply.at(-1).data.context.state.state.csa_active[0];
+  const change = await postTurn(worker, gameId, auth, {
+    action_id: 'prospective-w3', expected_turn: 2, literal_action: 'Change M1 to W3',
+    csa_operation: { operation: 'update', id: ruleId, template_id: 'cleavage_exposed_work', subject_scope: 'female_employee' }
+  });
+  assert.equal(change.at(-1).data.status, 'committed');
+  const changeStory = calls.filter(call => call.stage === 'story' && call.csaOperation).at(-1);
+  const changeContext = buildStoryContext(changeStory.context, '', {
+    content, ruleChangeEvent: changeStory.ruleChangeEvent, ruleChangeBinding: changeStory.ruleChangeBinding
+  });
+  assert.deepEqual(changeContext.active_rules.map(rule => rule.template_id), ['cleavage_exposed_work']);
+  assert.equal(changeContext.pending_rule_change_turn.previous_rule.template_id, 'work_in_underwear_only');
+  assert.deepEqual(changeContext.rule_change_story_binding.previous_rule, {
+    template_id: 'work_in_underwear_only', slot: 'M1', tier: 'medium',
+    rule_text: content.csaPresets.items.find(item => item.id === 'work_in_underwear_only').rule_text,
+    authority_label: '전사 취업규칙',
+    subject_scope: 'female_employee', counterparty_scope: null, selector: {}
+  });
+  assert.equal(changeContext.clothing.heroine1.uniform_top, 'worn');
+  assert.equal(changeContext.clothing.heroine1.uniform_bottom, 'unknown');
+  assert.equal(changeContext.clothing.heroine1.underwear_top, 'unknown');
+  assert.equal(changeContext.clothing.heroine1.underwear_bottom, 'unknown');
+
+  const remove = await postTurn(worker, gameId, auth, {
+    action_id: 'prospective-remove-w3', expected_turn: 3, literal_action: 'Remove W3',
+    csa_operation: { operation: 'deactivate', id: ruleId }
+  });
+  assert.equal(remove.at(-1).data.status, 'committed');
+  const removeStory = calls.filter(call => call.stage === 'story' && call.csaOperation).at(-1);
+  const removeContext = buildStoryContext(removeStory.context, '', {
+    content, ruleChangeEvent: removeStory.ruleChangeEvent, ruleChangeBinding: removeStory.ruleChangeBinding
+  });
+  assert.deepEqual(removeContext.active_rules, []);
+  assert.equal(removeContext.pending_rule_change_turn.previous_rule.template_id, 'cleavage_exposed_work');
+  assert.equal(removeContext.clothing.heroine1.uniform_top, 'unknown');
 });
 
 test('failed CSA Story leaves the previous active-rule state authoritative', async () => {

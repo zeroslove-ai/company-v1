@@ -43,7 +43,8 @@
       "subject_scopes": ["female_employee"],
       "counterparty_scopes": [],
       "default_subject_scope": "female_employee",
-      "selector_schema": "none"
+      "selector_schema": "none",
+      "execution": { "kind": "clothing_state", "required_state": { "uniform_top": "worn" } }
     },
     {
       "id": "lap_facing_conversation",
