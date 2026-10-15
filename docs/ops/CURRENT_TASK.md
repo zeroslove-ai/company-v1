@@ -4,7 +4,7 @@ Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 18:56 KST — Company branch tips and all organization release asset names scanned read-only; report update in progress; task remains RUNNING
+Updated: 2026-10-15 18:57 KST — report and PR #105 updated with Company branch/release scan; PR remains OPEN/DRAFT, goal remains active
 
 ## Branch-local owner direction
 

@@ -31,6 +31,12 @@
 - 최종 보고서에 범위와 한계를 추가 중이다. 기존 remote/PR #105는 OPEN/DRAFT, code commit `219478e` 및 문서 commit `e5e76b2`까지 올라와 있다. 다음에 documentation commit/push, PR body 정정, clean worktree 확인.
 - 실행 명령/새 Setup과 실제 40턴 게임 URL은 앞 checkpoint와 동일하다. 실제 호출은 119/120, 이 조사에서 provider call 0. 실제 safe RULE_CHANGE 수락과 정본 이미지 원본 bytes 여전히 미검증이므로 PARTIAL_BLOCKED/RUNNING/active 유지.
 
+## Checkpoint 2026-10-15 18:57 KST
+
+- Branch tree와 조직 release asset search 결과를 `FINAL_REPORT.md`에 반영했고 PR #105 설명도 수정했다. PR body는 예산 검증을 R4 24/24 및 전체 621/621 구조 테스트로 정확히 적고 branch scan scope를 기록한다.
+- 문서와 예산 코드가 포함된 현재 후보 commit `ff25eab0a0200f92379c6a366976962ad337dff8`은 origin과 일치하며, PR #105는 `OPEN/DRAFT` 상태에서 동일 head를 가리킨다. 최신 worktree clean 여부는 마지막 closeout 때 확인한다.
+- 실제 model budget은 여전히 119/120이며 이 checkpoint에서 0 provider calls. 수락은 PARTIAL_BLOCKED, CURRENT_TASK RUNNING, goal active다. 남은 독립 작업은 canonical source art retrieval의 추가 유효 경로 여부와 실제 non-explicit canonical RULE_CHANGE acceptance이며, 조건상 당장 live model call을 실행하지 않는다.
+
 ## 실제 사용 콘텐츠와 경로
 
 - 게임은 일반 사내 시뮬레이션 fixture가 아니라 기존 Company 원본 `content/characters.json`, `map.json`, `organization.json`, `positions.json`과 캐릭터/미디어 매핑을 `runtime-r4/domain/content.js`에서 읽는다. 장면별 `context.js` → server-owned turn pipeline → provider의 Story HTTP payload로 전달된다.
