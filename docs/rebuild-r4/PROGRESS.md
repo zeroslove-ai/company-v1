@@ -180,3 +180,13 @@
 - Next: finish whole-diff review and whitespace check; commit and fast-forward push the candidate branch; refresh existing draft PR #105 and attach it. Never force-push, merge, deploy, or change main/PR104/R3/remote DB.
 - Run: set PORT=4182, R4_DB_PATH=var/r4-user-goal-20261015, R4_MODEL_CALL_BUDGET=120; run npm run r4:dev. Local DB only.
 - Blockers: no safe canonical rule example for live NPC rule acceptance; no original art bytes/public storage base; one remaining model call is insufficient for a full turn.
+## Checkpoint 2026-10-15 17:46 KST
+
+- Reviewed and committed the implementation/report set as bb198fc116de04937fd63b0851e98c77673bfd54. Candidate remote was fetched immediately before push; it was the parent 924a3c3 with no remote-only commits. A normal fast-forward push succeeded; local HEAD and origin/rebuild/company-core-r4-20261015 now match at bb198fc.
+- Existing PR #105 remains OPEN and DRAFT at the pushed head. Replaced its stale no-model/no-TTS description with actual live campaign results, degraded turns, media and rule blockers, run command, and URLs. Attached the PR to this task.
+- Health still reports company-configured DeepSeek Story/Observer, TTS configured, local persistent PGlite, and usage119/120. No additional provider calls.
+- FINAL_REPORT.md now includes candidate commit and PR state. CURRENT_TASK remains RUNNING.
+- Next: commit/push the final docs-only checkpoint; verify branch is clean and PR still tracks the candidate. Keep goal active; continue only useful R4 work and do not spend the last call on a partial Story.
+- Run: PORT=4182, R4_DB_PATH=var/r4-user-goal-20261015, R4_MODEL_CALL_BUDGET=120; npm run r4:dev.
+- Fresh Setup URL: http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f. Actual 40-turn game: http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c.
+- Blockers remain: no safe canonical rule example for live rule-reaction acceptance; no original art bytes/public storage base; four historical degraded projections; only one provider call left.

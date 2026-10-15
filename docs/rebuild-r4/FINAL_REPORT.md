@@ -50,7 +50,7 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 
 ## 보호 범위 및 저장소
 
-- 후보 브랜치: rebuild/company-core-r4-20261015
-- 초안 PR #105: https://github.com/zeroslove-ai/company-v1/pull/105
+- 후보 브랜치: rebuild/company-core-r4-20261015; 구현 커밋 bb198fc116de04937fd63b0851e98c77673bfd54 (fast-forward push 완료, 원격 tip 일치).
+- 초안 PR #105: https://github.com/zeroslove-ai/company-v1/pull/105 (OPEN/DRAFT 유지, 설명 갱신 및 이 작업에 연결 완료).
 - 원본 canon/content/media/voice 매핑, main, PR #104, R3 runtime/Worker, 원격 DB 및 보존 세이브는 수정하지 않았다. 원본 자료를 삭제하거나 일반 업무 fixture로 대체하지 않았다.
 - 실제 실행은 새 로컬 PGlite DB와 새 로컬 게임에만 기록했다. 배포와 main 병합은 수행하지 않았다.

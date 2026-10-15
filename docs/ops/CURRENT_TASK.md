@@ -4,7 +4,7 @@ Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 17:43 KST — 40-turn actual-model campaign and local UI/DB checks are recorded; closeout continues
+Updated: 2026-10-15 17:46 KST — actual-model campaign complete for this budget; implementation pushed and draft PR #105 refreshed; task stays RUNNING
 
 ## Branch-local owner direction
 
