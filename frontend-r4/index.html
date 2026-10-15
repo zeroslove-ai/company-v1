@@ -107,6 +107,13 @@
         </details>
       </section>
 
+      <section class="side-card csa-launch-card" aria-labelledby="csa-launch-title">
+        <div class="side-title-row"><div><p class="eyebrow">PRIVATE APP</p><h2 id="csa-launch-title">상식개변</h2></div><span class="media-glyph">◈</span></div>
+        <p class="muted-note">플레이어만 알고 있는 낯선 앱입니다. 설정한 규칙은 세계 안의 공식 공지와 인물 반응으로 이어집니다.</p>
+        <div id="active-rule-summary" class="active-rule-summary"><p class="muted-note">아직 활성 규칙이 없습니다.</p></div>
+        <button id="open-csa" class="button button-primary button-wide" type="button" disabled>앱 열기</button>
+      </section>
+
       <section id="mind-card" class="side-card mind-card" hidden aria-labelledby="mind-heading">
         <div class="side-title-row"><div><p class="eyebrow">INNER VOICE</p><h2 id="mind-heading">Mind Monitor</h2></div><span class="media-glyph">◌</span></div>
         <div id="mind-monitor" class="mind-monitor"></div>
@@ -155,6 +162,19 @@
       <button id="setup-submit" class="button button-primary button-wide" type="submit">설정 저장하고 이야기 열기</button>
       <p class="privacy-note">게임은 새 로컬 저장소에 기록됩니다. 기존 세이브에는 접근하지 않습니다.</p>
     </form>
+  </dialog>
+
+  <dialog id="csa-dialog" class="dialog-card csa-dialog" aria-labelledby="csa-title">
+    <div class="dialog-head"><div><p class="eyebrow">PRIVATE · PLAYER ONLY</p><h2 id="csa-title">상식개변</h2></div><button class="close-dialog" data-close="csa-dialog" type="button" aria-label="닫기">×</button></div>
+    <p class="dialog-intro">이 앱을 아는 것은 플레이어뿐입니다. 규칙을 설정·변경·해제하면 그 효력은 이번 Story turn부터 시작되며, 인물들은 세계 안의 공식 공지를 통해 알게 됩니다.</p>
+    <section class="csa-active-panel" aria-label="현재 활성 규칙"><div class="csa-section-heading"><strong>현재 효력</strong><span id="csa-active-count">0</span></div><div id="csa-active-rules" class="csa-active-rules"><p class="muted-note">아직 활성 규칙이 없습니다.</p></div></section>
+    <div id="csa-change-editor" class="csa-change-editor" hidden></div>
+    <div id="csa-tabs" class="csa-tabs" role="tablist" aria-label="규칙 단계">
+      <button type="button" role="tab" data-tier="weak" aria-selected="true">약함</button>
+      <button type="button" role="tab" data-tier="medium" aria-selected="false">중간</button>
+      <button type="button" role="tab" data-tier="strong" aria-selected="false">강함</button>
+    </div>
+    <div id="csa-catalog-list" class="csa-catalog-list"></div>
   </dialog>
 
   <dialog id="history-dialog" class="dialog-card history-dialog" aria-labelledby="history-title">

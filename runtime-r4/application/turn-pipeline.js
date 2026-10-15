@@ -4,11 +4,22 @@ import { reduceTurn } from '../domain/reducer.js';
 import { R4StoreError } from '../adapters/store-errors.js';
 import { hashCommand } from '../domain/command.js';
 import { prepareRuleChange, commitProspectiveRuleState } from '../domain/rule-change.js';
+import { buildOfficialRuleAnnouncement, createCanonicalRuleResolver } from '../domain/rule-catalog.js';
 
 function narrativeBody(storyText) {
   const lines = String(storyText).replace(/\r/g, '').split('\n');
   const headerIndex = lines.findIndex(line => /^\s*(?:\[선택지\]|선택지)\s*$/.test(line));
   return (headerIndex >= 0 ? lines.slice(0, headerIndex) : lines).join('\n').trim();
+}
+
+export function normalizeStoryOutput(storyText) {
+  const source = String(storyText ?? '');
+  // DeepSeek occasionally emits the whole narrative with JSON-style escaped
+  // paragraph breaks and quotes instead of actual formatting characters.
+  // Only decode that representation when the complete escaped choice block is
+  // present; ordinary authored backslash sequences remain untouched.
+  if (!/\\n(?:\\n)?\[선택지\]\\n1[.)、]/u.test(source)) return source;
+  return source.replace(/\\n/g, '\n').replace(/\\"/g, '"');
 }
 
 function scrubError(error) {
@@ -33,10 +44,11 @@ export async function executeTurnJob({ job, store, provider, content, resolveRul
     : currentState;
   const turnNumber = feedback ? job.originalTurnNumber : currentState.committed_turn + 1;
   const turnRevision = feedback ? job.originalTurnRevision + 1 : 1;
+  const ruleResolver = resolveRuleTemplate ?? createCanonicalRuleResolver(content);
   let prospectiveRules = null;
   if (job.command.kind === 'RULE_CHANGE') {
     try {
-      prospectiveRules = prepareRuleChange({ state: sourceBefore, command: job.command, turnNumber, resolveRuleTemplate });
+      prospectiveRules = prepareRuleChange({ state: sourceBefore, command: job.command, turnNumber, resolveRuleTemplate: ruleResolver });
     } catch (error) {
       const code = scrubError(error);
       await store.failJob(job.jobId, job.attemptNo, 'rule_change_prepare_failed', code);
@@ -72,17 +84,25 @@ export async function executeTurnJob({ job, store, provider, content, resolveRul
     ruleChangeEvent: prospectiveRules?.rule_change_event ?? null
   });
   let storyText = job.storyCheckpoint;
+  let storyPayloadAudit = null;
+  let observerPayloadAudit = null;
 
   if (!storyText) {
     onEvent({ type: 'stage', stage: 'story' });
     try {
-      storyText = await provider.story({
+      const officialAnnouncement = prospectiveRules
+        ? buildOfficialRuleAnnouncement(prospectiveRules.rule_change_event, content, sourceBefore)
+        : null;
+      if (officialAnnouncement) onEvent({ type: 'story_delta', text: officialAnnouncement + '\n\n' });
+      const generatedStory = await provider.story({
         context: built.context,
         command: job.command,
         feedbackText: job.feedbackText,
         feedbackReferenceStory: feedback ? snapshot.latest_turn?.story_text ?? '' : '',
+        onPayload: audit => { storyPayloadAudit = audit; },
         onChunk: chunk => onEvent({ type: 'story_delta', text: chunk })
       });
+      storyText = officialAnnouncement ? officialAnnouncement + '\n\n' + generatedStory : generatedStory;
       if (typeof storyText !== 'string' || !storyText.trim()) throw new Error('story_empty');
     } catch (error) {
       const code = scrubError(error);
@@ -94,11 +114,18 @@ export async function executeTurnJob({ job, store, provider, content, resolveRul
     onEvent({ type: 'story_recovered', text: storyText });
   }
 
+  storyText = normalizeStoryOutput(storyText);
+
   onEvent({ type: 'stage', stage: 'observer' });
   let observation;
   let observerRaw = null;
   try {
-    observerRaw = await provider.observe({ storyText, context: built.observerContext ?? built.context, command: job.command });
+    observerRaw = await provider.observe({
+      storyText,
+      context: built.observerContext ?? built.context,
+      command: job.command,
+      onPayload: audit => { observerPayloadAudit = audit; }
+    });
     observation = normalizeObservation(observerRaw, { storyText, before: sourceBefore, content, turnNumber, turnRevision });
     await store.updateJob(job.jobId, job.attemptNo, { stage: 'commit', observerRaw });
   } catch (error) {
@@ -148,6 +175,8 @@ export async function executeTurnJob({ job, store, provider, content, resolveRul
     state_after: after,
     turn_digest: digest,
     context_manifest: built.contextManifest,
+    story_payload_audit: storyPayloadAudit,
+    observer_payload_audit: observerPayloadAudit,
     created_at: new Date().toISOString()
   };
   const receipt = await store.commitTurn({

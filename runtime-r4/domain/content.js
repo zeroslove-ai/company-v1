@@ -13,6 +13,7 @@ export function loadCompanyContent() {
   const organization = readJson('content/organization.json');
   const positions = readJson('content/positions.json').positions;
   const mediaCatalog = readJson('content/media_catalog.json');
+  const csaCatalog = readJson('content/csa_catalog.json');
   const edition = readJson('content/edition.json');
   const departmentById = new Map([...organization.departments, ...organization.general_npc_departments].map(item => [item.department_id, item.name]));
   const departments = organization.departments.map(item => item.name);
@@ -37,6 +38,7 @@ export function loadCompanyContent() {
       kind: 'general_npc',
       name: actor.name,
       age: actor.age,
+      gender: actor.gender ?? actor.sex ?? '',
       department: departmentById.get(actor.department_id) ?? actor.department_id,
       position: actor.role,
       role_title: actor.role,
@@ -56,7 +58,7 @@ export function loadCompanyContent() {
     default_actor_ids: location.default_npc_ids ?? []
   }));
   return {
-    version: 'company-r4-canon-projection-5',
+    version: 'company-r4-canon-projection-6',
     edition,
     company: organization.company,
     world_premise: {
@@ -72,7 +74,8 @@ export function loadCompanyContent() {
     floors: map.floors,
     actors,
     locations,
-    media_catalog: mediaCatalog.entries
+    media_catalog: mediaCatalog.entries,
+    csa_catalog: csaCatalog
   };
 }
 

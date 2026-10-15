@@ -1,10 +1,10 @@
 # Company — CURRENT TASK (R4 candidate branch only)
 
-Status: PARTIAL_BLOCKED
+Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 KST — rule-state/context structural core implemented; permitted live product validation remains blocked
+Updated: 2026-10-15 17:43 KST — 40-turn actual-model campaign and local UI/DB checks are recorded; closeout continues
 
 ## Branch-local owner direction
 
@@ -18,17 +18,17 @@ The product is the existing adult, character-first interactive fiction `상식�
 
 Lunch, cafeteria, notices, on-call assignments, and generic employee scenarios in the R4 specification are technical fixtures only. Keep them in tests or an explicitly selected demo provider. They must not be default product content or evidence of narrative acceptance. Product-facing narrative acceptance requires actual source characters and world premise, a small scene-appropriate cast, distinct in-character behavior, continuity, and unrestricted non-work choices. Inspect representative source-character results before any long campaign; fixture runs are not product-quality evidence.
 
-Preserve the original media catalog/image locators, `voice_id` mappings, and the established reader UI path. Only display media grounded in the committed scene; keep image/TTS sidecars non-authoritative. Record unavailable storage bytes or synthesis service configuration as unverified rather than silently substituting demo assets. This does not authorize creating or improving sexual-coercion mechanics. Canon and source data remain unchanged.
+Preserve the original media catalog/image locators, `voice_id` mappings, and the established reader UI path. Only display media grounded in the committed scene; keep image/TTS sidecars non-authoritative. Record unavailable storage bytes or synthesis service configuration as unverified rather than silently substituting demo assets. Preserve the existing adult character-first product and its authored catalog without changing the canon. This task does not authorize creating or improving explicit content or sexual coercion. Live model rule scenes are allowed only for an already-canonical non-explicit, non-coercive case; if none exists in the source catalog, mark that live acceptance unverified and rely on clearly-labeled structural tests.
 
 ## Owner priority update (2026-10-15)
 
 The highest implementation priority is the canonical 상식개변 rule lifecycle and character reactions: prospective APPLY/CHANGE/REMOVE state → Story context → one Observer → atomic Commit → next-turn continuity. Keep active authority separate from historical events; preserve the exact structured command through retry/feedback; character scope comes from a server-owned canonical selector resolver; Observer and media cannot modify rules. Distinct authored character cards and the private-app premise remain in the Story payload. Do not add generic emotion/relationship/action engines.
 
-The existing `content/csa_catalog.json` has 21 canonical presets, all sexual or intimate. None is a permitted non-explicit example for the requested live acceptance. Do not invent a benign product preset, change a source preset's meaning, relabel it as a technical test, or send its text to a model. State/pipeline mechanics may use an inline synthetic descriptor in an isolated test only; that is structural evidence, not product content, character-reaction acceptance, or a live Story pass. Keep the production rule endpoint fail-closed until a permitted canonical case exists, while continuing independent work.
+The existing `content/csa_catalog.json` has 21 canonical presets. Connect the unchanged source catalog and its selector contracts to the server-owned rule pipeline; do not add presets, broaden supported action families, change meanings, or replace the product with a generic test game. The current catalog offers no suitable non-explicit, non-coercive live-model rule example, so APPLY/CHANGE/REMOVE NPC reaction acceptance remains unverified. Synthetic descriptors remain structural-only and cannot stand in for product evidence.
 
 ## Scope
 
-Preserve the two-call Story -> Observer -> atomic Commit spine and reuse original Company content/presentation assets. Independently rebuild the turn-command/context/state/persistence/recovery boundaries. Fixture acceptance is structural only; product-facing narrative acceptance follows the canon and source-character requirements above. Implementing or improving sexual-coercion mechanics remains outside this task. A core candidate result is not full content, release, or player-enjoyment approval.
+Preserve the two-call Story -> Observer -> atomic Commit spine and reuse original Company content/presentation assets. Independently rebuild the turn-command/context/state/persistence/recovery boundaries. Fixture acceptance is structural only; product-facing narrative acceptance follows the canon and source-character requirements above. Only already-canonical finite rule behavior is in scope; no new rule semantics or generic execution engine. A core candidate result is not full content, release, or player-enjoyment approval.
 
 ## Deliverables
 
@@ -44,4 +44,4 @@ Follow specification sections 10-12. First deliver a thin Setup -> Opening -> on
 
 ## Current result
 
-The R4 candidate contains a server-owned prospective rule-state/context/commit path with isolated structural coverage. The production rule endpoint remains fail-closed because the canonical catalog contains no permitted non-explicit rule, and no approved Story/Observer provider configuration is available. Image storage and TTS endpoints are also absent. Synthetic/provider-fixture results remain structural checks only. See `docs/rebuild-r4/PROGRESS.md` and `docs/rebuild-r4/FINAL_REPORT.md`.
+The R4 candidate has a server-owned prospective rule-state/context/commit path, actual source-character Story payload evidence, 40-turn actual-model memory evidence, DB restart restore, and desktop/mobile UI checks. The task remains RUNNING while repository closeout is completed. Actual rule-reaction acceptance and source image bytes remain unverified; the final report distinguishes live-model evidence from isolated structural and scripted fixtures. See docs/rebuild-r4/PROGRESS.md and docs/rebuild-r4/FINAL_REPORT.md.

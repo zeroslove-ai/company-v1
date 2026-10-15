@@ -19,7 +19,7 @@ export function reduceTurn({ before, observation, turnNumber, turnRevision }) {
     after.time.day += Math.floor(totalMinutes / (24 * 60));
     after.time.minutes = totalMinutes % (24 * 60);
     verified.time = turnNumber;
-  } else unverified.push({ field: 'time', reason: 'not_observed_or_evidence_rejected' });
+  } else if (observation.elapsedMinutes?.status !== 'unchanged') unverified.push({ field: 'time', reason: 'not_observed_or_evidence_rejected' });
   after.state_revision = before.state_revision + 1;
   after.committed_turn = turnNumber;
   after.turn_revision = turnRevision;

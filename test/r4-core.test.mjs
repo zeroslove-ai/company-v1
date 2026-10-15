@@ -5,16 +5,30 @@ import { join, resolve } from 'node:path';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { createR4Store } from '../runtime-r4/adapters/postgres-store.js';
-import { executeTurnJob } from '../runtime-r4/application/turn-pipeline.js';
-import { createCommand, hashCommand } from '../runtime-r4/domain/command.js';
+import { executeTurnJob, normalizeStoryOutput } from '../runtime-r4/application/turn-pipeline.js';
+import { createCommand, hashCommand, parseStoryChoices } from '../runtime-r4/domain/command.js';
 import { buildTurnContext } from '../runtime-r4/domain/context.js';
 import { loadCompanyContent, setupSceneForProfile } from '../runtime-r4/domain/content.js';
 import { normalizeObservation } from '../runtime-r4/domain/observation.js';
+import { reduceTurn } from '../runtime-r4/domain/reducer.js';
 import { validateCommittedDialogueRequest } from '../runtime-r4/domain/voice.js';
-import { createScriptedProvider, providerAvailability } from '../runtime-r4/adapters/provider.js';
-import { parseCommittedDialogue, primaryBatches } from '../frontend-r4/tts.js';
+import { buildOfficialRuleAnnouncement, createCanonicalRuleResolver, publicCanonicalRuleCatalog } from '../runtime-r4/domain/rule-catalog.js';
+import { createConfiguredProvider, createScriptedProvider, providerAvailability } from '../runtime-r4/adapters/provider.js';
+import { committedDialogueForVoice, createCompanyTts, parseCommittedDialogue, primaryBatches } from '../frontend-r4/tts.js';
+import { observerSystemPrompt, storySystemPrompt } from '../runtime-r4/prompts/story.js';
 
 const content = loadCompanyContent();
+
+test('R4 normalizes a provider escaped narrative block before observation and commit', () => {
+  const raw = '장면이 이어진다.\\n\\n[선택지]\\n1. \\"이유를 묻는다.\\"\\n2. 기다린다.\\n3. 사과한다.\\n4. 자리를 비운다.';
+  const normalized = normalizeStoryOutput(raw);
+  assert.equal(normalized.includes('\\n'), false);
+  assert.ok(normalized.includes('\n[선택지]\n'));
+  assert.deepEqual(parseStoryChoices(normalized), [
+    '\"이유를 묻는다.\"', '기다린다.', '사과한다.', '자리를 비운다.'
+  ]);
+  assert.equal(normalizeStoryOutput('문자열 안의 \\n 표기만 있는 서술'), '문자열 안의 \\n 표기만 있는 서술');
+});
 
 async function tempDir(t) {
   const path = await mkdtemp(join(tmpdir(), 'company-r4-test-'));
@@ -54,6 +68,8 @@ test('R4 projects one source heroine into Story context and keeps scene media fo
   assert.deepEqual(content.media_catalog, sourceMedia);
   const openingHeroines = opening.context.registered_characters.filter(actor => actor.kind === 'heroine');
   assert.equal(openingHeroines.length, 1);
+  assert.deepEqual(opening.context.scene.present_actor_ids, [openingHeroines[0].actor_id]);
+  assert.deepEqual(opening.context.opening_focus, { actor_id: openingHeroines[0].actor_id, name: openingHeroines[0].name });
   assert.ok(['서원희', '윤민아', '김제나', '한리브', '이메이'].includes(openingHeroines[0].name));
   assert.equal(openingHeroines[0].dramatization.personality, sourceCharacters[openingHeroines[0].actor_id].prompt_card.personality);
   assert.ok(openingHeroines[0].dramatization.dramatization.dialogue_examples.length > 0);
@@ -63,16 +79,86 @@ test('R4 projects one source heroine into Story context and keeps scene media fo
   assert.match(opening.context.world_premise.private_discovery, /처음에는.*설치한 기억이/u);
   assert.match(opening.context.world_premise.npc_knowledge, /드러내기 전/u);
   assert.match(opening.context.world_premise.opening_effect, /세계가 바뀌지 않는다/u);
+  assert.ok(opening.context.story_constraints.some(rule => /공유된 과거 대화|지난번|전에 들었다/u.test(rule)));
+  assert.ok(opening.context.story_constraints.some(rule => /모든 턴에서 과거 사실은/u.test(rule)));
+  assert.equal(opening.contextManifest.prompt_version, 'r4-company-rule-context-15');
+  assert.match(storySystemPrompt(), /Continuity wording in a dramatization card.*not proof that it happened/u);
+  assert.match(storySystemPrompt(), /Do not state unsupported heroine biography as established fact.*childhood habits/u);
+  assert.match(storySystemPrompt(), /including the four choice lines/u);
+  assert.match(storySystemPrompt(), /explicitly asks the player to recall.*matching recorded detail exists.*accurately/u);
+  assert.match(storySystemPrompt(), /Execute speech or actions the current literal explicitly requests.*completed Story.*Do not stop at.*about to.*future option/u);
+  assert.match(observerSystemPrompt(), /Past-event memories may be referenced only when that exact past fact appears/u);
+  assert.match(observerSystemPrompt(), /Do not infer a character’s earlier biography or the duration of a habit/u);
+  assert.match(observerSystemPrompt(), /elapsed_minutes describes only time passing.*completed Story.*retain the last verified clock.*Never reuse.*prior Story/u);
   assert.deepEqual(opening.context.character_directory.filter(actor => actor.kind === 'heroine').map(actor => actor.name), ['서원희', '윤민아', '김제나', '한리브', '이메이']);
   assert.equal('available_media' in opening.context, false);
-  assert.ok(opening.observerContext.available_media.some(item => item.character_id === openingHeroines[0].actor_id && item.pool === 'sex'));
-  assert.ok(opening.observerContext.available_media.every(item => item.character_id === openingHeroines[0].actor_id));
+  assert.ok(opening.observerContext.available_media.some(item => item.character_id === openingHeroines[0].actor_id && item.pool === 'general'));
+  assert.ok(opening.observerContext.available_media.every(item => item.character_id === openingHeroines[0].actor_id && item.pool === 'general'));
   assert.equal(opening.contextManifest.token_budget_overflow, false);
 });
 
 test('R4 does not select a scripted preview as the default live provider', () => {
   assert.equal(providerAvailability({}).mode, 'company-unconfigured');
   assert.equal(providerAvailability({ LLM_API_URL: 'https://model.invalid', LLM_API_KEY: 'test', STORY_MODEL: 's', EXTRACT_MODEL: 'e' }).mode, 'company-configured');
+});
+
+test('R4 Story request disables hidden reasoning so its output limit is reserved for narrative', async () => {
+  let requestPayload;
+  const frames = [
+    `data: ${JSON.stringify({ choices: [{ delta: { content: '윤민아가 컵을 내려놓는다.' }, finish_reason: null }] })}`,
+    `data: ${JSON.stringify({ choices: [{ delta: { content: '' }, finish_reason: 'stop' }] })}`,
+    'data: [DONE]'
+  ].join('\n\n') + '\n\n';
+  const provider = createConfiguredProvider({
+    env: { LLM_API_URL: 'https://model.invalid', LLM_API_KEY: 'test-only', STORY_MODEL: 'deepseek-flash', EXTRACT_MODEL: 'deepseek-flash' },
+    fetchImpl: async (_url, options) => {
+      requestPayload = JSON.parse(options.body);
+      return new Response(frames, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }
+  });
+  const story = await provider.story({ context: {}, command: { game_id: 'provider-test', command_id: 'provider-test-command', kind: 'FREE_ACTION', literal_action: '대화를 이어 간다.' } });
+  assert.equal(story, '윤민아가 컵을 내려놓는다.');
+  assert.deepEqual(requestPayload.thinking, { type: 'disabled' });
+  assert.equal(requestPayload.max_tokens, 3500);
+});
+
+test('R4 resolves original adult CSA catalog selectors, group scopes, names, and finite conflicts', () => {
+  const resolver = createCanonicalRuleResolver(content);
+  const state = {
+    profile: { name: '플레이어', age: 30 },
+    active_rules: [],
+    scene: { present_actor_ids: ['heroine1'] }
+  };
+  const clothingRule = resolver('no_bra_under_work_clothes', { subject_scope: 'female_employee' }, { state });
+  assert.equal(clothingRule.rule_text, content.csa_catalog.items.find(item => item.id === 'no_bra_under_work_clothes').rule_text);
+  assert.ok(content.actors.filter(actor => actor.kind === 'heroine').every(actor => clothingRule.subject_actor_ids.includes(actor.actor_id)));
+  assert.equal(clothingRule.subject_scope, 'female_employee');
+  assert.throws(() => resolver('no_bra_under_work_clothes', { subject_scope: 'company_employee' }, { state }), /scope_invalid/u);
+  assert.throws(() => resolver('lap_facing_conversation', {
+    subject_scope: 'female_employee', subject_actor_id: 'general_park_jungwoo',
+    counterparty_scope: 'male_employee', counterparty_actor_id: 'heroine1'
+  }, { state }), /out_of_scope/u);
+
+  const activeState = { ...state, active_rules: [{ ...clothingRule, rule_id: 'existing-clothing-rule', version: 1 }] };
+  assert.throws(() => resolver('work_in_underwear_only', { subject_scope: 'female_employee' }, { state: activeState }), /rule_conflict/u);
+
+  const pair = resolver('recurring_light_kiss_conversation', {
+    subject_scope: 'female_employee', subject_actor_id: 'heroine3',
+    counterparty_scope: 'company_employee', counterparty_actor_id: 'heroine2'
+  }, { state });
+  assert.deepEqual(pair.subject_actor_ids, ['heroine3']);
+  assert.deepEqual(pair.counterparty_actor_ids, ['heroine2']);
+  const announcement = buildOfficialRuleAnnouncement({ operation: 'APPLY', effective_turn: 1, next_rule: {
+    ...pair, rule_id: 'story-rule', version: 1, selectors: {
+      subject_scope: 'female_employee', subject_actor_id: 'heroine3',
+      counterparty_scope: 'company_employee', counterparty_actor_id: 'heroine2'
+    }
+  } }, content, state);
+  assert.match(announcement, /사내 메신저/u);
+  assert.match(announcement, /김제나/u);
+  assert.match(announcement, /윤민아/u);
+  assert.doesNotMatch(announcement, /상식개변/u);
+  assert.equal(publicCanonicalRuleCatalog(content.csa_catalog).items.length, 21);
 });
 
 test('R4 voice UI resolves only committed heroine dialogue to its source voice mapping', () => {
@@ -83,15 +169,24 @@ test('R4 voice UI resolves only committed heroine dialogue to its source voice m
   assert.deepEqual(lines, [{ speaker_id: 'heroine1', speaker_name: '서원희', direction: '낮게 웃으며', text: '그건 아직 기억하고 있어요.', evidence_quote: '서원희 (낮게 웃으며): “그건 아직 기억하고 있어요.”', order: 0 }]);
 });
 
+test('R4 voice UI accepts server-verified Korean narrative quotes and requires committed presence', () => {
+  const actors = [{ actor_id: 'heroine1', name: '서원희', voice_available: true }];
+  const line = { speaker_id: 'heroine1', speaker_name: '서원희', text: '목요일 오후에 다시 설명할게요.', direction: '', evidence_quote: '"목요일 오후에 다시 설명할게요." 그녀가 화이트보드에서 돌아섰다.', order: 0 };
+  const turn = { story_text: '서원희가 화이트보드에서 돌아섰다. "목요일 오후에 다시 설명할게요." 그녀가 화이트보드에서 돌아섰다.', observer_applied: { dialogueLines: [line] } };
+  assert.deepEqual(committedDialogueForVoice(turn, actors, ['heroine1']), [line]);
+  assert.deepEqual(committedDialogueForVoice(turn, actors, []), []);
+  assert.deepEqual(committedDialogueForVoice({ ...turn, story_text: '다른 이야기' }, actors, ['heroine1']), []);
+});
+
 test('R4 voice dialogue is committed only when Observer verifies exact present-character lines', () => {
-  const storyText = '서원희가 옆자리에 앉아 고개를 끄덕였다.\n서원희 (낮게 웃으며): “기억했어요.”\n[선택지]\n1. 대화를 잇는다.\n2. 잠시 기다린다.\n3. 다른 이야기를 꺼낸다.\n4. 자리를 옮긴다.';
+  const storyText = '서원희가 옆자리에 앉아 고개를 끄덕였다.\n서원희는 낮게 웃었다. “기억했어요.”\n[선택지]\n1. 대화를 잇는다.\n2. 잠시 기다린다.\n3. 다른 이야기를 꺼낸다.\n4. 자리를 옮긴다.';
   const observer = {
     scene: {
       present_actor_ids: ['heroine1'],
       presence_evidence: [{ actor_id: 'heroine1', quote: '서원희가 옆자리에 앉아 고개를 끄덕였다.' }]
     },
     dialogue_lines: [
-      { speaker_id: 'heroine1', text: '기억했어요.', direction: '낮게 웃으며', evidence_quote: '서원희 (낮게 웃으며): “기억했어요.”', order: 0 },
+      { speaker_id: 'heroine1', text: '기억했어요.', direction: '', evidence_quote: '서원희가 옆자리에 앉아 고개를 끄덕였다.\n서원희는 낮게 웃었다. “기억했어요.”', order: 0 },
       { speaker_id: 'heroine1', text: '아직 나오지 않은 말', direction: '', evidence_quote: '서원희: “아직 나오지 않은 말”', order: 1 }
     ]
   };
@@ -102,8 +197,104 @@ test('R4 voice dialogue is committed only when Observer verifies exact present-c
     turnNumber: 1
   });
   assert.deepEqual(result.dialogueLines, [{
-    speaker_id: 'heroine1', speaker_name: '서원희', text: '기억했어요.', direction: '낮게 웃으며', evidence_quote: '서원희 (낮게 웃으며): “기억했어요.”', order: 0
+    speaker_id: 'heroine1', speaker_name: '서원희', text: '기억했어요.', direction: '', evidence_quote: '서원희가 옆자리에 앉아 고개를 끄덕였다.\n서원희는 낮게 웃었다. “기억했어요.”', order: 0
   }]);
+});
+
+test('R4 voice projection splits exact attributed dialogue around narration without losing a heroine scene', () => {
+  const first = '어땠냐고요.';
+  const second = '라떼보다 제 대답이 더 궁금하다는 거, 그거 들으면 보통 준비된 답부터 꺼내게 돼요.';
+  const evidence = `"${first}" 목소리가 평소보다 반 박자 느리다. "${second}"`;
+  const storyText = `윤민아는 컵을 두 손으로 감싼다. ${evidence}\n[선택지]\n1. 더 묻는다.\n2. 듣는다.\n3. 라떼 얘기로 돌아간다.\n4. 자리를 옮긴다.`;
+  const result = normalizeObservation({
+    scene: {
+      present_actor_ids: ['heroine2'],
+      presence_evidence: [{ actor_id: 'heroine2', quote: '윤민아는 컵을 두 손으로 감싼다.' }]
+    },
+    dialogue_lines: [{ speaker_id: 'heroine2', text: `${first} ${second} 임의로 더한 말`, evidence_quote: evidence }]
+  }, {
+    storyText,
+    before: { state_revision: 0, committed_turn: 0, turn_revision: 0, profile: {}, time: { day: 1, minutes: 540 }, scene: { location_id: 'brand_strategy_office', present_actor_ids: [] }, active_rules: [], projection_meta: {} },
+    content,
+    turnNumber: 1
+  });
+  assert.deepEqual(result.dialogueLines.map(line => line.text), [first, second]);
+  assert.deepEqual(result.dialogueLines.map(line => line.speaker_id), ['heroine2', 'heroine2']);
+  assert.equal(result.warnings.includes('presence_unverified'), false);
+});
+
+test('R4 verifies a quoted heroine line from its nearest exact narrative attribution', () => {
+  const storyText = '윤민아 대리는 창가 쪽 자기 자리에 앉아 노트북 화면을 넘기고 있었다.\n\n"대리님, 혹시 그 카페 신메뉴 드셔 보셨어요?" 컵 쪽으로 턱짓을 했다.\n[선택지]\n1. 메뉴 얘기를 잇는다.\n2. 창을 물어본다.\n3. 앱을 살펴본다.\n4. 잠시 기다린다.';
+  const spoken = '대리님, 혹시 그 카페 신메뉴 드셔 보셨어요?';
+  const observer = {
+    scene: {
+      present_actor_ids: ['heroine2'],
+      presence_evidence: [{ actor_id: 'heroine2', quote: `"${spoken}` }]
+    },
+    dialogue_lines: [{ speaker_id: 'heroine2', text: spoken, evidence_quote: `"${spoken}"`, order: 0 }]
+  };
+  const result = normalizeObservation(observer, {
+    storyText,
+    before: { state_revision: 0, committed_turn: 0, turn_revision: 0, profile: {}, time: { day: 1, minutes: 540 }, scene: { location_id: 'brand_strategy_office', present_actor_ids: [] }, active_rules: [], projection_meta: {} },
+    content,
+    turnNumber: 1
+  });
+  assert.deepEqual(result.scene.presence.value, ['heroine2']);
+  assert.deepEqual(result.dialogueLines.map(line => line.speaker_id), ['heroine2']);
+  assert.equal(result.warnings.includes('presence_unverified'), false);
+});
+
+test('R4 voice projection uses the nearest Story attribution when Observer cites only the exact spoken line', () => {
+  const storyText = '직원 라운지에서 김제나가 컵을 두 손으로 감싼다. 제나는 잠깐 눈을 내렸다가 다시 올려다본다. "네, 괜찮아요." 대답은 짧지만 흘리듯 나오지 않는다.\n[선택지]\n1. 음악을 묻는다.\n2. 잠깐 기다린다.\n3. 자리를 비켜 준다.\n4. 물을 마신다.';
+  const evidenceQuote = '"네, 괜찮아요." 대답은 짧지만 흘리듯 나오지 않는다.';
+  const result = normalizeObservation({
+    scene: {
+      present_actor_ids: ['heroine3'],
+      presence_evidence: [{ actor_id: 'heroine3', quote: '직원 라운지에서 김제나가 컵을 두 손으로 감싼다.' }]
+    },
+    dialogue_lines: [{ speaker_id: 'heroine3', text: '네, 괜찮아요.', direction: '', evidence_quote: evidenceQuote }],
+    turn_digest: { summary: '김제나가 잠시 망설이다가 대답한다.', important: false },
+    actor_ids: ['heroine3'],
+    keywords: ['음악']
+  }, {
+    storyText,
+    before: { state_revision: 0, committed_turn: 0, turn_revision: 0, profile: {}, time: { day: 1, minutes: 555 }, scene: { location_id: 'employee_lounge', present_actor_ids: [] }, active_rules: [], projection_meta: {} },
+    content,
+    turnNumber: 1
+  });
+  assert.deepEqual(result.dialogueLines.map(line => line.text), ['네, 괜찮아요.']);
+  assert.deepEqual(result.dialogueLines.map(line => line.speaker_id), ['heroine3']);
+  assert.equal(result.warnings.includes('presence_unverified'), false);
+});
+
+test('R4 voice projection ignores a recently mentioned absent character and uses the sole present cast member', () => {
+  const firstQuote = '"이름 붙이는 얘기." 그녀가 되받는다. 말이 조금 빨라진다. "보리차 향이랑 그게 무슨 상관인데요."';
+  const secondQuote = '"제가 아침에 그 얘기 꺼냈을 때, 대리님 별 반응 없었잖아요. 그러다 오후에 다시 꺼내셨고. 저는 그걸 계속 세고 있었어요."';
+  const storyText = `김제나 씨와 나눈 이야기를 전한다. 윤민아의 눈이 아주 살짝 가늘어진다. ${firstQuote} 잠깐 숨을 고르고, 그녀는 마우스에서 손을 뗀다. ${secondQuote}`;
+  const result = normalizeObservation({
+    scene: {
+      present_actor_ids: ['heroine2'],
+      presence_evidence: [{ actor_id: 'heroine2', quote: '윤민아의 눈이 아주 살짝 가늘어진다.' }]
+    },
+    dialogue_lines: [
+      { speaker_id: 'heroine2', text: '이름 붙이는 얘기. 보리차 향이랑 그게 무슨 상관인데요.', evidence_quote: firstQuote },
+      { speaker_id: 'heroine2', text: '제가 아침에 그 얘기 꺼냈을 때, 대리님 별 반응 없었잖아요. 그러다 오후에 다시 꺼내셨고. 저는 그걸 계속 세고 있었어요.', evidence_quote: secondQuote }
+    ],
+    turn_digest: { summary: '윤민아가 보리차를 기억한다.', important: false },
+    actor_ids: ['heroine2'],
+    keywords: ['보리차']
+  }, {
+    storyText,
+    before: { state_revision: 0, committed_turn: 35, turn_revision: 1, profile: {}, time: { day: 1, minutes: 560 }, scene: { location_id: 'brand_strategy_office', present_actor_ids: ['heroine2'] }, active_rules: [], projection_meta: {} },
+    content,
+    turnNumber: 36
+  });
+  assert.deepEqual(result.dialogueLines.map(line => line.speaker_id), ['heroine2', 'heroine2', 'heroine2']);
+  assert.deepEqual(result.dialogueLines.map(line => line.text), [
+    '이름 붙이는 얘기.',
+    '보리차 향이랑 그게 무슨 상관인데요.',
+    '제가 아침에 그 얘기 꺼냈을 때, 대리님 별 반응 없었잖아요. 그러다 오후에 다시 꺼내셨고. 저는 그걸 계속 세고 있었어요.'
+  ]);
 });
 
 test('R4 voice requests retain exact observer evidence and direction across serialized playback', () => {
@@ -118,6 +309,49 @@ test('R4 voice requests retain exact observer evidence and direction across seri
   assert.equal(validateCommittedDialogueRequest(request, { speakerId: 'heroine1', committedLines: [committedLine, { ...committedLine, text: '아직도요.', evidence_quote: '서원희 (낮게 웃으며): “아직도요.”', order: 1 }], presentActorIds: ['heroine1'] }).valid, true);
   assert.equal(validateCommittedDialogueRequest({ ...request, lines: [{ ...request.lines[0], evidence_quote: '임의의 대사' }] }, { speakerId: 'heroine1', committedLines: [committedLine], presentActorIds: ['heroine1'] }).valid, false);
   assert.equal(validateCommittedDialogueRequest(request, { speakerId: 'heroine1', committedLines: [committedLine], presentActorIds: [] }).valid, false);
+});
+
+test('R4 manual voice replay uses the latest committed source line while autoplay stays off', async () => {
+  const listeners = new Map();
+  const replayListeners = new Map();
+  const audioListeners = new Map();
+  const toggle = { addEventListener: (name, fn) => listeners.set(name, fn), setAttribute() {}, textContent: '' };
+  const replay = { addEventListener: (name, fn) => replayListeners.set(name, fn) };
+  const audio = {
+    hidden: false,
+    src: '',
+    currentTime: 14,
+    paused: true,
+    addEventListener: (name, fn) => audioListeners.set(name, fn),
+    removeAttribute(name) { if (name === 'src') this.src = ''; },
+    pause() { this.paused = true; },
+    async play() { this.paused = false; }
+  };
+  const status = { textContent: '' };
+  const documentRef = { getElementById(id) { return ({ 'tts-toggle': toggle, 'tts-replay': replay, 'tts-status': status, 'audio-player': audio })[id] ?? null; } };
+  const calls = [];
+  const controller = createCompanyTts({
+    documentRef,
+    api: { async tts(payload) { calls.push(payload); return { url: 'https://audio.invalid/heroine1.mp3' }; } },
+    getView: () => ({
+      identity: 'game:2:2', turn: { turn_number: 2, turn_revision: 2 },
+      dialogueLines: [{ speaker_id: 'heroine1', speaker_name: '서원희', text: '지금은 괜찮아요.', direction: '낮게 말한다.', evidence_quote: '서원희가 "지금은 괜찮아요."라고 낮게 말한다.', order: 0 }],
+      presentActorIds: ['heroine1'], focalActorId: 'heroine1'
+    }),
+    storage: { getItem: () => null, setItem() {} }
+  });
+  controller.onCommittedTurn();
+  assert.equal(controller.state.enabled, false);
+  assert.equal(calls.length, 0);
+  assert.equal(audio.paused, true);
+  replayListeners.get('click')();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].speaker_id, 'heroine1');
+  assert.equal(calls[0].text, '지금은 괜찮아요.');
+  assert.equal(audio.src, 'https://audio.invalid/heroine1.mp3');
+  assert.equal(audio.paused, false);
+  assert.equal(status.textContent, '서원희 대사 재생 중');
 });
 
 test('R4 observation requires exact story evidence and never clears unverified fields', () => {
@@ -149,6 +383,55 @@ test('R4 observation requires exact story evidence and never clears unverified f
   assert.equal(observation.scene.sceneNote, null);
   assert.equal(observation.elapsedMinutes, null);
   assert.ok(observation.warnings.includes('digest_missing'));
+});
+
+test('R4 keeps the last verified game clock without degrading a turn that states no elapsed passage', () => {
+  const before = {
+    state_revision: 7,
+    committed_turn: 7,
+    turn_revision: 1,
+    profile: { name: 'R4 검증' },
+    time: { day: 1, minutes: 555 },
+    scene: { location_id: 'brand_strategy_office', present_actor_ids: ['heroine2'], scene_note: '대화 중' },
+    active_rules: [],
+    projection_meta: { status: 'complete', last_verified_turn: { time: 7 }, unverified: [] }
+  };
+  const evidence = '브랜드전략팀 사무실에서 윤민아는 창밖을 바라보다가 다시 말을 이었다.';
+  const storyText = `${evidence}\n[선택지]\n1. 대답한다.\n2. 기다린다.\n3. 다른 얘기를 한다.\n4. 자리를 옮긴다.`;
+  const noElapsedObserver = {
+    scene: {
+      location_id: 'brand_strategy_office',
+      location_evidence: evidence,
+      present_actor_ids: ['heroine2'],
+      presence_evidence: [{ actor_id: 'heroine2', quote: evidence }],
+      scene_note_status: 'observed',
+      scene_note: '윤민아가 말을 잇는다.',
+      scene_note_evidence: evidence
+    },
+    turn_digest: { summary: '윤민아가 창밖을 바라보다가 대화를 이어 간다.', important: false },
+    actor_ids: ['heroine2'],
+    keywords: ['대화']
+  };
+  const observation = normalizeObservation(noElapsedObserver, {
+    storyText,
+    before,
+    content,
+    turnNumber: 8
+  });
+  assert.deepEqual(observation.elapsedMinutes, { status: 'unchanged', value: 0 });
+  assert.equal(observation.warnings.includes('elapsed_time_unverified'), false);
+  const schemaDefaultObservation = normalizeObservation({ ...noElapsedObserver, elapsed_minutes: 0 }, {
+    storyText,
+    before,
+    content,
+    turnNumber: 8
+  });
+  assert.deepEqual(schemaDefaultObservation.elapsedMinutes, { status: 'unchanged', value: 0 });
+  assert.equal(schemaDefaultObservation.warnings.includes('elapsed_time_unverified'), false);
+  const after = reduceTurn({ before, observation, turnNumber: 8, turnRevision: 1 });
+  assert.deepEqual(after.time, before.time);
+  assert.equal(after.projection_meta.status, 'complete');
+  assert.equal(after.projection_meta.last_verified_turn.time, 7);
 });
 
 test('R4 context includes a whole raw fallback and excludes oversized raw records whole', () => {
@@ -250,7 +533,7 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
   const gameId = await setupGame(store);
   const contexts = [];
   const subjectIds = ['heroine1', 'heroine2'];
-  const selectors = { test_fixture_scope: 'two-source-characters', subject_actor_ids: subjectIds };
+  const selectors = { subject_actor_id: 'heroine1', counterparty_actor_id: 'heroine2' };
   const rules = {
     structural_policy_a: { template_id: 'structural_policy_a', label: 'fixture policy A', rule_text: 'test-only structural description A', authority_label: 'test fixture', selector_schema: 'test_fixture' },
     structural_policy_b: { template_id: 'structural_policy_b', label: 'fixture policy B', rule_text: 'test-only structural description B', authority_label: 'test fixture', selector_schema: 'test_fixture' }
@@ -258,7 +541,7 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
   const resolveRuleTemplate = (templateId, requestedSelectors) => {
     assert.deepEqual(requestedSelectors, selectors);
     const descriptor = rules[templateId];
-    return descriptor ? { ...descriptor, subject_actor_ids: [...requestedSelectors.subject_actor_ids], counterparty_actor_ids: [] } : null;
+    return descriptor ? { ...descriptor, subject_actor_ids: ['heroine1', 'heroine2'], counterparty_actor_ids: ['heroine2'] } : null;
   };
   const provider = {
     mode: 'test-only-structural-provider',

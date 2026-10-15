@@ -11,6 +11,7 @@ import { createR4Store } from './adapters/postgres-store.js';
 import { createConfiguredProvider, createScriptedProvider, providerAvailability } from './adapters/provider.js';
 import { R4StoreError } from './adapters/store-errors.js';
 import { validateCommittedDialogueRequest } from './domain/voice.js';
+import { publicCanonicalRuleCatalog } from './domain/rule-catalog.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const frontendRoot = resolve(root, 'frontend-r4');
@@ -21,7 +22,7 @@ const configuredBudget = Number.parseInt(process.env.R4_MODEL_CALL_BUDGET ?? '12
 const liveCallBudget = Math.max(1, Math.min(120, Number.isInteger(configuredBudget) ? configuredBudget : 120));
 const databasePath = resolve(root, process.env.R4_DB_PATH ?? 'var/r4-local-postgres');
 const publicStorageBase = (process.env.R4_PUBLIC_STORAGE_URL ?? '').replace(/\/+$/, '');
-const ttsApiUrl = String(process.env.R4_TTS_API_URL ?? '').trim();
+const ttsApiUrl = String(process.env.R4_TTS_API_URL ?? process.env.TTS_WORKER_URL ?? '').trim();
 
 if (/^https?:\/\//i.test(process.env.R4_DB_PATH ?? '')) throw new Error('r4_database_path_must_be_local');
 
@@ -180,7 +181,7 @@ const server = createServer(async (request, response) => {
         status: 'ok',
         provider: { mode: provider.mode, liveConfigured: modelAvailability.ready, models: modelAvailability.models },
         voice: { mappingsLoaded: content.actors.some(actor => actor.source_record?.voice_id), synthesisConfigured: Boolean(ttsApiUrl) },
-        local_database: { engine: 'PostgreSQL WASM via PGlite', persistent_directory: 'var/r4-local-postgres' },
+        local_database: { engine: 'PostgreSQL WASM via PGlite', persistent_directory: databasePath },
         usage: await store.readUsage()
       });
       return;
@@ -193,6 +194,7 @@ const server = createServer(async (request, response) => {
         world_premise: content.world_premise,
         building_name: content.building_name,
         floors: content.floors,
+        csa_catalog: publicCanonicalRuleCatalog(content.csa_catalog),
         actors: content.actors.map(({ actor_id, kind, name, age, gender, department, position, role_title, company_tenure, default_location_id, prompt_card, profile_card, source_record }) => {
           const portrait = content.media_catalog.find(item => item.image_id === actor_id + '-main');
           return {
@@ -260,10 +262,6 @@ const server = createServer(async (request, response) => {
     if (request.method === 'POST' && commandMatch) {
       const body = await readBody(request);
       const gameId = commandMatch[1];
-      if (body.kind === 'RULE_CHANGE') {
-        // The canonical CSA catalog currently contains no non-explicit preset that can be used for this task's permitted live validation.
-        throw new R4StoreError('r4_non_explicit_canonical_rule_unavailable', 503);
-      }
       const command = createCommand({
         gameId,
         kind: body.kind,

@@ -1,44 +1,182 @@
-# Company R4 progress
+# Company R4 진행 기록
 
-- Updated: 2026-10-15 KST
+- Updated: 2026-10-15 16:58 KST
+- Status: RUNNING — 사용자가 중단하라고 할 때까지 목표 유지
 - Branch: `rebuild/company-core-r4-20261015`
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
-- Implementation checkpoint HEAD: `d3632cb4630618c53f7f07efcf8a05f13745e182` (`docs: mark R4 candidate checkpoint pushed`)
-- Previous closeout checkpoint: `22e7391` (`docs: record R4 rule core validation and blockers`)
-- Status: `PARTIAL_BLOCKED` (branch push completed; draft PR #105 remains open)
+- Current HEAD: `924a3c39e73f5ce3cdffcbb0d09d43a0f2db0d88` (R4 수정은 미커밋)
+- Live implementation SHA-256 after memory, current-action, Observer evidence, and no-time-passage fixes: `d34f342346d6588ba408d5d87b31c441bb0c13e3311d75c8570f73896cad778c`
+- 보호: main, PR #104, 기존 R3 Worker, 원격 DB, 보존 세이브, 정본 콘텐츠 변경 없음.
 
-## Product direction and source wiring
+## 실제 사용 콘텐츠와 경로
 
-- Rechecked `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, source `characters.json`, `map.json`, `organization.json`, `positions.json`, `media_catalog.json`, and `csa_catalog.json`. Canonical content files remain unchanged.
-- Product is the original character-first `상식개변: 회사편`, including the player's private unfamiliar app premise. Office notices/lunch/assignments are test examples only. The saved game `4dc4ba9c-afe3-4618-8635-ac86313cde3e` contains two `scripted-preview` turns: one exposed an internal label in place of dramatized prose; the next flattened to generic office prose. Those results are preserved and are not actual-model evidence.
-- R4 source path remains `content/characters.json` + `content/map.json` → `runtime-r4/domain/content.js` → `runtime-r4/domain/context.js` → `runtime-r4/adapters/provider.js` request JSON. Source-backed dramatization cards and the app/world premise are built into Story context; the actual HTTP Story/Observer request was not sent because no approved provider settings are present.
-- Rule mechanics now stage a server-owned prospective rule snapshot and event before Story, include current and historical rule records plus affected source-character cards in context, and apply rules only after reducer success. Observer data cannot write active rules. Story failure leaves rules and turn uncommitted; retry retains the original structured command. Feedback reruns the rule turn with its original command. PGlite stores current rules, a bounded recent event projection and durable per-turn rule events.
-- The source CSA catalog has 21 entries; all are sexual or intimate. There is no permitted non-explicit canonical example for live product validation. No substitute product catalog was added, none of those rule texts was sent to a model, and `POST /commands` rejects `RULE_CHANGE` with `r4_non_explicit_canonical_rule_unavailable` (HTTP 503). Thus the core mechanics are structural plumbing only; no product NPC reaction has passed.
+- 게임은 일반 사내 시뮬레이션 fixture가 아니라 기존 Company 원본 `content/characters.json`, `map.json`, `organization.json`, `positions.json`과 캐릭터/미디어 매핑을 `runtime-r4/domain/content.js`에서 읽는다. 장면별 `context.js` → server-owned turn pipeline → provider의 Story HTTP payload로 전달된다.
+- 실제 윤민아 캠페인 Story payload에 `heroine2` 원본 prompt card(29세, 말투·빠른 판단·자존심·질문으로 시간을 버는 반응·사적 관심/기억 경계)와 앱이 플레이어만 아는 비공개 전제가 포함됐다. 매 턴 Observer가 보고한 출연 인물은 계속 윤민아 한 명이며, UI Scene Cast와 Mind Monitor는 저장된 해당 장면에서 렌더링됐다.
+- 실제 생성 흐름: 보리차와 쌉싸름한 맛 선호가 윤민아의 호박 향 취향과 연결됨 → 사적 대화에서 향을 기억하는 습관과 상대의 질문 의도를 되묻는 반응 → 플레이어가 질문에 대한 자기 방식을 직접 설명한 뒤 윤민아가 자신의 급식 냄새 기억을 나눔. 이는 새 Story에서 생긴 대화 사실이며 원본 설정으로 주장하지 않는다.
+- Story→Observer→atomic Commit 파이프라인과 같은 원본 command literal 보존, feedback/retry, state revision은 유지된다. 최신 live prompt version `r4-company-rule-context-12`.
 
-## UI, source images, and voice
+## 구현 수정과 검증 근거
 
-- Existing reader UI remains on the branch: Story and choices, free input, map, present cast, Mind Monitor, scene media, voice/TTS controls, History, feedback, retry, and local save state. No frontend files changed in this checkpoint.
-- `/api/content` on the updated local server reports all five source heroines, 102 image catalog references, and five voice mappings. General portraits resolve in the source catalog to `Image/Heroine1/one_main.jpg`, `Heroine2/minami_main.jpg`, `Heroine3/jena_main.jpg`, `Heroine4/live_main.jpg`, and `Heroine5/may_main.jpg`. Those bytes are not in any local Git ref. The configured Supabase project `company-v1` (`fmcrspgxstsmxxsmkeee`) reports `INACTIVE`; the public Storage hostname did not resolve and a read-only Storage query timed out. No project state, database, or objects were changed. An older `py-all` handoff describes lower-case `heroine1/` paths; the current Company source catalog is the authority and those old paths were not mixed in.
-- Corrected the earlier conclusion that there was no TTS service. `wrangler.api.jsonc`/`wrangler.r3.api.jsonc` point to `https://fancy-dust-7f8c.zeroslove.workers.dev/` and bind `TTS_WORKER` to `fancy-dust-7f8c`. Cloudflare read-only metadata reports the Worker at 100% on its latest deployment, secret names for Fish Audio and R2 are configured (values were not read), and R2 bucket `tts` contains 2,804 objects totaling 426 MB. Public `r2.dev` access is enabled; no custom domain is attached. The R4 TTS route already accepts the same `{ voice_id, text, direction }` request and `{ url }` response, but the current R4 process has no `R4_TTS_API_URL`, so its UI controls stay disabled. GitHub's `zeroslove-ai/py-all` TTS Worker source confirms Fish Audio MP3 synthesis and R2 storage. The object keys were not enumerated, and no existing audio was fetched or played; object count is evidence of a populated TTS bucket, not a content-by-content audio audit.
-- GitHub search also found a historical Dify workflow YAML containing a plaintext Fish API credential. Its value was not repeated or used. Treat that credential as exposed and revoke it; no key or Cloudflare secret was changed. Historical handoff notes mention a time-limited free model period, so current synthesis cost/availability remains unverified and no synthesis request was sent.
-- The five original voice mappings are present in `content/characters.json`. R4's image `media_available` and live voice playback are still unverified: images are unavailable while the source Supabase project is inactive, and live synthesis was not called. Prior browser evidence remains: 1280×900 desktop and 390×844 mobile had no horizontal overflow or console errors; a separate fixture verified Setup→Opening→one turn→local DB→reload and GIF pause/replay/poster fallback. Those checks were structural/UI evidence, not real-model or asset-service acceptance.
+- 실제 opening에서 이름 없는 인용 때문에 Observer presence가 빠져 cast/voice가 누락되는 결함을 재현했다. 인물 귀속 검증기를 exact quote 인접 이름 귀속으로 수정하고 회귀 테스트를 추가했다. 원본 `OPENING` command ID 유지한 revision 2 후 캐릭터 cast와 선택지가 화면에 복원됐다.
+- 실제 free-action에서 Observer 요약 인명 오타, 과거 시점이 당일 장면을 ‘어제’라고 바꾸는 선택지 오류를 피드백으로 수정했다. turn5 revision2에서 정확한 command ID와 원문 literal을 보존했다.
+- turn6의 두 번째 이상의 발화가 서술 사이에 있으면 voice dialogue projection이 0개가 되던 문제를 수정했다. 이름 귀속이 있는 인용 구간만 분리하는 parser와 회귀 테스트 추가. turn6 피드백 revision2에서 Observer 발화 4개 중 exact attributed quote 2개가 commit됐고 voice batch 생성 확인.
+- turn4 Story 출력이 reasoning token을 소비해 3500 max-token 길이 종료를 낸 원인을 확인했다. 같은 DeepSeek 모델에 reasoning 비활성 설정을 적용한 뒤 실패 job의 원본 명령으로 재시도 성공. 선택지 전체에도 기억 grounding을 적용.
+- UI에서 저장된 turn6 음성 `재생` 버튼이 즉시 반응하지 않아 확인했다. 원본 캐릭터 mapping과 서버 TTS validation은 2개 committed dialogue line에 대해 통과했고, 기존 TTS Worker가 audio URL을 반환했다. 비동기 생성 후 브라우저 실제 audio player에 윤민아 14초 음성이 재생 완료된 것을 확인했고, 최근 대사 재생 및 자동재생 끄기(정지)도 확인했다. 자동 재생 기본값은 꺼져 있다.
+- Actual model evidence: `company-configured`, `actual_http_request=true`, DeepSeek Story/Observer. t14, t18, t19 had elapsed warnings and are recorded as degraded; t20 on prompt14 committed with complete projection/warnings0 after the deterministic no-passage fix. Scripted Provider output is not live evidence.
+- 구조/오프라인: 가장 최근 `node --test test/r4-core.test.mjs` 18/18 PASS. 전체 `npm test` 613/613 PASS는 최근 멀티대사 parser 추가 전 실행한 값이므로 최종 재실행 예정. `git diff --check` 최종 재실행 예정.
 
-## Verification at this checkpoint
+## 실제 게임과 검증
 
-- `node --test test/r4-core.test.mjs`: 12/12 passed.
-- `npm test`: 609/609 passed; `git diff --check` passed. The added rule fixture uses a synthetic, test-only descriptor and provider. It exercised Story failure without partial state, exact structured-command retry, feedback revision, rule-history retrieval beyond the recent-turn window, APPLY → ordinary turn → CHANGE → REMOVE, an Observer state-mutation attempt, source cards for two selected canon characters, PGlite restart restoration, and inactive-rule absence. It is only pipeline/storage structure; its generated text is not character/narrative acceptance.
-- Updated server on port 4177: `/api/health` says provider `company-unconfigured`, live configured `false`, model calls `0`, remaining budget `120`, `mediaAvailable=false`, source voice mappings `5`, source image references `102`. Read-only service investigation commands: `wrangler whoami`; `wrangler deployments status --name fancy-dust-7f8c --json`; `wrangler secret list --name fancy-dust-7f8c`; `wrangler r2 bucket info tts`; Supabase project metadata read via the connected Supabase app. No model or TTS generation call was made.
-- Production RULE_CHANGE endpoint returns HTTP 503 because there is no permitted canonical non-explicit rule to use. No model was called. The pre-existing `4dc…` game was read only; no preserved game was edited.
+- 후보 URL: `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`
+- 로컬 DB: PGlite `var/r4-user-goal-20261015`. 기존 게임의 server restart 복원은 earlier run에서 확인. 이번 run은 `/api/games/...` GET에서 저장 revision 확인.
+- Current actual-model memory game: turn35. t12 revision2 recalled the recorded roasted-barley-tea preference; t13 revision2 executed its original literal; t14 stale turn12 time evidence was rejected and 09:12 preserved. Prompt13 rejected reuse of prior-turn time quotes; t16 cited current Story. t18/19 exposed schema-default elapsed=0 with no evidence, which old normalization marked degraded. Prompt14 and deterministic normalization now treat zero/empty evidence or both fields omitted as unchanged time, preserving the last verified clock; positive or invalid claimed time still warns. Unit tests cover both absent fields and schema-default zero. After restart on the same local PGlite directory, t20 committed with complete projection/warnings0 and clock 09:15 unchanged. Actual UI free input t21 sent a search/meeting request for Kim Jena. Story honored the absent branch instead of forcing her into the scene; the actual Story payload included Minah and Jena source cards, with Jena personality, speech, addressing, and private-life detail. Scene Cast remained Minah only, projection complete, warnings0. Private evidence includes `real-ui-turn14-15.json`, `real-ui-turn16.json`, `real-ui-turn17-18.json`, `real-ui-turn19.json`, `real-ui-turn20.json`, `real-ui-turn21.json`.
+- turn13 revision1에서 직접 답변을 요청한 literal이 Story에서 “답하려는 참”으로 선택지까지 미뤄진 결함을 확인했다. prompt에 current literal이 실제 실행 가능한 조건이면 이번 완료 Story에서 행동/대사를 실행하고 선택지로 넘기지 말도록 추가해 version 12로 올렸다. 같은 original command ID `04a18cde-54f8-4686-83bd-1a5da220ce30`의 UI feedback revision2는 플레이어 답변을 실제 대사로 완료했고, 윤민아의 서로 다른 반응/Mind Monitor, cast `heroine2`, projection complete, warnings 0을 저장했다. private evidence `real-ui-turn13.json`에는 양쪽 revision과 source hash가 있다. 변경 후 `node --test test/r4-core.test.mjs` 18/18 PASS, `git diff --check` PASS(정상 CRLF 안내만 출력).
+- t14 actual Observer는 이전 turn12의 휴대전화 단서를 elapsed evidence로 재사용해 `elapsed_minutes=4`를 냈다. exact current-Story validator가 거부했고 `projection_meta`를 degraded로 표시하며 저장 시간 09:12와 나머지 검증된 presence/location은 보존했다. 이 턴은 경고 있는 degraded commit으로 기록하며 정상 PASS로 세지 않는다. t15는 실제 UI의 첫 선택 버튼으로 t14의 답을 이어 갔고, 윤민아가 “안 꺼내는 쪽”의 두려움을 더 구체화한 뒤 질문을 하나 더 보탰다. Mind Monitor는 같은 장면/발화의 호기심과 경계를 반영했고 `heroine2` cast 및 정상 commit 확인. private `real-ui-turn14-15.json`은 실제 Story payload, Story, Observer raw/applied, state, context/history, 실행량, implementation hash를 담는다.
+- Server restart restore: stopped and restarted the candidate server with the same local PGlite path and 120-call counter; fresh page reload recovered turn15 at 09:14 with Minah cast, story, choices and Mind Monitor. No main/R3/remote DB/save changed.
+- 실제 boundary 검증은 같은 memory game에서 13턴 연속으로 겹친다(별도 fresh campaign이 아님). t4 actual length failure→수정→원본 command retry, t5/t6/t12/t13 feedback with original literal, t6 think/stay/no-move, t9 실제 UI 선택지 제출, t10 NPC 장면 퇴장 후 빈 presence Commit 및 page reload 뒤 empty Scene Cast(0명)/음성 disabled, t11/t12 빈 context 유지, t13 조건 성립 후 NPC 재입장과 플레이어의 응답을 실제로 commit했다. Story의 화장실 이동은 잠깐 부재를 뜻하므로 영구 퇴장으로 과장하지 않는다. 이 13턴 창에는 명세의 boundary 사례가 포함됐고 호출 상한 보존을 위해 별도 게임으로 중복 실행하지 않았다.
+- t9 command ID `ea632f9c-2b6d-4c66-9aa2-67fc703f3721`, 선택지 literal 그대로 보존, real Story/Observer, projection complete, warnings 0. t11 command ID `9da30b0c-461c-4248-84ac-7ef3e537a805`, raw-turn window 5–10, retrieved digests 1–4; Story의 밤 호박 라떼·3잔·호박 향 선호/맛은 애매한 기억은 t2 digest와, 향이 먼저 오고 단맛이 뒤에 남은 기억은 t3 digest와 일치했다. 윤민아는 부재 상태로 유지.
+- Browser: desktop 1280×900 and 390×844 had no horizontal overflow in prior measurements. Current t21 UI shows the actual cast/result, four choices, Minah Mind Monitor, source-image unavailable fallback and voice controls. GIF stop/replace/fallback, latest mobile capture, History/feedback UI verification remain.
 
-## Commands, URL, DB, and budget
+## 원본 미디어·규칙 범위
 
-- Standard start: `npm run r4:dev`
-- Current updated candidate: PowerShell `$env:PORT='4177'; $env:R4_DB_PATH='var/r4-rule-check-db'; npm run r4:dev`
-- Fresh local game: `http://127.0.0.1:4177/?gameId=328140e6-9432-42bf-9b04-cb1e02734350` (Setup only; no Story generated)
-- Current disposable DB: `var/r4-rule-check-db/`; test DBs are temporary. Existing local game DB was read only.
-- Story + Observer use: `0 / 120`; remaining `120`. No API calls were made.
+- 5개 원본 voice mapping, 102개 이미지 참조, 21개 원본 규칙 preset 보존. 기존 Cloudflare `fancy-dust-7f8c` TTS Worker와 Fish Audio 경로로 원본 voice를 실제 재생했다. Worker 코드/설정, 원격 DB, production media를 수정하지 않았다.
+- Supabase 활성 프로젝트와 저장소에서 다섯 원본 portrait bytes/정확한 object key를 못 찾아 이미지 fallback 유지. 이전 Company project ref `fmcrspgxstsmxxsmkeee` inactive라 복구/수정 금지. 자동/대체 그림을 생성해 원본이라고 표시하지 않는다. 두 번째 TTS 합성의 새 R2 object 생성 여부는 미확인.
+- 원본 CSA catalog 21개 텍스트·scope는 유지. 노골적/성적 강압을 피하는 실제-model rule preset은 못 찾아 live APPLY/CHANGE/REMOVE NPC response acceptance 미검증. 사용자 범위에 없는 노골적/성적 강압 장면을 생성해 보완하지 않는다. Synthetic preset 결과는 DB/pipeline 구조 증거로만 기록한다.
+- Canon audit found the 21 current P-CSA slots are sexualized dress/contact rules or delegated sexual-work authority. No neutral, non-sexual rule is defined as a canonical product preset. Do not fabricate a substitute or apply a coercive rule just to produce a live sample; actual APPLY/CHANGE/REMOVE character response acceptance stays unverified pending a safe canonical rule source/owner change.
 
-## Next / final state
+## 사용량·실행
 
-- Focused review, 609-test regression run, final report, and branch push are complete. PR #105 is updated and remains draft. Do not merge or deploy.
-- Blocking evidence: no approved model configuration; no permitted non-explicit canonical rule example; original image storage is in the inactive Supabase project and cannot be fetched; TTS Worker exists but the R4 process is not configured to call it, and current provider cost/availability has not been confirmed. Continue no-go on product rule Story until the canonical source and authorized validation case allow it. Do not describe the prior fixture runs as live product or model acceptance.
+- `/api/health` actual provider budget: Story 37 + Observer 36 = 107/120; remaining 13. Failures and feedback revisions count. Existing `deepseek-flash`/DeepSeek settings, isolated local PGlite DB.
+- Server 실행: `npm run r4:dev`; env `PORT=4182`, `R4_DB_PATH=var/r4-user-goal-20261015`, `R4_MODEL_CALL_BUDGET=120`, `LLM_API_URL=https://api.deepseek.com`, existing `DEEPSEEK_API_KEY`, `STORY_MODEL=deepseek-flash`, `EXTRACT_MODEL=deepseek-flash`, existing `TTS_WORKER_URL=https://fancy-dust-7f8c.zeroslove.workers.dev/`.
+- Next action: actual campaign 21/40. Seek Kim Jena in a grounded nearby scene and ask about the music she enjoys at home, while respecting her pace and not inventing her location if absent. Continue live Story/Observer and inspect source payload/cast.
+
+## 차단 및 미검증
+
+- 실제 portrait bytes/service object location을 못 찾음; fallback으로 표시.
+- Actual-model 40-turn memory campaign 21/40. Memory t11–12; literal execution t13; character reaction continuity t14–20; source-card selection for a mentioned absent Jena t21. Boundary scenarios remain an overlapping 13-turn window in this one game; no separate A/B campaigns are claimed.
+- live safe RULE_CHANGE example 부재, 실제 규칙 NPC 반응 미검증.
+- GIF 정지/교체/fallback 아직 미검증. 전체 npm suite와 diff check 최종 검증 남음.
+- 결과는 캐릭터 콘텐츠 전체 검수, 사용자 재미 수락, 운영 출시 승인이 아니다.
+
+## Checkpoint 2026-10-15 17:10 KST
+
+- HEAD: `924a3c39e73f5ce3cdffcbb0d09d43a0f2db0d88` (implementation changes are in the existing candidate worktree and remain uncommitted).
+- Actual model campaign: 22/40. Turn22 is a real UI free-action, actual DeepSeek Story+Observer, complete projection and warnings 0; Jena appears only after the player reaches the lounge. Source payload includes her canonical personality/private-life card; the scene shows her reserved but self-directed response and matching Mind Monitor.
+- Root cause found for missing committed Jena voice: Observer quoted the exact spoken line but excluded the preceding “제나는…” attribution sentence. The parser now resolves the nearest canonical actor mention in Story around exact quoted speech. New regression test added; `node --test --test-reporter=dot test/r4-core.test.mjs` passes 20/20; `git diff --check` passes.
+- Actual provider usage: 75/120 (Story 38, Observer 37), 45 remaining. Budget permits at most 22 further Story+Observer pairs if no failures; retain at least 7 calls for one same-turn feedback revision and failure recovery.
+- Next: restart R4 server on the same local PGlite directory, reload current game, submit same-turn feedback to repair the missing voice projection while preserving the original command, verify replay through existing character voice mapping/Worker, then continue actual-model turns toward 40 with budget checks.
+- Command: `npm run r4:dev`; env `PORT=4182`, `R4_DB_PATH=var/r4-user-goal-20261015`, `R4_MODEL_CALL_BUDGET=120`, existing DeepSeek endpoint/models and existing `DEEPSEEK_API_KEY`; existing TTS Worker `https://fancy-dust-7f8c.zeroslove.workers.dev/`.
+- Fresh game URL: `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`.
+- No remote/main/R3/save changes. Remaining blockers: safe canonical rule sample for live APPLY/CHANGE/REMOVE; original portrait bytes/object key; GIF stop/replace/fallback; desktop/mobile recheck; final full suite and source/protection audit. TTS and voice mapping were proven for Minah earlier; Jena dialogue projection currently being repaired.
+
+## Checkpoint 2026-10-15 17:20 KST
+
+- Same DB/server restart reloaded actual turn22 with Jena cast, Mind Monitor, choices, voice/media cards.
+- Submitted real UI feedback as turn22 revision2. Command id `36cbce7d-e5d0-49d5-99b1-d4aee6c0db5e`, original literal and command hash `38b362728de5e5beb0517ca98b616dd02a5f9ed08dac70077fa676d5aab0063d` preserved. Observer committed exact `김제나: 네, 괜찮아요.` line; projection complete, warnings0. Feedback evidence is private `var/r4-private-evidence/real-feedback-turn22.json`.
+- Actual source payload hash is unchanged across feedback; source cards contain Minah and Jena, Jena personality and private-life description, original world premise, DeepSeek `actual_http_request=true`. T22 next-turn memory will be checked from t23's actual context.
+- Clicked the Jena replay control in actual browser. Existing TTS Worker returned an HTTPS URL; HEAD returns 403 for its signed resource, but GET returns HTTP 200 `audio/mpeg`, 15,045 bytes, valid MP3 duration 0.940313s (`ffprobe`). Audio evidence is private `var/r4-private-evidence/real-tts-jena-turn22.json`; auto-play remains off. The <1s native player rounds duration to 0:00. This proves a real MP3 and player request, not subjective voice-quality acceptance.
+- Provider usage is now 77/120 (remaining 43); t23–40 needs 36 calls if no failures, leaving 7 for recovery.
+- Next: submit the existing UI choice asking about Jena's home music. Inspect actual t23 Story context for turn22 revision2 memory; continue the same original-character scene without forcing content or office-task framing.
+
+## Checkpoint 2026-10-15 17:35 KST
+
+- Actual-model campaign advanced to turn25/40. t23–t25 are actual UI choices, DeepSeek Story+Observer, complete atomic projection, warnings0. t23 `context_manifest.raw_turn_sources` includes t22 revision2, and its actual Story payload includes canon Jena personality and the world premise. t23 moved from permission-seeking to her guarded personal music preference; t24 explained why she avoids intelligible lyrics; t25 player responded briefly and waited, and Jena continued from her own emotional thread. Mind Monitor tracks the same Story without a separate event. Private snapshots: `real-ui-turn23.json`, `real-ui-turn24.json`, `real-ui-turn25.json`.
+- TTS turn22 check: actual browser replay triggered; existing TTS Worker returned a real HTTPS resource whose GET is 200 `audio/mpeg`, 15,045 bytes and 0.940313s MP3. HEAD alone returns 403; it is not evidence of GET playback failure. Manual replay only, autoplay off.
+- Usage: 83/120 (42 Story, 41 Observer), 37 remaining. Turns26–40 need 30 calls if no failures; 7 calls remain for recovery.
+- Next: continue from t25 using a response that does not pressure Jena to disclose; preserve the live choice or free input exactly and inspect each commit/context. Continue checkpoint updates every few turns.
+- Server/DB/URL/environment remain unchanged: `npm run r4:dev`, `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`, local `var/r4-user-goal-20261015`.
+
+## Checkpoint 2026-10-15 17:50 KST
+
+- Actual-model campaign: turn27/40. t26 is a deliberate quiet beat; Jena independently resumed with a personal question, and Mind Monitor matches her relief/curiosity.
+- t27 revision1 was degraded: its narrative said 15:00 while UI clock was 09:20, and it failed choice and dialogue projection. Revision2 corrected the time wording to morning but emitted JSON-escaped `\\n`/`\\\"` text, so the parser still failed; it is not a pass.
+- Root cause fixed in the existing pipeline: `normalizeStoryOutput()` detects the exact escaped `[선택지]` block, decodes escaped line breaks/quotes only for that formatting signature, and runs before Observer/commit. Added a regression test for valid choice parsing and for leaving unrelated `\\n` text untouched. `node --test --test-reporter=dot test/r4-core.test.mjs` passes 21/21; `git diff --check` passes apart from normal CRLF notices.
+- On same PGlite DB after server restart, actual UI feedback revision3 preserved t27 original command id `37d17376-d34d-4b61-ba98-e243c21b4823` and literal `그대로 앉아, 창밖을 보는 김제나의 옆에서 자기 물을 천천히 마시며 쉰다.`. Final state 09:20, 4 clickable choices restored, actual Jena dialogue projection enabled, projection complete/warnings0. Private evidence: `real-feedback-turn27-rev3.json`; degraded v1/v2 are preserved as actual history and not counted as passes.
+- Usage 91/120 (46 Story, 45 Observer), remaining29. Actual campaign turns28–40 need26 calls, 3 remaining for recovery. No more feedback call is planned unless a turn fails a hard acceptance check.
+- Next: proceed via existing in-game choice with original Jena personal-scene continuity; every turn check actual API job completion/provider, DB projection, clock, dialogue/choices, and memory context. URL `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`; server command/env unchanged; DB `var/r4-user-goal-20261015`.
+
+## Checkpoint 2026-10-15 18:00 KST
+
+- After pipeline normalization and t27 revision3, actual t28 and t29 have been generated through real UI choices and committed by DeepSeek Story+Observer. Both show `actual_http_request=true`, projection complete, warnings0, four parsed choices, canon Jena dialogue lines, and no literal backslash-n text in stored Story. T28 actual `raw_turn_sources` includes t22 revision2; it continues Jena's self-raised question. T29 co-names the feeling only after player suggests it; Jena hesitates, then asks the player to go first. Evidence: `real-ui-turn28.json`, `real-ui-turn29.json`.
+- Latest database time remains 09:20. Repaired t27 revision3 preserved exact original choice command ID/literal and five verified minutes; revision v1/v2 remain archived as degraded history. Regression test for escaped formatting passes.
+- Usage 95/120 (48 Story, 47 Observer); remaining25. Turns30–40 need22 calls if there are no failures; 3 remain.
+- Next: use current character choices and keep exact UI action. Validate provider usage/commit after each request and save model evidence. No more feedback calls planned unless a severe failure requires one.
+- Local server `npm run r4:dev`, local DB `var/r4-user-goal-20261015`, game URL unchanged `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`.
+
+## Checkpoint 2026-10-15 18:05 KST
+
+- Actual DeepSeek UI campaign has reached turn31. t30 let Jena name her feeling “아직 안 꺼낸 거” and t31 carried that phrase into a light cup tap; Jena answered “술 아니고 물인데” and the scene retained her own cautious humor. Both real calls complete; projection complete, choices4, dialogue lines2+, warnings0. Evidence `real-ui-turn30.json`, `real-ui-turn31.json`.
+- Actual Story payloads preserve original world premise and source content; t22 revision2 memory remains in following context. Clock remains 09:20; no fabricated rule is active.
+- Provider usage 99/120 (50 Story, 49 Observer), remaining21; t32–40 requires18 calls, reserve3.
+- Next: continue chosen dialogue from current scene using existing four options; keep each turn’s call count and commit evidence. No scripted result counts.
+- Same local run: `npm run r4:dev`; DB `var/r4-user-goal-20261015`; URL `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`.
+
+## Checkpoint 2026-10-15 18:15 KST
+
+- Actual-model game reached turn33/40. t32 carried Jena's hesitation about a name becoming fixed, and t33 held the updated fact that either person can change it; she moved the earbud aside and explained why choosing to leave it unchanged feels different from lacking the choice. Dialogue remains personal, not task/meeting/menu play.
+- t32/t33 are actual UI FREE_ACTIONs with DeepSeek Story+Observer, complete projection, warnings0, choice count4, dialogue lines2+, and 09:20 preserved. Evidence `real-ui-turn32.json`, `real-ui-turn33.json`.
+- Escaped Story formatting fix remains effective on actual replies; no literal backslash line breaks in committed t28–33.
+- Usage 103/120 (52 Story, 51 Observer), remaining17. Turns34–40 need14, leaving3 calls for recovery.
+- Next: continue the story without forcing Jena to name or disclose anything; preserve each actual UI command and inspect the DB before choosing next.
+- URL/server/DB unchanged: `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`; `npm run r4:dev`; `var/r4-user-goal-20261015`.
+
+## Checkpoint 2026-10-15 18:25 KST
+
+- Actual-model campaign turn35/40 makes a real character/location transition: the player thanked Jena and left without pressing further; she remained seated in the lounge. At the brand strategy office Minah was actually present; only heroine2 appears in Scene Cast. The real Story payload included both mentioned source cards, while the next scene did not force Jena in.
+- Minah's distinct fast/direct response references the remembered barley tea conversation and its third-cup comparison from earlier turns. `context_manifest` retrieves long-range digest sources including turn1 rev2, turn2 rev2 and later relevant digests; the raw context retains turns29–34. Mind Monitor belongs only to Minah and matches the present question. Complete commit, 4 choices, 4 grounded dialogue lines, warnings0, real DeepSeek request, clock 09:20. Evidence `real-ui-turn35.json`.
+- Usage 107/120 (54 Story, 53 Observer), remaining13. Turns36–40 need10 calls, reserve3.
+- Next: answer Minah honestly but keep Jena's private conversation detail at the chosen brief level; inspect real context and current character response on each turn.
+- Same server, DB, URL: `npm run r4:dev`, `var/r4-user-goal-20261015`, `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`.
+
+## Checkpoint 2026-10-15 17:24 KST
+
+- t36 real DeepSeek feedback revision2 fixed the actual voice projection defect. A 320-character attribution window had preferred absent Jena, mentioned in the prior narration, over the sole verified present speaker Minah. Attribution now filters by verified cast and falls back to the sole verified speaker when exact quotes have no nearer present-name mention. Targeted core tests pass 22/22. Feedback retained original command ID 6ff480f7-c668-4936-8022-da1b874a475a and literal; real Story/Observer HTTP, complete projection, warnings0, four grounded Minah dialogue segments, and UI voice controls enabled. Manual replay populated the audio element with a 3-second player; no voice-quality acceptance is implied. Evidence real-feedback-turn36.json.
+- t37 was selected in the actual game UI and committed on the first attempt. Real DeepSeek Story+Observer HTTP, complete projection, warnings0, four choices, five exact Minah dialogue segments, no retry. Evidence real-ui-turn37.json.
+- Usage 113/120 (57 Story, 56 Observer), remaining7. t38–40 require6 calls; one call remains as reserve. No more feedback/retries planned.
+- Next: finish t40, then run requested desktop/mobile checks, full implementation verification, update final/progress docs, commit/push and draft PR.
+- Server: npm run r4:dev; PORT=4182; DB var/r4-user-goal-20261015; Story/Observer deepseek-flash; existing TTS worker URL. Local URL http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c.
+
+## Checkpoint 2026-10-15 17:25 KST
+
+- t38 followed the user's selected answer to Minah with an actual DeepSeek Story+Observer request, first-attempt commit, projection complete, warnings0, four choices, and four grounded dialogue lines. Minah's response keeps her quick, self-conscious accounting voice: she admits relief, then notices she's processing the feeling aloud. Evidence real-ui-turn38.json.
+- Usage 115/120 (58 Story, 57 Observer), remaining5. t39–40 need4 calls; one reserved. Do not spend the final reserve on exploratory feedback/retries.
+- Next: ask Minah why she kept the count only if the user-facing choice remains consistent; then finish t40. Inspect DB/payload/commit and save actual evidence each turn.
+- Candidate branch rebuild/company-core-r4-20261015, HEAD 924a3c39e73f5ce3cdffcbb0d09d43a0f2db0d88 plus local changes. Local server npm run r4:dev; DB var/r4-user-goal-20261015; game URL http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c.
+
+## Checkpoint 2026-10-15 17:25 KST
+
+- t39 followed the user's live choice and completed from real DeepSeek Story+Observer providers in one pass: projection complete, warnings0, actual HTTP true for both calls, four choices, six dialogue segments attributed to verified present Minah. Evidence real-ui-turn39.json.
+- The improvisation introduced a “since childhood” counting habit not verified against canon. It remains only a line spoken in this generated scene; do not elevate it to source canon or profile memory. This is an observed content-quality caveat, not a rewrite of canonical files.
+- Usage 117/120 (59 Story, 58 Observer), remaining3. Final turn40 uses two calls; retain one call as reserve and never rerun identical code to cherry-pick.
+- Next: finish turn40 from the current story's question, preserve actual payload/DB evidence, then complete UI/restart/repository checks and final candidate report.
+- Local server npm run r4:dev; DB var/r4-user-goal-20261015; URL http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c.
+
+## Checkpoint 2026-10-15 17:26 KST
+
+- Real UI campaign reached t40. Turns37–40 each completed on the first attempt from actual DeepSeek Story+Observer HTTP requests, with committed turns and matching stored command/hash. t40 projection complete, warnings0, four choices, five exact Minah speech segments, and a Mind Monitor matching the present character and interaction. Evidence real-ui-turn40.json includes state, payload audits, and context manifest.
+- Usage 119/120 (60 Story, 59 Observer), one call remains; no more model calls planned. Campaign turns22–40 had no failed call/retry except the documented t36 feedback revision, preserving its original command.
+- Next: verify persisted game after server restart and source-memory retrieval; finish test suite, viewport/media checks, report unverified canon-rule/remote-asset limitations, then prepare branch commit/push/draft PR without touching main or PR104.
+- Server npm run r4:dev; local PGlite DB var/r4-user-goal-20261015; URL http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c.
+
+## Checkpoint 2026-10-15 17:36 KST
+
+- Actual-model PGlite history has 40 committed gameplay turns; every turn has actual_http_request=true for both DeepSeek Story and Observer. 36 persisted projections are complete; four historical projections are degraded. Turn14 cited an elapsed-time quote absent from its Story and correctly retained the old clock. Turns17–19 emitted zero minutes without evidence under the older normalizer and retained 09:15. The current normalizer treats absent passage as unchanged. Historical rows remain degraded; they are not a PASS. Evidence real-model-campaign-summary.json.
+- Real boundary turns8–12 are part of the same actual-model campaign. All five use real HTTP and are complete. Turns11–12 retrieved older digests while retaining the six preceding raw turns. At t40, the manifest used recent turns34–39 plus relevant digests as old as turn3; token_budget_overflow=false.
+- Restarted the live server against the same local PGlite directory after turn40; it restored turn40, state revision50, all40 history rows, and usage119/120. Reloaded browser shows the saved turn40.
+- Full regression suite after prompt/presence fixes: npm test -- --test-reporter=dot, 619/619 passed. Core subset: 22/22.
+- Browser checks: desktop 1280x900 had document width1265 and no horizontal overflow; mobile 390x844 had document width375, no horizontal overflow, and no off-screen-width elements. At actual t36, Minah TTS audio loaded in a 3-second player; t22 Jena MP3 evidence remains. Original 102 art references are storage-backed, but the local server has no public storage base and no local original art files. Only the demo GIF/PNG fixtures are local.
+- The separate scripted-preview PGlite/browser fixture was visibly labeled “스크립트 · 모델 아님”. UI checks passed: stop to poster, play to GIF, blocked GIF to poster fallback, unblocked recovery, and replacement/removal on the next character scene. This is UI-only evidence, not a live story/model pass. Details gif-fixture-ui-check.json.
+- The temporary scripted fixture had zero live API usage. Actual campaign usage remains119/120; no more live Story/Observer calls will be sent.
+- Next: reset the temporary mobile viewport, restart the live app with prompt version15, inspect diffs and remote divergence, finish FINAL_REPORT.md, then commit/push and attach or create a draft PR without merging/deploying.
+- Real candidate URL http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c; DB var/r4-user-goal-20261015; branch rebuild/company-core-r4-20261015; base HEAD 924a3c39e73f5ce3cdffcbb0d09d43a0f2db0d88 plus local changes.
+
+## Checkpoint 2026-10-15 17:43 KST
+
+- HEAD at inspection: 924a3c39e73f5ce3cdffcbb0d09d43a0f2db0d88 plus current worktree changes; fetched candidate remote branch is still exactly 924a3c39e73f5ce3cdffcbb0d09d43a0f2db0d88. Existing PR #105 is open/draft.
+- Corrected turn36 feedback command ID in this log from the actual saved evidence. Actual turn40 audit confirms both Story and Observer payloads had the private-app premise and original Minah/Jena source cards; Minah was the only present character. Actual generated scene connects her reaction to the remembered barley-tea exchange and player's waiting answer.
+- Created a blank local Setup game without a model call: http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f. Verified Setup form is visible. Existing 40-turn game remains at http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c.
+- Confirmed persistent DB after restart: state_revision50, 40 history rows, turn40. The live UI reloaded turn40. Actual provider budget remains 119/120 (Story60, Observer59); no further model calls planned.
+- Final report now records actual payload evidence, blockers, run commands, URLs, media limits, and protected-scope result. Full test suite after prompt/presence changes was 619/619; core tests 22/22. Desktop/mobile metrics and isolated scripted GIF result are recorded above.
+- Next: finish whole-diff review and whitespace check; commit and fast-forward push the candidate branch; refresh existing draft PR #105 and attach it. Never force-push, merge, deploy, or change main/PR104/R3/remote DB.
+- Run: set PORT=4182, R4_DB_PATH=var/r4-user-goal-20261015, R4_MODEL_CALL_BUDGET=120; run npm run r4:dev. Local DB only.
+- Blockers: no safe canonical rule example for live NPC rule acceptance; no original art bytes/public storage base; one remaining model call is insufficient for a full turn.

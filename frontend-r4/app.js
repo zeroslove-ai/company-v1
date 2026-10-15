@@ -1,4 +1,4 @@
-import { createCompanyTts, parseCommittedDialogue } from './tts.js';
+import { createCompanyTts, committedDialogueForVoice, parseCommittedDialogue } from './tts.js';
 
 const state = {
   gameId: '',
@@ -14,7 +14,8 @@ const state = {
   mediaSource: '',
   mediaKind: 'none',
   providerMode: '',
-  voiceHealth: null
+  voiceHealth: null,
+  csaTier: 'weak'
 };
 
 const byId = id => document.getElementById(id);
@@ -68,6 +69,13 @@ const els = {
   setupAge: byId('setup-age'),
   setupDepartment: byId('setup-department'),
   setupPosition: byId('setup-position'),
+  csaDialog: byId('csa-dialog'),
+  csaActiveRules: byId('csa-active-rules'),
+  csaActiveCount: byId('csa-active-count'),
+  csaCatalogList: byId('csa-catalog-list'),
+  csaChangeEditor: byId('csa-change-editor'),
+  activeRuleSummary: byId('active-rule-summary'),
+  openCsa: byId('open-csa'),
   historyDialog: byId('history-dialog'),
   historyList: byId('history-list'),
   historyMore: byId('history-more'),
@@ -103,14 +111,7 @@ const ttsUi = createCompanyTts({
 });
 
 function committedDialogueFor(turn) {
-  const projected = turn?.observer_applied?.dialogueLines;
-  if (Array.isArray(projected)) {
-    return projected.filter(line => {
-      const actor = state.content?.actors.find(item => item.actor_id === line?.speaker_id && item.voice_available);
-      return actor && typeof line.text === 'string' && line.text.trim() && typeof line.evidence_quote === 'string' && line.evidence_quote.includes(actor.name) && line.evidence_quote.includes(line.text);
-    });
-  }
-  return parseCommittedDialogue(turn?.story_text, state.content?.actors ?? []);
+  return committedDialogueForVoice(turn, state.content?.actors ?? [], state.snapshot?.state?.scene?.present_actor_ids ?? []);
 }
 
 function showNotice(message, kind = '') {
@@ -133,6 +134,8 @@ function setBusy(busy) {
   byId('open-history').disabled = busy || !state.gameId;
   byId('open-feedback').disabled = busy || !state.snapshot?.latest_turn;
   byId('new-game').disabled = busy;
+  els.openCsa.disabled = busy || !state.snapshot?.profile;
+  els.csaDialog.querySelectorAll('button, select').forEach(control => { control.disabled = busy; });
 }
 
 function clearChildren(node) {
@@ -422,6 +425,7 @@ function renderSnapshot() {
   const snapshot = state.snapshot;
   const hasTurn = Boolean(snapshot.latest_turn);
   const setupNeeded = !snapshot.profile || snapshot.status === 'setup_needed';
+  renderCsa();
   els.welcome.hidden = true;
   els.playSurface.hidden = setupNeeded;
   els.sceneTitle.textContent = snapshot.profile
@@ -489,6 +493,266 @@ function setupOptions() {
   if (positions.includes('대리')) els.setupPosition.value = '대리';
 }
 
+const csaScopeLabels = {
+  female_employee: '여성 직원 전체',
+  male_employee: '남성 직원 전체',
+  company_employee: '회사 직원 전체',
+  player: '플레이어'
+};
+
+function csaActorOptions(scope) {
+  if (scope === 'player') return state.snapshot?.profile
+    ? [{ value: 'player', label: state.snapshot.profile.name + ' · 플레이어' }]
+    : [];
+  const gender = value => value === 'female' || value === '여성' ? 'female' : value === 'male' || value === '남성' ? 'male' : '';
+  const actors = state.content.actors.filter(actor => {
+    if (!Number.isInteger(actor.age) || actor.age < 18) return false;
+    if (scope === 'female_employee') return gender(actor.gender) === 'female';
+    if (scope === 'male_employee') return gender(actor.gender) === 'male';
+    return scope === 'company_employee';
+  }).map(actor => ({ value: actor.actor_id, label: actor.name + ' · ' + (actor.role_title || actor.position || actor.department) }));
+  if (scope === 'company_employee' && state.snapshot?.profile) {
+    actors.unshift({ value: 'player', label: state.snapshot.profile.name + ' · 플레이어' });
+  }
+  return actors;
+}
+
+function buildCsaSelectorEditor(item, initial = {}) {
+  const root = document.createElement('div');
+  root.className = 'csa-selector-editor';
+  const values = { ...initial };
+
+  function addSelect(labelText, key, options, selectedValue, onChange = null) {
+    const label = document.createElement('label');
+    label.className = 'csa-field';
+    const caption = document.createElement('span');
+    caption.textContent = labelText;
+    const select = document.createElement('select');
+    options.forEach(optionData => select.append(option(optionData.label, optionData.value)));
+    if (selectedValue !== undefined && options.some(entry => entry.value === selectedValue)) select.value = selectedValue;
+    else if (options.length) select.value = options[0].value;
+    values[key] = select.value || '';
+    select.addEventListener('change', () => {
+      values[key] = select.value;
+      onChange?.();
+    });
+    label.append(caption, select);
+    root.append(label);
+    return select;
+  }
+
+  function render() {
+    clearChildren(root);
+    const subjectScopes = item.subject_scopes ?? [];
+    const fixedSubject = values.subject_scope ?? item.default_subject_scope ?? subjectScopes[0];
+    if (subjectScopes.length > 1) {
+      addSelect('대상 범위', 'subject_scope', subjectScopes.map(value => ({ value, label: csaScopeLabels[value] ?? value })), fixedSubject, () => {
+        values.subject_actor_id = '';
+        render();
+      });
+    } else values.subject_scope = subjectScopes[0] ?? null;
+
+    if (item.selector_schema === 'actor_pair' || item.selector_schema === 'named_actor') {
+      const subjectOptions = csaActorOptions(values.subject_scope);
+      addSelect('대상 인물', 'subject_actor_id', subjectOptions, values.subject_actor_id);
+      if (item.selector_schema === 'actor_pair') {
+        const counterpartyScopes = item.counterparty_scopes ?? [];
+        const fixedCounterparty = values.counterparty_scope ?? item.default_counterparty_scope ?? counterpartyScopes[0];
+        if (counterpartyScopes.length > 1) {
+          addSelect('상대 범위', 'counterparty_scope', counterpartyScopes.map(value => ({ value, label: csaScopeLabels[value] ?? value })), fixedCounterparty, () => {
+            values.counterparty_actor_id = '';
+            render();
+          });
+        } else values.counterparty_scope = counterpartyScopes[0] ?? null;
+        addSelect('상대 인물', 'counterparty_actor_id', csaActorOptions(values.counterparty_scope), values.counterparty_actor_id);
+      } else {
+        values.counterparty_scope = item.default_counterparty_scope ?? null;
+        delete values.counterparty_actor_id;
+      }
+    } else {
+      values.counterparty_scope = item.default_counterparty_scope ?? null;
+      delete values.subject_actor_id;
+      delete values.counterparty_actor_id;
+    }
+  }
+  render();
+  return { node: root, getValue: () => ({ ...values }) };
+}
+
+function ruleScopeSummary(rule) {
+  const selected = rule.selectors?.subject_actor_id;
+  const actor = selected === 'player'
+    ? { name: state.snapshot?.profile?.name }
+    : state.content.actors.find(person => person.actor_id === selected);
+  const subject = actor?.name ?? csaScopeLabels[rule.subject_scope] ?? '설정된 범위';
+  if (!rule.counterparty_scope) return subject;
+  const selectedOther = rule.selectors?.counterparty_actor_id;
+  const other = selectedOther === 'player'
+    ? { name: state.snapshot?.profile?.name }
+    : state.content.actors.find(person => person.actor_id === selectedOther);
+  return subject + ' · 상대 ' + (other?.name ?? csaScopeLabels[rule.counterparty_scope] ?? '설정된 범위');
+}
+
+function submitRuleChange(operation, ruleId, item, selectors, version) {
+  if (!state.snapshot?.profile || state.isBusy) return;
+  state.pendingCommand = { kind: 'RULE_CHANGE', operation, ruleId, templateId: item.template_id };
+  postStream('/api/games/' + encodeURIComponent(state.gameId) + '/commands', {
+    command_id: crypto.randomUUID(),
+    kind: 'RULE_CHANGE',
+    expected_state_revision: state.snapshot.state.state_revision,
+    rule_change: {
+      operation,
+      rule_id: ruleId,
+      template_id: item.template_id,
+      selectors,
+      expected_rule_version: version
+    }
+  });
+}
+
+function createRuleCard(item) {
+  const card = document.createElement('article');
+  card.className = 'csa-rule-card';
+  const header = document.createElement('div');
+  header.className = 'csa-rule-heading';
+  const title = document.createElement('h3');
+  title.textContent = item.label;
+  const authority = document.createElement('span');
+  authority.textContent = item.authority_label;
+  header.append(title, authority);
+  const text = document.createElement('p');
+  text.textContent = item.rule_text;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'button button-outline csa-open-editor';
+  button.textContent = '적용 설정';
+  const editor = document.createElement('div');
+  editor.className = 'csa-inline-editor';
+  editor.hidden = true;
+  button.addEventListener('click', () => {
+    editor.hidden = !editor.hidden;
+    button.textContent = editor.hidden ? '적용 설정' : '설정 닫기';
+    if (!editor.hidden && !editor.childElementCount) {
+      const selectorEditor = buildCsaSelectorEditor(item);
+      const help = document.createElement('p');
+      help.className = 'csa-scope-note';
+      help.textContent = item.selector_schema === 'none'
+        ? '대상 범위는 이 규칙의 정본 설정을 따릅니다.'
+        : '선택한 성인 인물과 적용 범위만 규칙에 포함됩니다.';
+      const submit = document.createElement('button');
+      submit.type = 'button';
+      submit.className = 'button button-primary button-wide';
+      submit.textContent = '이 규칙 발효';
+      submit.addEventListener('click', () => submitRuleChange('APPLY', crypto.randomUUID(), item, selectorEditor.getValue(), 0));
+      editor.append(help, selectorEditor.node, submit);
+    }
+  });
+  card.append(header, text, button, editor);
+  return card;
+}
+
+function openChangeEditor(rule) {
+  const host = els.csaChangeEditor;
+  clearChildren(host);
+  host.hidden = false;
+  const heading = document.createElement('div');
+  heading.className = 'csa-section-heading';
+  const title = document.createElement('strong');
+  title.textContent = rule.label + ' · 변경';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'close-dialog';
+  cancel.textContent = '×';
+  cancel.setAttribute('aria-label', '변경 닫기');
+  cancel.addEventListener('click', () => { host.hidden = true; clearChildren(host); });
+  heading.append(title, cancel);
+  host.append(heading);
+
+  const selectLabel = document.createElement('label');
+  selectLabel.className = 'csa-field';
+  const caption = document.createElement('span');
+  caption.textContent = '새 규칙';
+  const select = document.createElement('select');
+  const allItems = state.content.csa_catalog.items;
+  allItems.forEach(item => select.append(option(item.label + ' · ' + item.authority_label, item.template_id)));
+  select.value = rule.template_id;
+  selectLabel.append(caption, select);
+  host.append(selectLabel);
+  const selectorHost = document.createElement('div');
+  host.append(selectorHost);
+  let selectorEditor;
+  const draw = () => {
+    const item = allItems.find(candidate => candidate.template_id === select.value);
+    selectorEditor = buildCsaSelectorEditor(item, item.template_id === rule.template_id ? rule.selectors : {});
+    selectorHost.replaceChildren(selectorEditor.node);
+  };
+  select.addEventListener('change', draw);
+  draw();
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'button button-primary button-wide';
+  submit.textContent = '개정 규칙 적용';
+  submit.addEventListener('click', () => {
+    const item = allItems.find(candidate => candidate.template_id === select.value);
+    submitRuleChange('CHANGE', rule.rule_id, item, selectorEditor.getValue(), rule.version);
+  });
+  host.append(submit);
+}
+
+function renderCsa() {
+  if (!state.content?.csa_catalog || !state.snapshot) return;
+  const active = state.snapshot.state?.active_rules ?? [];
+  els.openCsa.disabled = !state.snapshot.profile || state.isBusy;
+  els.csaActiveCount.textContent = String(active.length);
+  els.csaActiveRules.replaceChildren();
+  els.activeRuleSummary.replaceChildren();
+  if (!active.length) {
+    const emptyDialog = document.createElement('p');
+    emptyDialog.className = 'muted-note';
+    emptyDialog.textContent = '아직 활성 규칙이 없습니다.';
+    els.csaActiveRules.append(emptyDialog);
+    const emptyCard = document.createElement('p');
+    emptyCard.className = 'muted-note';
+    emptyCard.textContent = '아직 활성 규칙이 없습니다.';
+    els.activeRuleSummary.append(emptyCard);
+  } else {
+    for (const rule of active) {
+      const row = document.createElement('article');
+      row.className = 'active-rule-row';
+      const title = document.createElement('strong');
+      title.textContent = rule.label;
+      const scope = document.createElement('small');
+      scope.textContent = ruleScopeSummary(rule);
+      const actions = document.createElement('div');
+      actions.className = 'active-rule-actions';
+      const change = document.createElement('button');
+      change.type = 'button';
+      change.className = 'button button-outline';
+      change.textContent = '변경';
+      change.addEventListener('click', () => openChangeEditor(rule));
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'button button-outline';
+      remove.textContent = '해제';
+      remove.addEventListener('click', () => {
+        const item = state.content.csa_catalog.items.find(candidate => candidate.template_id === rule.template_id);
+        if (item) submitRuleChange('REMOVE', rule.rule_id, item, rule.selectors, rule.version);
+      });
+      actions.append(change, remove);
+      row.append(title, scope, actions);
+      els.csaActiveRules.append(row);
+
+      const summary = document.createElement('p');
+      summary.className = 'active-rule-summary-item';
+      summary.textContent = rule.label + ' · ' + ruleScopeSummary(rule);
+      els.activeRuleSummary.append(summary);
+    }
+  }
+  const selectedTier = state.csaTier;
+  document.querySelectorAll('#csa-tabs [data-tier]').forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.tier === selectedTier)));
+  els.csaCatalogList.replaceChildren(...state.content.csa_catalog.items.filter(item => item.tier === selectedTier).map(createRuleCard));
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
@@ -546,6 +810,8 @@ function displayError(code, message = '') {
     observer_failed: '관찰 정리에 실패했지만 이야기 본문은 낮은 신뢰 상태로 저장했습니다.',
     explicit_retry_required: '실패한 원본 명령이 보존되어 있습니다. 원본 명령 재시도를 선택해 주세요.'
   };
+  if (String(code ?? '').startsWith('rule_conflict')) return '활성 규칙과 대상 범위가 충돌합니다. 기존 규칙을 변경하거나 다른 범위를 선택해 주세요.';
+  if (String(code ?? '').startsWith('rule_selector_')) return '선택한 규칙의 대상 범위를 확인해 주세요.';
   return messages[code] ?? message ?? '요청을 완료하지 못했습니다. 원본 입력과 마지막 확정 장면은 유지됩니다.';
 }
 
@@ -582,17 +848,21 @@ async function consumeEvent(event, requestGameId, requestToken) {
       els.feedbackInput.value = '';
       if (els.feedbackDialog.open) els.feedbackDialog.close();
     }
+    if (state.pendingCommand?.kind === 'RULE_CHANGE' && els.csaDialog.open) els.csaDialog.close();
     renderCounter();
     setBusy(false);
   }
   if (event.type === 'error') {
-    state.activeJobId = event.job_id ?? state.activeJobId;
-    if (event.retry_available && state.activeJobId) {
+    const retryJobId = event.job_id ?? state.activeJobId;
+    if (event.retry_available && retryJobId) {
+      state.activeJobId = retryJobId;
       localStorage.setItem('company-r4-job-' + requestGameId, state.activeJobId);
       els.retryRow.hidden = false;
       els.retryMessage.textContent = '실패한 입력을 그대로 보존했습니다. 재시도는 서버에 저장된 원본 명령을 사용합니다.';
-    } else if (event.job_id) {
-      localStorage.setItem('company-r4-job-' + requestGameId, event.job_id);
+    } else {
+      state.activeJobId = '';
+      localStorage.removeItem('company-r4-job-' + requestGameId);
+      els.retryRow.hidden = true;
     }
     els.pendingStage.textContent = event.retry_available ? '미저장 미리보기 · 원본 명령 보존' : '요청이 완료되지 않았습니다';
     els.pendingStory.hidden = !els.storyPreview.textContent;
@@ -655,14 +925,15 @@ async function postStream(path, body) {
   }
 }
 
-function submitCommand(kind, literalAction = '') {
+function submitCommand(kind, literalAction = '', ruleChange = null) {
   if (!state.snapshot || state.isBusy || !state.snapshot.profile) return;
-  state.pendingCommand = { kind, literal_action: literalAction };
+  state.pendingCommand = { kind, literal_action: literalAction, rule_change: ruleChange };
   postStream('/api/games/' + encodeURIComponent(state.gameId) + '/commands', {
     command_id: crypto.randomUUID(),
     kind,
     expected_state_revision: state.snapshot.state.state_revision,
-    literal_action: literalAction
+    literal_action: literalAction,
+    ...(ruleChange ? { rule_change: ruleChange } : {})
   });
 }
 
@@ -818,6 +1089,13 @@ els.historyMore.addEventListener('click', () => loadHistory(false).catch(error =
 byId('open-feedback').addEventListener('click', () => {
   if (state.snapshot?.latest_turn) els.feedbackDialog.showModal();
 });
+els.openCsa.addEventListener('click', () => {
+  if (state.snapshot?.profile && !state.isBusy) els.csaDialog.showModal();
+});
+document.querySelectorAll('#csa-tabs [data-tier]').forEach(tab => tab.addEventListener('click', () => {
+  state.csaTier = tab.dataset.tier;
+  renderCsa();
+}));
 els.feedbackForm.addEventListener('submit', event => {
   event.preventDefault();
   if (!state.snapshot?.latest_turn || !els.feedbackInput.value.trim()) return;

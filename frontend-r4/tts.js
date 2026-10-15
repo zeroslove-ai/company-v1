@@ -11,6 +11,22 @@ export function parseCommittedDialogue(storyText, actors = []) {
   });
 }
 
+export function committedDialogueForVoice(turn, actors = [], presentActorIds = []) {
+  const projected = turn?.observer_applied?.dialogueLines;
+  if (!Array.isArray(projected)) return parseCommittedDialogue(turn?.story_text, actors);
+  const voiceActors = new Set(actors.filter(actor => actor.voice_available).map(actor => actor.actor_id));
+  const present = new Set(presentActorIds ?? []);
+  const storyText = String(turn?.story_text ?? '');
+  return projected.filter(line =>
+    voiceActors.has(line?.speaker_id)
+    && present.has(line.speaker_id)
+    && typeof line.text === 'string' && line.text.trim()
+    && typeof line.evidence_quote === 'string'
+    && storyText.includes(line.evidence_quote)
+    && line.evidence_quote.includes(line.text)
+  );
+}
+
 function tone(direction = '') {
   if (/속삭|낮은 목소리/u.test(direction)) return 'whisper';
   if (/울먹|슬픈|눈물/u.test(direction)) return 'sad';
@@ -65,11 +81,10 @@ export function createCompanyTts({ documentRef = globalThis.document, api, getVi
     audio?.pause?.();
     audio?.removeAttribute?.('src');
   }
-  async function play(batch, expectedIdentity, cachedOnly = false) {
-    if (!enabled || expectedIdentity !== identity) return;
+  async function play(batch, expectedIdentity, manual = false) {
+    if ((!enabled && !manual) || expectedIdentity !== identity) return;
     const key = batch.speaker_id + ':' + batch.text;
     let url = cache.get(key);
-    if (!url && cachedOnly) return;
     const requestId = ++requestNo;
     try {
       if (!url) {
@@ -77,7 +92,7 @@ export function createCompanyTts({ documentRef = globalThis.document, api, getVi
         url = result?.url;
         if (url) cache.set(key, url);
       }
-      if (!url || requestId !== requestNo || expectedIdentity !== identity || !enabled || !audio) return;
+      if (!url || requestId !== requestNo || expectedIdentity !== identity || (!enabled && !manual) || !audio) return;
       audio.src = url;
       audio.currentTime = 0;
       audio.hidden = false;
@@ -94,11 +109,12 @@ export function createCompanyTts({ documentRef = globalThis.document, api, getVi
   }
   function onCommittedTurn() {
     const view = getView();
-    if (!enabled || !view?.turn || view.identity === identity) return;
+    if (!view?.turn || view.identity === identity) return;
     identity = view.identity;
     stop();
     queue = primaryBatches({ lines: view.dialogueLines, presentActorIds: view.presentActorIds, focalActorId: view.focalActorId });
-    if (queue.length) void drain(identity);
+    lastBatch = queue[0] ?? null;
+    if (enabled && queue.length) void drain(identity);
   }
   function setEnabled(value) {
     enabled = Boolean(value);

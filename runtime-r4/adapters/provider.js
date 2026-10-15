@@ -1,12 +1,47 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { observerSystemPrompt, storySystemPrompt } from '../prompts/story.js';
 
 const TIMEOUT_MS = Object.freeze({ story: 120_000, observer: 75_000 });
 const FIRST_STORY_CONTENT_MS = 30_000;
 
+function payloadAudit(payload, stage, providerMode = 'company-configured') {
+  const userMessage = payload.messages?.find(message => message.role === 'user')?.content ?? '';
+  let requestData = {};
+  try { requestData = JSON.parse(userMessage); } catch { /* retain hashes if format ever changes */ }
+  const context = requestData.context ?? {};
+  return {
+    provider_mode: providerMode,
+    actual_http_request: providerMode === 'company-configured',
+    stage,
+    model: payload.model,
+    payload_sha256: createHash('sha256').update(JSON.stringify(payload)).digest('hex'),
+    user_message_sha256: createHash('sha256').update(String(userMessage)).digest('hex'),
+    command: requestData.structured_command ?? {
+      kind: context.current_authority?.kind ?? '',
+      literal_action: requestData.literal_action ?? '',
+      rule_change: context.current_authority?.rule_change ?? null
+    },
+    world_premise: context.world_premise ?? null,
+    current_authority: context.current_authority ?? null,
+    active_rules: context.active_rules ?? [],
+    historical_rule_events: context.historical_rule_events ?? [],
+    rule_change_event: context.rule_change_event ?? null,
+    official_announcement: context.official_announcement ?? null,
+    source_characters: (context.registered_characters ?? []).map(actor => ({
+      actor_id: actor.actor_id,
+      name: actor.name,
+      age: actor.age,
+      department: actor.department,
+      position: actor.position,
+      role_title: actor.role_title,
+      dramatization: actor.dramatization ?? null
+    }))
+  };
+}
+
 function configuration(env) {
   const baseUrl = String(env.LLM_API_URL ?? '').replace(/\/$/, '');
-  const apiKey = String(env.LLM_API_KEY ?? '');
+  const apiKey = String(env.LLM_API_KEY ?? env.DEEPSEEK_API_KEY ?? '');
   const storyModel = String(env.STORY_MODEL ?? '');
   const observerModel = String(env.EXTRACT_MODEL ?? '');
   const ready = Boolean(baseUrl && apiKey && storyModel && observerModel);
@@ -76,17 +111,26 @@ export function createConfiguredProvider({ env = process.env, fetchImpl = fetch,
   return {
     mode: 'company-configured',
     modelNames: { story: config.storyModel, observer: config.observerModel },
-    async story({ context, command, feedbackText = '', feedbackReferenceStory = '', onChunk = null }) {
-      const call = await request('story', config.storyModel, {
+    async story({ context, command, feedbackText = '', feedbackReferenceStory = '', onChunk = null, onPayload = null }) {
+      const requestPayload = {
         model: config.storyModel,
         stream: true,
         stream_options: { include_usage: true },
+        thinking: { type: 'disabled' },
         max_tokens: 3500,
         messages: [
           { role: 'system', content: storySystemPrompt() },
-          { role: 'user', content: JSON.stringify({ context, literal_action: command.literal_action, feedback_text: feedbackText, feedback_reference_story: feedbackReferenceStory }) }
+          { role: 'user', content: JSON.stringify({
+            context,
+            structured_command: command,
+            literal_action: command.literal_action,
+            feedback_text: feedbackText,
+            feedback_reference_story: feedbackReferenceStory
+          }) }
         ]
-      }, command.game_id, command.command_id);
+      };
+      onPayload?.(payloadAudit(requestPayload, 'story'));
+      const call = await request('story', config.storyModel, requestPayload, command.game_id, command.command_id);
       let inputTokens = null;
       let outputTokens = null;
       try {
@@ -148,29 +192,35 @@ export function createConfiguredProvider({ env = process.env, fetchImpl = fetch,
         call.clearTimers();
       }
     },
-    async observe({ storyText, context, command }) {
-      const call = await request('observer', config.observerModel, {
+    async observe({ storyText, context, command, onPayload = null }) {
+      const requestPayload = {
         model: config.observerModel,
         stream: false,
-        max_tokens: 1400,
+        max_tokens: 2400,
+        thinking: { type: 'disabled' },
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: observerSystemPrompt() },
           { role: 'user', content: JSON.stringify({ context, current_literal_action: command.literal_action, completed_story: storyText }) }
         ]
-      }, command.game_id, command.command_id);
+      };
+      onPayload?.(payloadAudit(requestPayload, 'observer'));
+      const call = await request('observer', config.observerModel, requestPayload, command.game_id, command.command_id);
       try {
         const payload = await call.response.json();
         const choice = payload.choices?.[0];
         if (choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string') {
+          const failureCode = choice?.finish_reason && choice.finish_reason !== 'stop'
+            ? 'observer_finish_' + choice.finish_reason
+            : typeof choice?.message?.content !== 'string' ? 'observer_content_missing' : 'observer_incomplete';
           await call.finish({
             status: 'failed',
             finishReason: choice?.finish_reason ?? null,
-            errorCode: 'observer_incomplete',
+            errorCode: failureCode,
             inputTokens: payload.usage?.prompt_tokens ?? null,
             outputTokens: payload.usage?.completion_tokens ?? null
           });
-          throw new Error('observer_incomplete');
+          throw new Error(failureCode);
         }
         await call.finish({
           status: 'complete',
@@ -180,7 +230,7 @@ export function createConfiguredProvider({ env = process.env, fetchImpl = fetch,
         });
         return choice.message.content;
       } catch (error) {
-        if (error.message !== 'observer_incomplete') {
+        if (!String(error.message).startsWith('observer_')) {
           await call.finish({ status: 'failed', errorCode: call.timedOut() || 'observer_response_invalid' });
         }
         throw error;

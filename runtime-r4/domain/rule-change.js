@@ -60,21 +60,27 @@ function publicRule(rule) {
   return {
     rule_id: rule.rule_id,
     template_id: rule.template_id,
+    slot: rule.slot ?? null,
+    tier: rule.tier ?? null,
     version: rule.version,
     selectors: structuredClone(rule.selectors),
     label: rule.label,
     rule_text: rule.rule_text,
     authority_label: rule.authority_label,
     selector_schema: rule.selector_schema ?? null,
+    subject_scope: rule.subject_scope ?? null,
+    counterparty_scope: rule.counterparty_scope ?? null,
     subject_actor_ids: [...(rule.subject_actor_ids ?? [])],
     counterparty_actor_ids: [...(rule.counterparty_actor_ids ?? [])],
+    supported_action_families: [...(rule.supported_action_families ?? [])],
+    execution: rule.execution ? structuredClone(rule.execution) : null,
     started_turn: rule.started_turn
   };
 }
 
-function resolveDescriptor(command, resolveRuleTemplate) {
+function resolveDescriptor(command, resolveRuleTemplate, { state, excludeRuleId = '' } = {}) {
   if (typeof resolveRuleTemplate !== 'function') throw new Error('rule_template_resolver_unavailable');
-  const descriptor = resolveRuleTemplate(command.template_id, structuredClone(command.selectors));
+  const descriptor = resolveRuleTemplate(command.template_id, structuredClone(command.selectors), { state, excludeRuleId });
   if (!descriptor || descriptor.template_id !== command.template_id || typeof descriptor.label !== 'string' ||
       typeof descriptor.rule_text !== 'string' || typeof descriptor.authority_label !== 'string') {
     throw new Error('rule_template_not_canonical_or_selectors_invalid');
@@ -97,18 +103,24 @@ export function prepareRuleChange({ state, command, turnNumber, resolveRuleTempl
 
   if (change.operation === 'APPLY') {
     if (current) throw new Error('rule_already_active');
-    const descriptor = resolveDescriptor(change, resolveRuleTemplate);
+    const descriptor = resolveDescriptor(change, resolveRuleTemplate, { state });
     const next = {
       rule_id: change.rule_id,
       template_id: descriptor.template_id,
+      slot: descriptor.slot ?? null,
+      tier: descriptor.tier ?? null,
       version: 1,
       selectors: structuredClone(change.selectors),
       label: descriptor.label,
       rule_text: descriptor.rule_text,
       authority_label: descriptor.authority_label,
       selector_schema: descriptor.selector_schema ?? null,
+      subject_scope: descriptor.subject_scope ?? null,
+      counterparty_scope: descriptor.counterparty_scope ?? null,
       subject_actor_ids: [...(descriptor.subject_actor_ids ?? [])],
       counterparty_actor_ids: [...(descriptor.counterparty_actor_ids ?? [])],
+      supported_action_families: [...(descriptor.supported_action_families ?? [])],
+      execution: descriptor.execution ? structuredClone(descriptor.execution) : null,
       started_turn: turnNumber
     };
     active.push(next);
@@ -123,18 +135,27 @@ export function prepareRuleChange({ state, command, turnNumber, resolveRuleTempl
       active.splice(currentIndex, 1);
       event = { operation: 'REMOVE', rule_id: change.rule_id, effective_turn: turnNumber, previous_rule: publicRule(current), next_rule: null, command_id: command.command_id };
     } else {
-      const descriptor = resolveDescriptor(change, resolveRuleTemplate);
+      const descriptor = resolveDescriptor(change, resolveRuleTemplate, {
+        state,
+        excludeRuleId: current.rule_id
+      });
       const next = {
         rule_id: current.rule_id,
         template_id: descriptor.template_id,
+        slot: descriptor.slot ?? null,
+        tier: descriptor.tier ?? null,
         version: current.version + 1,
         selectors: structuredClone(change.selectors),
         label: descriptor.label,
         rule_text: descriptor.rule_text,
         authority_label: descriptor.authority_label,
         selector_schema: descriptor.selector_schema ?? null,
+        subject_scope: descriptor.subject_scope ?? null,
+        counterparty_scope: descriptor.counterparty_scope ?? null,
         subject_actor_ids: [...(descriptor.subject_actor_ids ?? [])],
         counterparty_actor_ids: [...(descriptor.counterparty_actor_ids ?? [])],
+        supported_action_families: [...(descriptor.supported_action_families ?? [])],
+        execution: descriptor.execution ? structuredClone(descriptor.execution) : null,
         started_turn: current.started_turn
       };
       active[currentIndex] = next;

@@ -3,7 +3,40 @@ import { parseStoryChoices } from './command.js';
 
 const validText = (value, max = 1200) => typeof value === 'string' && value.length <= max;
 const exactEvidence = (quote, storyText) => validText(quote, 800) && quote.length > 0 && storyText.includes(quote);
-const dialogueEvidence = /^\s*(.{1,40}?)\s*(?:\(([^()\n]{1,80})\)\s*)?:\s*["“](.+?)["”]\s*$/u;
+function actorNameVariants(actor) {
+  const names = [actor.name];
+  if (/^[가-힣]{3}$/u.test(actor.name)) names.push(actor.name.slice(1));
+  return [...new Set(names)];
+}
+function nearestActorMention(text, content, allowedActorIds = null) {
+  const allowed = allowedActorIds ? new Set(allowedActorIds) : null;
+  return content.actors.filter(actor => !allowed || allowed.has(actor.actor_id)).flatMap(actor => actorNameVariants(actor).map(name => ({
+    actorId: actor.actor_id,
+    index: text.lastIndexOf(name)
+  }))).filter(actor => actor.index >= 0).sort((a, b) => b.index - a.index)[0] ?? null;
+}
+function exactAttributedDialogueSegments(storyText, evidenceQuote, actorId, spokenText, content, presentActorIds) {
+  if (!validText(evidenceQuote, 800)) return [];
+  const quoteIndex = storyText.indexOf(evidenceQuote);
+  if (quoteIndex < 0) return [];
+  const solePresentSpeaker = presentActorIds.length === 1 && presentActorIds[0] === actorId;
+  return [...evidenceQuote.matchAll(/["“]([^"“”\n]{1,600})["”]/gu)].flatMap(match => {
+    const text = match[1].trim();
+    if (!text || !spokenText.includes(text)) return [];
+    const segmentIndex = quoteIndex + match.index;
+    const attributionWindow = storyText.slice(Math.max(0, segmentIndex - 320), segmentIndex);
+    const nearestPresentActor = nearestActorMention(attributionWindow, content, presentActorIds);
+    return nearestPresentActor?.actorId === actorId || (!nearestPresentActor && solePresentSpeaker) ? [{ text }] : [];
+  });
+}
+
+function matchesActorEvidence(storyText, evidenceQuote, actorId, content) {
+  if (!exactEvidence(evidenceQuote, storyText)) return false;
+  const quoteIndex = storyText.indexOf(evidenceQuote);
+  const nearby = storyText.slice(Math.max(0, quoteIndex - 320), quoteIndex + evidenceQuote.length);
+  const nearestActor = nearestActorMention(nearby, content);
+  return nearestActor?.actorId === actorId;
+}
 
 export function parseObserverPayload(raw) {
   if (raw && typeof raw === 'object') return raw;
@@ -34,7 +67,7 @@ export function normalizeObservation(raw, { storyText, before, content, turnNumb
     const evidenceById = new Map();
     for (const evidence of scene.presence_evidence) {
       const actor = findActor(content, evidence?.actor_id);
-      if (actor && exactEvidence(evidence?.quote, storyText) && evidence.quote.includes(actor.name)) evidenceById.set(actor.actor_id, evidence.quote);
+      if (actor && matchesActorEvidence(storyText, evidence?.quote, actor.actor_id, content)) evidenceById.set(actor.actor_id, evidence.quote);
     }
     const everyActorGrounded = ids.every(id => evidenceById.has(id));
     const emptyGrounded = ids.length === 0 && exactEvidence(scene.empty_presence_evidence, storyText);
@@ -53,7 +86,11 @@ export function normalizeObservation(raw, { storyText, before, content, turnNumb
   if (!sceneNote) warnings.push('scene_note_unverified');
 
   let elapsedMinutes = null;
-  if (Number.isInteger(source.elapsed_minutes) && source.elapsed_minutes >= 0 && source.elapsed_minutes <= 1440 && exactEvidence(source.elapsed_evidence, storyText)) {
+  const noElapsedClaim = (source.elapsed_minutes == null || source.elapsed_minutes === 0) &&
+    (source.elapsed_evidence == null || source.elapsed_evidence === '');
+  if (noElapsedClaim) {
+    elapsedMinutes = { status: 'unchanged', value: 0 };
+  } else if (Number.isInteger(source.elapsed_minutes) && source.elapsed_minutes >= 0 && source.elapsed_minutes <= 1440 && exactEvidence(source.elapsed_evidence, storyText)) {
     elapsedMinutes = { status: 'verified', value: source.elapsed_minutes, evidence: source.elapsed_evidence };
   } else warnings.push('elapsed_time_unverified');
 
@@ -81,17 +118,21 @@ export function normalizeObservation(raw, { storyText, before, content, turnNumb
       const actor = findActor(content, line?.speaker_id);
       const spoken = typeof line?.text === 'string' ? line.text.trim() : '';
       const quote = line?.evidence_quote;
-      const parsedQuote = typeof quote === 'string' ? dialogueEvidence.exec(quote) : null;
       const direction = typeof line.direction === 'string' ? line.direction.trim().slice(0, 80) : '';
-      if (actor?.kind !== 'heroine' || !presence?.value.includes(actor.actor_id) || !spoken || !exactEvidence(quote, storyText) || parsedQuote?.[1]?.trim() !== actor.name || (parsedQuote?.[2] ?? '').trim() !== direction || parsedQuote?.[3]?.trim() !== spoken) return [];
-      return [{
+      if (actor?.kind !== 'heroine' || !presence?.value.includes(actor.actor_id) || !spoken || !exactEvidence(quote, storyText)) return [];
+      const spokenSegments = exactAttributedDialogueSegments(storyText, quote, actor.actor_id, spoken, content, presence?.value ?? []);
+      if (!spokenSegments.length) return [];
+      const quoteIndex = storyText.indexOf(quote);
+      const audioContext = storyText.slice(Math.max(0, quoteIndex - 120), quoteIndex + quote.length + 160);
+      const groundedDirection = direction && audioContext.includes(direction) ? direction : '';
+      return spokenSegments.map((segment, segmentOrder) => ({
         speaker_id: actor.actor_id,
         speaker_name: actor.name,
-        text: spoken,
-        direction,
+        text: segment.text,
+        direction: groundedDirection,
         evidence_quote: quote,
-        order: Number.isInteger(line.order) ? line.order : order
-      }];
+        order: (Number.isInteger(line.order) ? line.order : order) * 40 + segmentOrder
+      }));
     })
     : [];
   const mindMonitor = source.mind_monitor && typeof source.mind_monitor === 'object' && !Array.isArray(source.mind_monitor)
