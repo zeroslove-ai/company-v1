@@ -4,7 +4,7 @@ Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 18:57 KST — report and PR #105 updated with Company branch/release scan; PR remains OPEN/DRAFT, goal remains active
+Updated: 2026-10-15 19:13 KST — canonical art URL wiring fixed and HTTP-smoked; current source bytes remain unreachable, PR #105 stays OPEN/DRAFT, goal remains active
 
 ## Branch-local owner direction
 
@@ -44,4 +44,4 @@ Follow specification sections 10-12. First deliver a thin Setup -> Opening -> on
 
 ## Current result
 
-The R4 candidate has a server-owned prospective rule-state/context/commit path, actual source-character Story payload evidence, 40-turn actual-model memory evidence, DB restart restore, desktop/mobile UI checks, and bounded Story/Observer call reservations. The task remains RUNNING. Actual rule-reaction acceptance and source image bytes remain unverified; the final report distinguishes live-model evidence from isolated structural and scripted fixtures. See docs/rebuild-r4/PROGRESS.md and docs/rebuild-r4/FINAL_REPORT.md.
+The R4 candidate has a server-owned prospective rule-state/context/commit path, actual source-character Story payload evidence, 40-turn actual-model memory evidence, DB restart restore, desktop/mobile UI checks, and bounded Story/Observer call reservations. The task remains RUNNING. Historical R3 evidence confirms the Company image objects existed and were downloaded/reviewed then; R4 URL generation now preserves the five canonical portrait paths by default, but current retrieval is blocked by the inactive Supabase project, NXDOMAIN public host, and timed-out read-only query. Actual rule-reaction acceptance and currently accessible source image rendering remain unverified; the final report distinguishes live-model evidence from isolated structural and scripted fixtures. See docs/rebuild-r4/PROGRESS.md and docs/rebuild-r4/FINAL_REPORT.md.

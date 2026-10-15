@@ -21,7 +21,8 @@ const requestedProvider = process.env.R4_PROVIDER ?? '';
 const configuredBudget = Number.parseInt(process.env.R4_MODEL_CALL_BUDGET ?? '120', 10);
 const liveCallBudget = Math.max(1, Math.min(120, Number.isInteger(configuredBudget) ? configuredBudget : 120));
 const databasePath = resolve(root, process.env.R4_DB_PATH ?? 'var/r4-local-postgres');
-const publicStorageBase = (process.env.R4_PUBLIC_STORAGE_URL ?? '').replace(/\/+$/, '');
+const canonicalPublicStorageBase = 'https://fmcrspgxstsmxxsmkeee.supabase.co/storage/v1/object/public';
+const publicStorageBase = (process.env.R4_PUBLIC_STORAGE_URL || canonicalPublicStorageBase).replace(/\/+$/, '');
 const ttsApiUrl = String(process.env.R4_TTS_API_URL ?? process.env.TTS_WORKER_URL ?? '').trim();
 
 if (/^https?:\/\//i.test(process.env.R4_DB_PATH ?? '')) throw new Error('r4_database_path_must_be_local');
@@ -205,7 +206,7 @@ const server = createServer(async (request, response) => {
         }),
         locations: content.locations,
         media_catalog: mediaCatalog,
-        media_available: Boolean(publicStorageBase),
+        media_source_configured: Boolean(publicStorageBase),
         setup_options: profileOptions()
       });
       return;

@@ -1,12 +1,30 @@
 # Company R4 진행 기록
 
-- Updated: 2026-10-15 18:56 KST
+- Updated: 2026-10-15 19:13 KST
 - Status: RUNNING — 사용자가 중단하라고 할 때까지 목표 유지
 - Branch: `rebuild/company-core-r4-20261015`
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
 - Current implementation HEAD: `219478e736cac30d6531f8d975ac4f4ed84631f6` (예산 예약 구현 commit; 이후 문서-only closeout은 아래 기록)
 - Live implementation SHA-256 after memory, current-action, Observer evidence, and no-time-passage fixes: `d34f342346d6588ba408d5d87b31c441bb0c13e3311d75c8570f73896cad778c`
 - 보호: main, PR #104, 기존 R3 Worker, 원격 DB, 보존 세이브, 정본 콘텐츠 변경 없음.
+
+## Checkpoint 2026-10-15 19:13 KST
+
+- R4 기존 local process `http://127.0.0.1:4182`의 read-only `/api/content` 확인에서 `media_available=false`, 다섯 heroine의 `asset_url=null`이 나왔다. 원인은 `R4_PUBLIC_STORAGE_URL`이 실행 환경에 없고 server가 그 경우 URL 생성을 생략한 것이었다. `runtime-r4/server.js`에 기존 Company public Storage endpoint를 기본값으로 연결하고, 응답 필드 이름은 실제 접근 가능 여부를 주장하지 않도록 `media_source_configured`로 고쳤다. 명시적 `R4_PUBLIC_STORAGE_URL` override는 유지한다.
+- 새 코드로 격리 서버 4183 (`R4_PROVIDER=scripted`, 새 임시 PGlite, content GET만)에서 `media_source_configured=true`와 다섯 원본 locator의 정확한 public URL을 확인했다. Jena general URL HEAD는 status 000 / `Could not resolve host`로 실패했다. 즉 URL wiring은 고쳤으나 현재 그림 렌더링은 미검증/실패다. 실행 중인 4182를 재시작하지 않았으므로 그 옛 process는 수정된 기본값을 아직 사용하지 않는다. 테스트 서버는 종료했고 ignored `var/r4-storage-url-check`에 게임이 없는 임시 DB가 남아 있다(삭제 명령은 도구 정책에 의해 거부됨).
+- 새 runtime 변경 뒤 `npm test -- --test-reporter=dot` 621/621 PASS, `git diff --check` PASS. provider call 0; Story/Observer budget은 119/120 그대로다. 이 회귀는 source URL 연결을 검사한 격리 local HTTP smoke이며 live model, Supabase, 실제 image render PASS가 아니다.
+- Downloads/Temp에서 다섯 canonical general filename도 검색했으나 copy를 찾지 못했다. 과거 GitHub issue #68 comments는 102개 object의 과거 존재/download/review를 입증하지만 binary를 저장소에 남기지 않았다고 명시한다. 현재 Company Supabase는 INACTIVE, public hostname은 Cloudflare/Google DoH 양쪽 NXDOMAIN, 새 DB SELECT는 timeout이다.
+- FINAL_REPORT와 PR #105 설명을 URL-wiring 및 역사/현재 접근 차이와 맞게 갱신했다. PR은 OPEN/DRAFT로 유지한다. commit 직전 `git fetch origin` 후 `HEAD...origin/rebuild/company-core-r4-20261015` 비교는 0/0이며 `git diff --check` 통과했다. 다음: runtime/docs 변경을 일반 commit/push하고 최종 head를 확인한다. 안전한 live rule case 없음과 provider 예산 경계는 변경되지 않아 `PARTIAL_BLOCKED` / CURRENT_TASK RUNNING / goal active로 둔다.
+
+## Checkpoint 2026-10-15 19:04 KST
+
+- 시작 HEAD는 `1674a69e357dc135e501049a7f055f168aba8b43`이며 branch와 origin이 일치하고 worktree는 clean이었다. Company R4 후보 branch/worktree에서만 읽기 조사를 했다.
+- 보존된 GitHub 인수인계 기록에서 과거 Company 이미지 원본 접근을 확인했다. issue #68 comment `5386778945`는 2026-08-25에 `Image/Heroine3/jena_main.jpg`의 public URL이 HTTP 200, `image/jpeg`, 275,914 bytes였다고 기록한다. comment `5401918399`는 당시 `public.image_library` 102/102 active rows, Storage JPEG object 102/102 reconciliation, 102/102 다운로드/검수를 기록하고 다섯 general portrait 경로를 명시한다. 당시 bytes는 Git에 commit되지 않았다고도 명시한다. 이는 과거 존재 증거이지 현재 접근 증거가 아니다.
+- 다섯 경로는 `heroine1-main -> Image/Heroine1/one_main.jpg`, `heroine2-main -> Image/Heroine2/minami_main.jpg`, `heroine3-main -> Image/Heroine3/jena_main.jpg`, `heroine4-main -> Image/Heroine4/live_main.jpg`, `heroine5-main -> Image/Heroine5/may_main.jpg`다.
+- 현재 읽기 경로를 재확인했다. Supabase Management API는 `fmcrspgxstsmxxsmkeee`를 `INACTIVE`로 반환했다. `public.image_library`의 다섯 general 행에 대한 새 read-only SELECT는 connection timeout으로 끝났다. 기존 public project hostname은 Cloudflare 및 Google DoH 둘 다 DNS Status 3 (NXDOMAIN)을 반환했다. R4 worktree 및 관련 Codex work directories의 이미지/음성 확장자 목록에는 기존 demo PNG/GIF 외 canonical 원본 파일이 없었다.
+- 원격 project 복구/재개, DB/Storage write, Worker 변경, 원본 파일 대체는 수행하지 않았다. 과거 97 sexual assets는 다시 가져오거나 사용하지 않았다. 기존 실제 TTS 증거는 별도: 다섯 원본 `voice_id`, Cloudflare Fish Audio 생성 경로, Jena에 귀속된 실제 MP3 응답 하나와 Minah/Jena 재생이 확인돼 있다.
+- Provider budget은 119/120 (Story 60, Observer 59)이며 이번 조사 provider calls는 0. safe canonical `RULE_CHANGE`의 live acceptance 미검증은 그대로다. 판정은 `PARTIAL_BLOCKED`, CURRENT_TASK는 RUNNING, goal은 active다.
+- 다음: 아래 증거를 FINAL_REPORT/PR #105에 반영하고 정상 fetch/compare 후 commit/push한다. 이후에는 이미지 URL/경로가 포함된 기존 R3 evidence와 R4 reader loader의 연결만 읽기 검토한다. 새 model call, 원격 project restore, main/R3/PR #104 조작은 하지 않는다.
 
 ## Checkpoint 2026-10-15 18:48 KST
 
