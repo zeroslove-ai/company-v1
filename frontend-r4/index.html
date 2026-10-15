@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14392f">
+  <title>상식개변: 회사편 · R4</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="상식개변 회사편 홈">
+      <span class="brand-mark">C</span>
+      <span><strong>상식개변</strong><small>회사편 · R4 코어 후보</small></span>
+    </a>
+    <div class="topbar-actions">
+      <span id="provider-badge" class="provider-badge" hidden></span>
+      <button id="new-game" class="button button-light" type="button">새 이야기</button>
+      <button id="open-history" class="icon-button" type="button" disabled>기록</button>
+      <button id="open-feedback" class="icon-button" type="button" disabled>피드백</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="story-column" aria-label="게임 이야기">
+      <div class="scene-heading">
+        <div>
+          <p class="eyebrow">상식개변 · 회사편 · INTERACTIVE FICTION</p>
+          <h1 id="scene-title">새로운 이야기를 시작합니다</h1>
+          <p id="scene-subtitle" class="scene-subtitle">원작 인물과 세계관을 이어가는 성인 서사</p>
+        </div>
+        <div class="turn-stamp"><span id="turn-count">준비</span><span id="scene-time">09:00</span></div>
+      </div>
+
+      <div id="game-notice" class="notice" role="status" hidden></div>
+      <section id="welcome-card" class="welcome-card">
+        <div class="welcome-art">
+          <img id="welcome-image" alt="원작 캐릭터 초상화" hidden>
+          <div class="welcome-art-title"><span>COMPANY EDITION</span><strong>상식개변</strong><small>원작 세계관 · 05명의 주요 인물</small></div>
+        </div>
+        <div class="welcome-copy">
+          <p class="eyebrow">당신의 이야기</p>
+          <h2>상식개변: 회사편</h2>
+          <p>원작 인물과 설정이 이어집니다. 플레이어는 설치한 기억이 없는 낯선 ‘상식개변’ 앱을 사적으로 가지고 있습니다. 열어 보는 것만으로는 아무것도 바뀌지 않습니다. 플레이어를 정하면 첫 장면이 열립니다.</p>
+          <button id="start-new-game" class="button button-primary" type="button">이야기 시작</button>
+        </div>
+      </section>
+
+      <section id="play-surface" class="play-surface" hidden>
+        <article class="story-card">
+          <div class="story-card-heading">
+            <span class="story-label"><i></i> 이야기</span>
+            <span id="revision-label" class="revision-label"></span>
+          </div>
+          <div id="story-content" class="story-content" aria-live="polite">
+            <p class="story-placeholder">첫 장면을 준비하고 있습니다.</p>
+          </div>
+          <button id="start-opening" class="button button-primary" type="button" hidden>첫 장면 열기</button>
+          <div id="pending-story" class="pending-story" hidden>
+            <div class="pending-label"><span class="pulse-dot"></span><span id="pending-stage">이야기를 이어 쓰는 중</span></div>
+            <div id="story-preview" class="story-preview"></div>
+          </div>
+          <div class="choice-heading"><span>이야기 속 선택</span><span class="choice-hint">원하는 흐름을 골라 보세요</span></div>
+          <ol id="full-choices" class="full-choices"></ol>
+          <div id="choice-buttons" class="choice-buttons" aria-label="빠른 선택"></div>
+        </article>
+
+        <form id="action-form" class="action-form">
+          <label for="action-input">직접 행동이나 대화를 입력할 수 있어요</label>
+          <div class="composer">
+            <textarea id="action-input" rows="2" maxlength="2000" placeholder="행동이나 대사를 원하는 그대로 입력하세요." required></textarea>
+            <button id="send-action" class="send-button" type="submit" aria-label="입력 보내기"><span>보내기</span><b>↗</b></button>
+          </div>
+          <div class="composer-foot"><span>현재 입력은 그대로 이야기 명령으로 보존됩니다.</span><span id="action-counter">0 / 2000</span></div>
+        </form>
+
+        <div id="retry-row" class="retry-row" hidden>
+          <p id="retry-message">저장된 명령을 다시 시도할 수 있습니다.</p>
+          <button id="retry-command" class="button button-outline" type="button">원본 명령 재시도</button>
+        </div>
+      </section>
+    </section>
+
+    <aside class="side-column" aria-label="회사 정보">
+      <section class="side-card location-card">
+        <div class="side-title-row"><div><p class="eyebrow">OFFICE MAP</p><h2>회사 안에서</h2></div><span class="map-pin">⌖</span></div>
+        <div class="map-canvas" aria-hidden="true">
+          <div class="map-wing map-wing-one"></div><div class="map-wing map-wing-two"></div>
+          <span class="map-room map-room-a"></span><span class="map-room map-room-b"></span><span class="map-room map-room-c"></span>
+          <span id="map-marker" class="map-marker"><i></i><b>현재 장면</b></span>
+        </div>
+        <div class="location-meta"><strong id="current-location">아직 시작 전</strong><span id="location-floor">층 정보</span></div>
+        <details class="location-browser">
+          <summary>지도와 장소 둘러보기</summary>
+          <label for="location-select">장소 정보 보기</label>
+          <select id="location-select"><option value="">장소 선택</option></select>
+          <p id="location-description" class="muted-note">장소 둘러보기는 정보 확인용이며 현재 장면을 바꾸지 않습니다.</p>
+        </details>
+      </section>
+
+      <section class="side-card people-card">
+        <div class="side-title-row"><div><p class="eyebrow">SCENE CAST</p><h2>이 장면의 사람들</h2></div><span id="people-count" class="count-pill">0</span></div>
+        <div id="present-people" class="present-people"><p class="muted-note">첫 장면이 열리면 함께 있는 사람들이 표시됩니다.</p></div>
+        <details class="directory">
+          <summary>원작 인물 둘러보기</summary>
+          <div id="people-directory" class="people-directory"></div>
+        </details>
+      </section>
+
+      <section class="side-card csa-launch-card" aria-labelledby="csa-launch-title">
+        <div class="side-title-row"><div><p class="eyebrow">PRIVATE APP</p><h2 id="csa-launch-title">상식개변</h2></div><span class="media-glyph">◈</span></div>
+        <p class="muted-note">플레이어만 알고 있는 낯선 앱입니다. 설정한 규칙은 세계 안의 공식 공지와 인물 반응으로 이어집니다.</p>
+        <div id="active-rule-summary" class="active-rule-summary"><p class="muted-note">아직 활성 규칙이 없습니다.</p></div>
+        <button id="open-csa" class="button button-primary button-wide" type="button" disabled>앱 열기</button>
+      </section>
+
+      <section id="mind-card" class="side-card mind-card" hidden aria-labelledby="mind-heading">
+        <div class="side-title-row"><div><p class="eyebrow">INNER VOICE</p><h2 id="mind-heading">Mind Monitor</h2></div><span class="media-glyph">◌</span></div>
+        <div id="mind-monitor" class="mind-monitor"></div>
+      </section>
+
+      <section id="media-card" class="side-card media-card" hidden>
+        <div class="side-title-row"><div><p class="eyebrow">SOURCE MEDIA</p><h2>장면 자료</h2></div><span class="media-glyph">✳</span></div>
+        <figure class="media-frame">
+          <img id="media-image" alt="확정 장면에 연결된 원본 자료" hidden>
+          <figcaption id="media-status">확정 장면에 연결된 원본 이미지 참조</figcaption>
+          <p id="media-fallback" class="media-fallback" hidden></p>
+        </figure>
+        <div id="media-controls" class="media-controls">
+          <button id="media-stop" type="button">정지 화면</button>
+          <button id="media-play" type="button">움직임 재생</button>
+        </div>
+      </section>
+
+      <section id="voice-card" class="side-card voice-card" aria-label="캐릭터 음성">
+        <div class="side-title-row"><div><p class="eyebrow">CHARACTER VOICE</p><h2>대사 음성</h2></div><span class="media-glyph">♫</span></div>
+        <div class="voice-controls">
+          <button id="tts-toggle" type="button" aria-pressed="false" disabled>자동 재생 켜기</button>
+          <button id="tts-replay" type="button" disabled>최근 대사 다시 듣기</button>
+        </div>
+        <p id="tts-status" class="muted-note">원작 음성 매핑 확인 중</p>
+        <audio id="audio-player" class="audio-player" controls preload="none" hidden></audio>
+      </section>
+
+      <section class="side-card save-card">
+        <div class="save-icon">✓</div><div><strong>로컬 저장</strong><p>확정한 장면은 새로고침 뒤에도 이어집니다.</p></div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="setup-dialog" class="dialog-card" aria-labelledby="setup-title">
+    <form id="setup-form" method="dialog">
+      <div class="dialog-head"><div><p class="eyebrow">NEW PLAYER</p><h2 id="setup-title">플레이어 설정</h2></div><span class="dialog-number">01</span></div>
+      <p class="dialog-intro">이야기 속 플레이어의 이름과 루미너스 브랜드 그룹에서의 소속을 정해 주세요.</p>
+      <label for="setup-name">이름</label><input id="setup-name" name="name" type="text" maxlength="20" autocomplete="name" required>
+      <label for="setup-age">나이</label><input id="setup-age" name="age" type="number" min="18" max="70" value="30" required>
+      <div class="form-pair">
+        <div><label for="setup-department">부서</label><select id="setup-department" name="department" required></select></div>
+        <div><label for="setup-position">직급</label><select id="setup-position" name="position" required></select></div>
+      </div>
+      <p id="setup-error" class="form-error" role="alert" hidden></p>
+      <button id="setup-submit" class="button button-primary button-wide" type="submit">설정 저장하고 이야기 열기</button>
+      <p class="privacy-note">게임은 새 로컬 저장소에 기록됩니다. 기존 세이브에는 접근하지 않습니다.</p>
+    </form>
+  </dialog>
+
+  <dialog id="csa-dialog" class="dialog-card csa-dialog" aria-labelledby="csa-title">
+    <div class="dialog-head"><div><p class="eyebrow">PRIVATE · PLAYER ONLY</p><h2 id="csa-title">상식개변</h2></div><button class="close-dialog" data-close="csa-dialog" type="button" aria-label="닫기">×</button></div>
+    <p class="dialog-intro">이 앱을 아는 것은 플레이어뿐입니다. 규칙을 설정·변경·해제하면 그 효력은 이번 Story turn부터 시작되며, 인물들은 세계 안의 공식 공지를 통해 알게 됩니다.</p>
+    <section class="csa-active-panel" aria-label="현재 활성 규칙"><div class="csa-section-heading"><strong>현재 효력</strong><span id="csa-active-count">0</span></div><div id="csa-active-rules" class="csa-active-rules"><p class="muted-note">아직 활성 규칙이 없습니다.</p></div></section>
+    <div id="csa-change-editor" class="csa-change-editor" hidden></div>
+    <div id="csa-tabs" class="csa-tabs" role="tablist" aria-label="규칙 단계">
+      <button type="button" role="tab" data-tier="weak" aria-selected="true">약함</button>
+      <button type="button" role="tab" data-tier="medium" aria-selected="false">중간</button>
+      <button type="button" role="tab" data-tier="strong" aria-selected="false">강함</button>
+    </div>
+    <div id="csa-catalog-list" class="csa-catalog-list"></div>
+  </dialog>
+
+  <dialog id="history-dialog" class="dialog-card history-dialog" aria-labelledby="history-title">
+    <div class="dialog-head"><div><p class="eyebrow">CHRONOLOGY</p><h2 id="history-title">플레이 기록</h2></div><button class="close-dialog" data-close="history-dialog" type="button" aria-label="닫기">×</button></div>
+    <div id="history-list" class="history-list"></div>
+    <button id="history-more" class="button button-outline button-wide" type="button" hidden>이전 기록 더 보기</button>
+  </dialog>
+
+  <dialog id="feedback-dialog" class="dialog-card" aria-labelledby="feedback-title">
+    <form id="feedback-form" method="dialog">
+      <div class="dialog-head"><div><p class="eyebrow">LAST TURN</p><h2 id="feedback-title">마지막 턴에 의견 남기기</h2></div><button class="close-dialog" data-close="feedback-dialog" type="button" aria-label="닫기">×</button></div>
+      <p class="dialog-intro">수정 요청은 마지막 장면의 원본 명령과 함께 서버에서 다시 처리됩니다. 저장된 장면은 새 결과가 확정될 때까지 유지됩니다.</p>
+      <label for="feedback-input">바꾸고 싶은 점</label><textarea id="feedback-input" rows="5" maxlength="2000" required placeholder="예: 점심 이야기를 이어가고, 내가 아직 자리에 앉아 있다는 점을 유지해 줘."></textarea>
+      <p id="feedback-error" class="form-error" role="alert" hidden></p>
+      <button class="button button-primary button-wide" type="submit">피드백 반영하기</button>
+    </form>
+  </dialog>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

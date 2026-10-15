@@ -1,105 +1,47 @@
-# Company — CURRENT TASK
+# Company — CURRENT TASK (R4 candidate branch only)
 
-Status: WAITING_OWNER_DECISION
-Task ID: company-r3-manual-playtest-hold-v1
-Mode: MANUAL PLAYTEST HOLD — NO AUTOMATIC DEVELOPMENT
-Updated: 2026-08-25 KST
-Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
+Status: RUNNING
+Task ID: company-core-r4-bounded-rebuild-20261015
+Branch: rebuild/company-core-r4-20261015
+Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
+Updated: 2026-10-15 19:13 KST — canonical art URL wiring fixed and HTTP-smoked; current source bytes remain unreachable, PR #105 stays OPEN/DRAFT, goal remains active
 
-## 0. Owner decision / lock
+## Branch-local owner direction
 
-The owner explicitly ordered: **lock the current build and stop automatic development.**
+The owner requested a separate R4 candidate branch and the bounded rebuild specification. The owner then supplied the execution instruction; runtime work is RUNNING in the isolated worktree. This branch does not change main's manual-play lock, R3 deployments, protected data, or product canon.
 
-Hermes/Codex/WATCHER MUST NOT start implementation from this file because Status is not `READY`.
-Do not create a next task, branch, PR, migration, deploy, retry campaign, or follow-on fix automatically.
+Owner execution instruction received on 2026-10-15 KST. Execute docs/rebuild-r4/IMPLEMENTATION_SPEC_KO.md continuously without routine phase-by-phase approval waits. The earlier manual-playtest hold remains binding for main and existing R3 deployments/evidence, not an excuse to halt this separately requested candidate work.
 
-Resume development only after a new explicit owner instruction following manual playtest, especially for a blocking P0/P1 or a specifically selected issue.
+## Owner clarification (2026-10-15 KST)
 
-## 1. Frozen manual-playtest baseline
+The product is the existing adult, character-first interactive fiction `상식개변: 회사편`, governed by `CURRENT_TRUTH.md` and `docs/redesign/COMPANY_CANON.md`. Do not flatten it into a generic company-life simulator or omit the player-private app premise, authored identities/dramatization, world, source images, voice mappings, or reader-facing presentation. Do not edit canonical source records to fit R4.
 
-Repository:
-- `zeroslove-ai/company-v1`
-- branch: `main`
-- accepted pre-lock main HEAD: `660cda7a1a9cd413f9463160c1876b3b14b2cdef`
+Lunch, cafeteria, notices, on-call assignments, and generic employee scenarios in the R4 specification are technical fixtures only. Keep them in tests or an explicitly selected demo provider. They must not be default product content or evidence of narrative acceptance. Product-facing narrative acceptance requires actual source characters and world premise, a small scene-appropriate cast, distinct in-character behavior, continuity, and unrestricted non-work choices. Inspect representative source-character results before any long campaign; fixture runs are not product-quality evidence.
 
-Accepted latest frontend implementation:
-- Company Map presence truth implementation: `9b3f4f26c97828ec18e05f29f8df7f18df4bbe81`
-- terminal: Issue #68 comment `5408956549`
-- focused: 17/17 PASS
-- broader: 239/239 PASS
-- full npm test: 597/597 PASS
+Preserve the original media catalog/image locators, `voice_id` mappings, and the established reader UI path. Only display media grounded in the committed scene; keep image/TTS sidecars non-authoritative. Record unavailable storage bytes or synthesis service configuration as unverified rather than silently substituting demo assets. Preserve the existing adult character-first product and its authored catalog without changing the canon. This task does not authorize creating or improving explicit content or sexual coercion. Live model rule scenes are allowed only for an already-canonical non-explicit, non-coercive case; if none exists in the source catalog, mark that live acceptance unverified and rely on clearly-labeled structural tests.
 
-Current TEST frontend baseline:
-- Worker: `gamebuilder-company-r3`
-- URL: `https://gamebuilder-company-r3.zeroslove.workers.dev/`
-- version: `94bdf291-739a-4452-bcb4-e35ec6b96f5d`
-- executable source SHA: `9b3f4f26c97828ec18e05f29f8df7f18df4bbe81`
+## Owner priority update (2026-10-15)
 
-Current TEST API baseline remains the previously accepted runtime deployment:
-- Worker: `game-proxy-company-r3`
-- version: `26fc1dd2-9354-4b99-b6ee-b4c53306c607`
-- executable source SHA: `fab6f43f937dde317fbdf152a41a7942e24d3669`
+The highest implementation priority is the canonical 상식개변 rule lifecycle and character reactions: prospective APPLY/CHANGE/REMOVE state → Story context → one Observer → atomic Commit → next-turn continuity. Keep active authority separate from historical events; preserve the exact structured command through retry/feedback; character scope comes from a server-owned canonical selector resolver; Observer and media cannot modify rules. Distinct authored character cards and the private-app premise remain in the Story payload. Do not add generic emotion/relationship/action engines.
 
-Latest preserved live evidence game:
-- `8a61332b-8365-4655-97c4-754332407948` — READ ONLY
+The existing `content/csa_catalog.json` has 21 canonical presets. Connect the unchanged source catalog and its selector contracts to the server-owned rule pipeline; do not add presets, broaden supported action families, change meanings, or replace the product with a generic test game. The current catalog offers no suitable non-explicit, non-coercive live-model rule example, so APPLY/CHANGE/REMOVE NPC reaction acceptance remains unverified. Synthetic descriptors remain structural-only and cannot stand in for product evidence.
 
-No Production authorization is implied.
+## Scope
 
-## 2. Accepted core boundaries to preserve
+Preserve the two-call Story -> Observer -> atomic Commit spine and reuse original Company content/presentation assets. Independently rebuild the turn-command/context/state/persistence/recovery boundaries. Fixture acceptance is structural only; product-facing narrative acceptance follows the canon and source-character requirements above. Only already-canonical finite rule behavior is in scope; no new rule semantics or generic execution engine. A core candidate result is not full content, release, or player-enjoyment approval.
 
-The manual-playtest baseline includes and must preserve:
-- A′/R3: server-owned turn kernel -> one Story -> one post-Story Observer -> atomic Commit;
-- current free-form literal precedence over prior unchosen Story choices;
-- PLAYER movement authority and NPC-only movement separation;
-- final Story-grounded NPC presence;
-- registered NPC identity authority;
-- completed-Story Observer evidence law;
-- Company Map current presence truth vs default/reference location distinction;
-- Opening stationary-start/private-app provenance;
-- exactly four Story choices plus unrestricted free input;
-- selected-choice submission and reload/re-entry behavior.
+## Deliverables
 
-## 3. Known deferred issues — NOT automatic blockers during this hold
+A runnable local browser candidate with real disposable persistence; unified command/turn/retry/feedback semantics; grounded memory retrieval; safe versioned media/GIF presentation; tests tied to actual failures; actual model/browser evidence where authorized; PROGRESS.md and FINAL_REPORT.md under docs/rebuild-r4; pushed commits and a draft PR.
 
-These remain known/unproven and are intentionally **not** registered as automatic development tasks while the owner is playtesting:
-- CSA CHANGE/REMOVE prospective-state / stale previous-rule Story-context risk, including clothing provenance cleanup;
-- remote supported-S1 live acceptance;
-- setup/world-definition catalog closure;
-- broader long-memory / summary continuity;
-- Mind Monitor reliability;
-- Media/TTS acceptance;
-- other adult/CSA breadth lanes not yet exercised.
+## Protected scope
 
-Do not work these merely because they are listed here.
+No main or PR #104 mutation, force-push, historical migration edits, existing Worker changes, remote DB activation/migration/repair, preserved game writes, new paid services, or production rollout. Local test databases are allowed. Remote preview requires a separately authorized isolated target. The product canon on main is not amended by this experimental plan.
 
-If manual playtest reveals a game-breaking or severe reproducible defect, operator must first classify the evidence and then explicitly overwrite this same file with one narrow `READY` task.
+## Execution
 
-## 4. Manual playtest purpose
+Follow specification sections 10-12. First deliver a thin Setup -> Opening -> one turn -> DB -> reload flow, then finish the remaining boundaries. Continue useful independent work when externally blocked. Never relabel in-memory/scripted checks as live product evidence. Final status: LOCAL_CANDIDATE_READY, PARTIAL_BLOCKED, or FAILED_NEEDS_FIX. Full product/owner approval is separate.
 
-The next phase is human product testing, not automatic defect hunting.
+## Current result
 
-Use the deployed TEST frontend normally and evaluate whether the game is actually fun, coherent, free, and stable over longer play:
-- ordinary conversation and non-work social play;
-- heroine interaction;
-- movement and changing scene;
-- refusal/change-of-mind/stop/change-topic;
-- adult interaction where relevant;
-- CSA apply/change/remove in natural use;
-- choices and free input;
-- long-session continuity;
-- reload/re-entry;
-- mobile presentation when useful.
-
-Do not interpret every cosmetic or low-severity imperfection as permission to resume the automatic loop.
-
-## 5. Unlock law
-
-Current state is intentionally locked.
-
-Only an explicit owner instruction may unlock development, for example:
-- a reproducible blocking P0/P1 found during manual playtest;
-- owner explicitly chooses one known deferred issue;
-- owner explicitly asks to resume the automatic development loop.
-
-Until then:
-`MANUAL_PLAYTEST_HOLD_LOCKED`
+The R4 candidate has a server-owned prospective rule-state/context/commit path, actual source-character Story payload evidence, 40-turn actual-model memory evidence, DB restart restore, desktop/mobile UI checks, and bounded Story/Observer call reservations. The task remains RUNNING. Historical R3 evidence confirms the Company image objects existed and were downloaded/reviewed then; R4 URL generation now preserves the five canonical portrait paths by default, but current retrieval is blocked by the inactive Supabase project, NXDOMAIN public host, and timed-out read-only query. Actual rule-reaction acceptance and currently accessible source image rendering remain unverified; the final report distinguishes live-model evidence from isolated structural and scripted fixtures. See docs/rebuild-r4/PROGRESS.md and docs/rebuild-r4/FINAL_REPORT.md.
