@@ -526,7 +526,7 @@ test('PGlite Story pipeline keeps feedback on the original gameplay turn and rep
   assert.deepEqual(history[1].command, sourceCommand);
 });
 
-test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomically and carries canon character context', async t => {
+test('synthetic rule-state fixture keeps a targeted old event recallable after history rollover and restart', async t => {
   const root = await tempDir(t);
   const dbPath = join(root, 'db');
   let store = await createR4Store({ dbPath });
@@ -535,6 +535,7 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
   const subjectIds = ['heroine1', 'heroine2'];
   const selectors = { subject_actor_id: 'heroine1', counterparty_actor_id: 'heroine2' };
   const rules = {
+    structural_policy_anchor: { template_id: 'structural_policy_anchor', label: 'anchor_before_repeated_changes', rule_text: 'test-only structural description anchor', authority_label: 'test fixture', selector_schema: 'test_fixture' },
     structural_policy_a: { template_id: 'structural_policy_a', label: 'fixture policy A', rule_text: 'test-only structural description A', authority_label: 'test fixture', selector_schema: 'test_fixture' },
     structural_policy_b: { template_id: 'structural_policy_b', label: 'fixture policy B', rule_text: 'test-only structural description B', authority_label: 'test fixture', selector_schema: 'test_fixture' }
   };
@@ -606,7 +607,7 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
     return { command, job: reserved.job };
   };
 
-  const failedApply = await submitRuleChange('APPLY', 'structural_policy_a', 0);
+  const failedApply = await submitRuleChange('APPLY', 'structural_policy_anchor', 0);
   await assert.rejects(
     executeTurnJob({ job: failedApply.job, store, provider: { ...provider, async story() { throw new Error('test_story_failure'); } }, content, resolveRuleTemplate }),
     error => error.code === 'test_story_failure'
@@ -617,7 +618,7 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
   assert.deepEqual(applyRetry.job.command, failedApply.command);
   await executeTurnJob({ job: applyRetry.job, store, provider, content, resolveRuleTemplate });
   let snapshot = await store.readSnapshot(gameId);
-  assert.deepEqual(snapshot.state.active_rules.map(rule => [rule.rule_id, rule.template_id, rule.version]), [['fixture-rule', 'structural_policy_a', 1]]);
+  assert.deepEqual(snapshot.state.active_rules.map(rule => [rule.rule_id, rule.template_id, rule.version]), [['fixture-rule', 'structural_policy_anchor', 1]]);
   assert.equal(snapshot.latest_turn.observer_applied.raw.active_rules[0].rule_id, 'observer-forgery');
   assert.equal(snapshot.latest_turn.command.rule_change.operation, 'APPLY');
   assert.deepEqual(snapshot.latest_turn.rule_change_event.next_rule.subject_actor_ids, subjectIds);
@@ -625,7 +626,7 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
   assert.deepEqual(contexts[0].registered_characters.map(actor => actor.actor_id).filter(id => subjectIds.includes(id)).sort(), subjectIds);
   assert.equal(contexts[0].registered_characters.find(actor => actor.actor_id === 'heroine1').dramatization.personality, content.actors.find(actor => actor.actor_id === 'heroine1').prompt_card.personality);
   assert.equal(contexts[0].rule_change_event.operation, 'APPLY');
-  assert.deepEqual(contexts[0].active_rules.map(rule => rule.template_id), ['structural_policy_a']);
+  assert.deepEqual(contexts[0].active_rules.map(rule => rule.template_id), ['structural_policy_anchor']);
 
   snapshot = await store.readSnapshot(gameId);
   const feedbackText = '공지 장면은 유지하고 두 인물의 서로 다른 반응을 또렷하게 보여 준다.';
@@ -635,13 +636,14 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
   assert.equal(feedbackResult.turn.feedback_text, feedbackText);
   assert.equal(feedbackResult.receipt.committed_turn, 1);
   assert.equal(feedbackResult.receipt.turn_revision, 2);
-  assert.deepEqual(feedbackResult.snapshot.state.active_rules.map(rule => rule.template_id), ['structural_policy_a']);
+  assert.deepEqual(feedbackResult.snapshot.state.active_rules.map(rule => rule.template_id), ['structural_policy_anchor']);
+  const originalRuleEvent = structuredClone(feedbackResult.turn.rule_change_event);
 
   const ordinary = await store.readSnapshot(gameId);
   const ordinaryCommand = createCommand({ gameId, kind: 'FREE_ACTION', expectedStateRevision: ordinary.state.state_revision, literalAction: '서원희와 윤민아에게 새 공지에 대해 묻는다.' });
   const ordinaryJob = await store.beginCommand({ command: ordinaryCommand });
   await executeTurnJob({ job: ordinaryJob.job, store, provider, content, resolveRuleTemplate });
-  assert.deepEqual(contexts[2].active_rules.map(rule => rule.template_id), ['structural_policy_a']);
+  assert.deepEqual(contexts[2].active_rules.map(rule => rule.template_id), ['structural_policy_anchor']);
   assert.equal(contexts[2].historical_rule_events.at(-1).operation, 'APPLY');
   assert.equal(contexts[2].recent_committed_turns[0].turn_number, 1);
 
@@ -662,10 +664,10 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
   await executeTurnJob({ job: change.job, store, provider, content, resolveRuleTemplate });
   snapshot = await store.readSnapshot(gameId);
   assert.deepEqual(snapshot.state.active_rules.map(rule => [rule.template_id, rule.version]), [['structural_policy_b', 2]]);
-  assert.equal(snapshot.latest_turn.rule_change_event.previous_rule.template_id, 'structural_policy_a');
+  assert.equal(snapshot.latest_turn.rule_change_event.previous_rule.template_id, 'structural_policy_anchor');
   assert.equal(snapshot.latest_turn.rule_change_event.next_rule.template_id, 'structural_policy_b');
   assert.deepEqual(contexts[10].active_rules.map(rule => rule.template_id), ['structural_policy_b']);
-  assert.equal(contexts[10].rule_change_event.previous_rule.template_id, 'structural_policy_a');
+  assert.equal(contexts[10].rule_change_event.previous_rule.template_id, 'structural_policy_anchor');
 
   const remove = await submitRuleChange('REMOVE', 'structural_policy_b', 2);
   await executeTurnJob({ job: remove.job, store, provider, content, resolveRuleTemplate });
@@ -677,14 +679,41 @@ test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomica
   assert.equal(contexts[11].rule_change_event.previous_rule.template_id, 'structural_policy_b');
   assert.deepEqual(snapshot.latest_turn.command.rule_change, remove.command.rule_change);
 
+  for (let index = 0; index < 9; index += 1) {
+    const cycleApply = await submitRuleChange('APPLY', 'structural_policy_a', 0);
+    await executeTurnJob({ job: cycleApply.job, store, provider, content, resolveRuleTemplate });
+    const cycleRemove = await submitRuleChange('REMOVE', 'structural_policy_a', 1);
+    await executeTurnJob({ job: cycleRemove.job, store, provider, content, resolveRuleTemplate });
+  }
+
+  snapshot = await store.readSnapshot(gameId);
+  assert.deepEqual(snapshot.state.active_rules, []);
+  assert.equal(snapshot.state.rule_history.length, 8);
+  assert.equal(snapshot.state.rule_history.some(event => event.command_id === originalRuleEvent.command_id), false);
+  assert.equal(snapshot.state.committed_turn, 29);
+
   await store.close();
   store = await createR4Store({ dbPath });
   t.after(() => store.close());
   const restored = await store.readSnapshot(gameId);
   assert.deepEqual(restored.state.active_rules, []);
-  assert.deepEqual(restored.state.rule_history.map(event => event.operation), ['APPLY', 'CHANGE', 'REMOVE']);
-  assert.equal(restored.state.committed_turn, 11);
-  assert.equal(restored.state.state_revision, 12);
+  assert.equal(restored.state.rule_history.length, 8);
+  assert.equal(restored.state.committed_turn, 29);
+  assert.equal(restored.state.state_revision, 30);
+
+  const oldRuleRecallCommand = createCommand({
+    gameId,
+    kind: 'FREE_ACTION',
+    expectedStateRevision: restored.state.state_revision,
+    literalAction: 'anchor_before_repeated_changes를 다시 떠올려 본다.'
+  });
+  const oldRuleRecallJob = await store.beginCommand({ command: oldRuleRecallCommand });
+  await executeTurnJob({ job: oldRuleRecallJob.job, store, provider, content, resolveRuleTemplate });
+  const recallContext = contexts.at(-1);
+  assert.deepEqual(recallContext.active_rules, []);
+  assert.ok(recallContext.relevant_past_memories.some(memory => memory.source_turn === originalRuleEvent.effective_turn));
+  assert.ok(recallContext.historical_rule_events.some(event => event.command_id === originalRuleEvent.command_id));
+  assert.equal((await store.readSnapshot(gameId)).state.active_rules.length, 0);
 });
 
 test('PGlite scripted 40-turn structural campaign retrieves an important old digest beyond six recent turns', async t => {

@@ -242,7 +242,14 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
           'ORDER BY m.memory_important DESC,m.turn_number DESC LIMIT 128',
         [gameId, beforeTurn, actorIds, searchTerms, searchTerms[0] ? '%' + searchTerms[0] + '%' : '']
       );
-      const rows = result.rows.filter(row => !recentTurnNumbers.includes(row.turn_number));
+      const rows = result.rows
+        .map(row => ({
+          ...row,
+          command_json: row.command_json ? asJson(row.command_json) : null,
+          turn_record: row.turn_record ? asJson(row.turn_record) : null,
+          turn_digest: row.turn_digest ? asJson(row.turn_digest) : null
+        }))
+        .filter(row => !recentTurnNumbers.includes(row.turn_number));
       const scored = rows.map(row => {
         const matchedActors = (row.actor_ids ?? []).filter(id => actorIds.includes(id)).length;
         const matchedTerms = (row.memory_keywords ?? []).filter(term => searchTerms.includes(String(term).toLocaleLowerCase('ko-KR'))).length;

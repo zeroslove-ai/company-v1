@@ -11,19 +11,26 @@ const estimateTokens = value => Math.ceil(JSON.stringify(value).length / 4);
 const CONTEXT_TOKEN_BUDGET = 10_000;
 
 function relevantRuleHistory(state, recent, memories, currentTurnNumber) {
-  const candidates = [...(state.rule_history ?? [])];
-  for (const turn of [...recent, ...memories]) {
-    const event = turn.turn_record?.rule_change_event;
-    if (event) candidates.push(event);
-  }
   const unique = new Map();
-  for (const event of candidates) {
-    if (!event || !['APPLY', 'CHANGE', 'REMOVE'].includes(event.operation)) continue;
-    if (event.effective_turn === currentTurnNumber) continue;
+  const add = (event, priority) => {
+    if (!event || !['APPLY', 'CHANGE', 'REMOVE'].includes(event.operation)) return;
+    if (event.effective_turn === currentTurnNumber) return;
     const key = event.command_id ?? `${event.effective_turn}:${event.rule_id}:${event.operation}`;
-    unique.set(key, event);
+    const prior = unique.get(key);
+    if (!prior || priority > prior.priority) unique.set(key, { event, priority });
+  };
+  (state.rule_history ?? []).forEach((event, index) => add(event, 100_000 + index));
+  for (const memory of [...memories].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))) {
+    add(memory.turn_record?.rule_change_event, 10_000 + (memory.score ?? 0));
   }
-  return [...unique.values()].sort((a, b) => a.effective_turn - b.effective_turn).slice(-16);
+  for (const turn of [...recent].sort((a, b) => b.turn_number - a.turn_number)) {
+    add(turn.turn_record?.rule_change_event, 5_000 + turn.turn_number);
+  }
+  return [...unique.values()]
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 16)
+    .map(candidate => candidate.event)
+    .sort((a, b) => a.effective_turn - b.effective_turn);
 }
 
 function chooseOpeningHeroine(content, command, locationId) {
