@@ -38,6 +38,7 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 - 실제 피드백 revision2는 기존 구조화 command ID와 원문을 보존했다. 피드백 후 캐릭터 귀속이 현장 인물과 일치하고 음성 재생 control이 활성화됐다.
 - 서버 재시작/브라우저 새로고침 후 마지막 확정 장면을 확인했다. desktop 1280×900과 mobile 390×844에서 가로 overflow가 없었다.
 - 회귀 테스트는 npm test -- --test-reporter=dot 실행 결과 619/619 통과다. 핵심 R4 suite는 22/22 통과했다.
+- 규칙 기억 회귀를 위해 합성 전용 PGlite fixture에서 APPLY/CHANGE/REMOVE 뒤 규칙 이력 8건 창을 넘기고 DB를 재시작한 다음, 특정 과거 이벤트를 회상하는 명령의 다음 Story context에 그 이벤트가 다시 포함되는지 확인했다. 현재 `active_rules`는 빈 상태로 유지됐다. 원인은 메모리 검색 결과의 JSON 레코드가 도메인에 전달되기 전 명시적으로 해석되지 않고, 검색된 과거 이벤트가 최신 16개 이력 제한에서 밀리는 것이었다. 저장소 JSON decoding과 검색 관련도 우선순위를 수정했다. 검증 명령 `node --test --test-reporter=spec test/r4-core.test.mjs` 22/22, `npm test -- --test-reporter=spec` 619/619 통과. 이 fixture 결과는 합성 구조 검증이며 실제 모델의 규칙 반응 수락 증거가 아니다.
 - 기존 Cloudflare TTS Worker fancy-dust-7f8c와 content/characters.json의 다섯 원본 voice_id 매핑을 확인했다. 실제 장면에서 TTS Worker가 확정 대사에 대한 음성 URL을 반환했고, 윤민아/김제나 대사 재생과 윤민아의 3초 audio player를 확인했다. 저장된 실제 김제나 재생 응답 하나를 대조했을 때 서명 쿼리는 노출하지 않은 채 호스트가 Cloudflare R2이고 경로가 `tts/*.mp3`인 것을 확인했다. Cloudflare 읽기 전용 조회에서 fancy-dust-7f8c Worker의 tts R2 binding이 tts bucket을 가리키며, 해당 bucket에 `audio/mpeg` MP3 2,813개(427,390,192 bytes)가 열거됐다. 목록의 이미지 object는 0개, 원본 image catalog 102개 경로와 정확히 일치하는 object도 0개였다. 목록 및 custom metadata의 다섯 원본 voice_id 검색은 모두 0건이라 개별 음성 파일을 특정 캐릭터나 대사에 대응할 수 없고, 원본 voice sample인지도 입증되지 않았다. 별도 bucket-info 조회는 object_count 2,812를 반환했으므로 한 개 차이는 조회 시점 차이 또는 저장소 갱신 가능성이 있어 고정 수치로 단정하지 않는다. Worker 설정의 FISH_API_KEY/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY는 이름만 확인했고 값은 읽지 않았다. 음성 품질 평가는 하지 않았다.
 - 정지/재생/GIF 교체/실패 시 포스터 fallback은 별도 scripted-preview fixture UI에서 확인했다. 이 결과는 모델 서사 검증이 아니다.
 
@@ -57,7 +58,7 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 
 ## 보호 범위 및 저장소
 
-- 후보 브랜치: rebuild/company-core-r4-20261015; 구현 커밋 bb198fc116de04937fd63b0851e98c77673bfd54, 자산 조사 closeout 0cb30d986957d076d8950238f1ed5e85b6d21e57, 진행 기록 checkpoint cbe8ddd56108989a6eccf32b8a4c2a2798fe2818, push-history 정리 f673e65c7fe56fc3d4035f04f639c351b44d32fc, TTS R2 조사 71c4b45a6e6b1e472cf3d3dea95a299d1831e473, deployed Worker/voice metadata 조사 b1f05e2d4d1925dd182cf8ad80ec8b73be579a43가 모두 일반 fast-forward push됐다. PR #105 설명에도 실제 TTS R2 설정과 파일 메타데이터 근거를 갱신했다.
+- 후보 브랜치: rebuild/company-core-r4-20261015; 기존 구현/조사/진행 커밋 `bb198fc`, `0cb30d9`, `cbe8ddd`, `f673e65`, `71c4b45`, `b1f05e2`, 후속 closeout `781c2c9`까지 일반 fast-forward push됐다. 규칙 기억 회귀 수정은 `a79650e` (`fix(r4): retain targeted historical rule events`)에 있으며 이번 보고서 갱신과 함께 정상 push할 예정이다. PR #105 설명에는 실제 TTS R2 설정과 파일 메타데이터 근거가 반영돼 있다.
 - 초안 PR #105: https://github.com/zeroslove-ai/company-v1/pull/105 (OPEN/DRAFT 유지, 설명 갱신 및 이 작업에 연결 완료).
 - 원본 canon/content/media/voice 매핑, main, PR #104, R3 runtime/Worker, 원격 DB 및 보존 세이브는 수정하지 않았다. 원본 자료를 삭제하거나 일반 업무 fixture로 대체하지 않았다.
 - 실제 실행은 새 로컬 PGlite DB와 새 로컬 게임에만 기록했다. 배포와 main 병합은 수행하지 않았다.
