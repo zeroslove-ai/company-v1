@@ -4,7 +4,7 @@ Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 18:38 KST — organization-wide GitHub path scan found no canonical asset filenames; task remains RUNNING
+Updated: 2026-10-15 18:40 KST — GitHub asset scan committed/pushed and PR #105 verified OPEN/DRAFT at the candidate head; task remains RUNNING
 
 ## Branch-local owner direction
 

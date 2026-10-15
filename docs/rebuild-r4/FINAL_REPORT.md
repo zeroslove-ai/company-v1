@@ -59,7 +59,7 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 
 ## 보호 범위 및 저장소
 
-- 후보 브랜치: `rebuild/company-core-r4-20261015`; 규칙 기억 회귀 수정 `a79650e`, voice-source/provenance 보고 `7fc0c63`, Worker 재고 및 실제 40턴 coverage 보고 `08c77d7`까지 일반 fast-forward push됐다. 이번 GitHub 조직 자산 경로 감사는 현재 보고서 갱신으로 기록 중이다. PR #105 설명에는 voice generation 경로, 한 건의 saved MP3 attribution, Cloudflare binding 조사와 실제 캠페인 coverage 한계가 반영돼 있다.
+- 후보 브랜치: `rebuild/company-core-r4-20261015`; 규칙 기억 회귀 수정 `a79650e`, voice-source/provenance 보고 `7fc0c63`, Worker 재고 및 실제 40턴 coverage 보고 `08c77d7`, GitHub 조직 자산 경로 감사 `f251ec8`까지 일반 fast-forward push됐다. PR #105 설명에는 voice generation 경로, 한 건의 saved MP3 attribution, Cloudflare binding 조사, 조직 경로 검색, 실제 캠페인 coverage 한계가 반영돼 있다.
 - 초안 PR #105: https://github.com/zeroslove-ai/company-v1/pull/105 (OPEN/DRAFT 유지, 설명 갱신 및 이 작업에 연결 완료).
 - 원본 canon/content/media/voice 매핑, main, PR #104, R3 runtime/Worker, 원격 DB 및 보존 세이브는 수정하지 않았다. 원본 자료를 삭제하거나 일반 업무 fixture로 대체하지 않았다.
 - 실제 실행은 새 로컬 PGlite DB와 새 로컬 게임에만 기록했다. 배포와 main 병합은 수행하지 않았다.

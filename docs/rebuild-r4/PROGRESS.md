@@ -294,3 +294,10 @@
 - FINAL_REPORT.md now distinguishes source-backed voice generation from the single per-file generated output mapping and states the GitHub tree-scan scope/limits. PR #105 now includes the organization path-scan result; it does not present that filename scan as proof about opaque binaries.
 - Run command and URLs remain `PORT=4182`, `R4_DB_PATH=var/r4-user-goal-20261015`, `R4_MODEL_CALL_BUDGET=120`, `npm run r4:dev`; actual campaign `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`; fresh Setup `http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f`. Usage remains 119/120 with one incomplete provider call left and none used. Live two-NPC RULE_CHANGE acceptance and original source image bytes remain unverified.
 - Next: update PR #105, commit/push the report and checkpoint after a fresh comparison, and continue only evidence-backed work within existing permissions and budget.
+
+## Checkpoint 2026-10-15 18:40 KST
+
+- Pushed the GitHub asset-path audit and report changes normally as commit `f251ec8` after fetching and confirming no remote-only commit. Current branch `HEAD` equals `origin/rebuild/company-core-r4-20261015` at `f251ec8ecf195466e15da9c582d203bdf2c5702b`; the worktree was clean at verification.
+- PR #105 remains OPEN/DRAFT at that exact head. Its body now includes the Cloudflare Worker-source proof, one generated Jena output attribution with the signed query redacted, 13-worker binding audit, GitHub organization path-scan scope, and actual campaign's 0/40 two-character and 0/40 rule-change counts.
+- No code or runtime data changed in this docs checkpoint. Tests after the prior core change remain 619/619 and R4 22/22; no tests were rerun for documentation-only edits. Live provider usage remains 119/120.
+- Next: continue work toward actual acceptance, not merely expand repository audits. Existing hard gaps remain live model rule reactions with multiple canonical characters and accessible canonical image bytes; a fresh full Story+Observer turn cannot fit the budget. Keep CURRENT_TASK RUNNING and the goal active.
