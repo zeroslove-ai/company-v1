@@ -4,7 +4,7 @@ Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 18:21 KST — rule-memory recall survived rollover/restart in structural PGlite validation; task remains RUNNING
+Updated: 2026-10-15 18:27 KST — deployed TTS Worker source read-only confirms voice-ID-to-generation path; task remains RUNNING
 
 ## Branch-local owner direction
 
