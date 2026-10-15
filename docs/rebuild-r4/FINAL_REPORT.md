@@ -38,7 +38,7 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 - 실제 피드백 revision2는 기존 구조화 command ID와 원문을 보존했다. 피드백 후 캐릭터 귀속이 현장 인물과 일치하고 음성 재생 control이 활성화됐다.
 - 서버 재시작/브라우저 새로고침 후 마지막 확정 장면을 확인했다. desktop 1280×900과 mobile 390×844에서 가로 overflow가 없었다.
 - 회귀 테스트는 npm test -- --test-reporter=dot 실행 결과 619/619 통과다. 핵심 R4 suite는 22/22 통과했다.
-- 기존 Cloudflare TTS Worker fancy-dust-7f8c와 content/characters.json의 다섯 원본 voice_id 매핑을 확인했다. 실제 장면에서 TTS Worker가 확정 대사에 대한 음성 URL을 반환했고, 윤민아/김제나 대사 재생과 윤민아의 3초 audio player를 확인했다. 저장된 실제 김제나 재생 응답 하나를 대조했을 때 서명 쿼리는 노출하지 않은 채 호스트가 Cloudflare R2이고 경로가 `tts/*.mp3`인 것을 확인했다. Cloudflare 읽기 전용 조회에서 fancy-dust-7f8c Worker의 tts R2 binding이 tts bucket을 가리키며, 해당 bucket에 MP3 2,813개(427,390,192 bytes)가 열거됐다. 목록의 모든 object는 `.mp3`, 이미지 object는 0개, 원본 image catalog 102개 경로와 정확히 일치하는 object도 0개였다. 별도 bucket-info 조회는 object_count 2,812를 반환했으므로 한 개 차이는 조회 시점 차이 또는 저장소 갱신 가능성이 있어 고정 수치로 단정하지 않는다. 버킷과 실제 TTS 응답의 경로가 연결되지만 각 object를 특정 대사나 원본 voice sample에 개별 대응하지는 못했다. Worker 설정의 FISH_API_KEY/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY는 이름만 확인했고 값은 읽지 않았다. 음성 품질 평가는 하지 않았다.
+- 기존 Cloudflare TTS Worker fancy-dust-7f8c와 content/characters.json의 다섯 원본 voice_id 매핑을 확인했다. 실제 장면에서 TTS Worker가 확정 대사에 대한 음성 URL을 반환했고, 윤민아/김제나 대사 재생과 윤민아의 3초 audio player를 확인했다. 저장된 실제 김제나 재생 응답 하나를 대조했을 때 서명 쿼리는 노출하지 않은 채 호스트가 Cloudflare R2이고 경로가 `tts/*.mp3`인 것을 확인했다. Cloudflare 읽기 전용 조회에서 fancy-dust-7f8c Worker의 tts R2 binding이 tts bucket을 가리키며, 해당 bucket에 `audio/mpeg` MP3 2,813개(427,390,192 bytes)가 열거됐다. 목록의 이미지 object는 0개, 원본 image catalog 102개 경로와 정확히 일치하는 object도 0개였다. 목록 및 custom metadata의 다섯 원본 voice_id 검색은 모두 0건이라 개별 음성 파일을 특정 캐릭터나 대사에 대응할 수 없고, 원본 voice sample인지도 입증되지 않았다. 별도 bucket-info 조회는 object_count 2,812를 반환했으므로 한 개 차이는 조회 시점 차이 또는 저장소 갱신 가능성이 있어 고정 수치로 단정하지 않는다. Worker 설정의 FISH_API_KEY/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY는 이름만 확인했고 값은 읽지 않았다. 음성 품질 평가는 하지 않았다.
 - 정지/재생/GIF 교체/실패 시 포스터 fallback은 별도 scripted-preview fixture UI에서 확인했다. 이 결과는 모델 서사 검증이 아니다.
 
 ## 미검증 및 차단
@@ -53,7 +53,7 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 
 - Supabase project 목록에는 두 project가 있다. Company Worker가 설정한 company-v1 (fmcrspgxstsmxxsmkeee)은 INACTIVE이며 별도 AI_웹개발 (ovltkzwddxsekcfeskds)은 ACTIVE_HEALTHY다. project metadata와 Storage catalog만 SELECT로 읽었다. 공식 project 복구, SQL write/DDL, upload, Worker 변경은 하지 않았다.
 - 다른 ACTIVE_HEALTHY project의 public image bucket에는 598개 object가 있으나 canonical media locators와 일치하는 주인공 portrait가 없고 medical-context file naming이 확인돼 Company 그림으로 연결하지 않았다. 오디오 object는 없었다.
-- Cloudflare API로 조회 가능한 account는 1곳이며 R2 bucket은 `tts` 1개였다. Company API Worker의 Wrangler 설정에는 직접 R2 binding이 없고, TTS_WORKER service binding은 fancy-dust-7f8c를 가리킨다. Cloudflare에서 읽은 실제 fancy-dust-7f8c Worker 설정에는 tts R2 bucket binding과 FISH_API_KEY/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY secret 이름이 있다. 기존 TTS 경로는 R4 health와 live audio playback에서 동작했다. 이미지 bucket은 이 Worker에서 확인되지 않았다. Worker/Storage 변경이나 배포는 하지 않았다.
+- Cloudflare API로 조회 가능한 account는 1곳이며 R2 bucket은 `tts` 1개였다. Worker script inventory에서 별도 image/media 이름의 Worker는 보이지 않았다. 읽기 전용 deployed settings에서 game-proxy-company-v1과 game-proxy-company-r3는 모두 TTS_WORKER service binding을 fancy-dust-7f8c로 연결하고 직접 R2 binding은 갖지 않았다. fancy-dust-7f8c에는 tts R2 binding과 FISH_API_KEY/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY secret 이름이 있다. 기존 TTS 경로는 R4 health와 live audio playback에서 동작했다. Worker/Storage 변경이나 배포는 하지 않았다.
 
 ## 보호 범위 및 저장소
 
