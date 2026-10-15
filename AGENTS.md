@@ -1,11 +1,13 @@
 # R4 candidate branch-local instruction — 2026-10-15
 
 Applies only to `rebuild/company-core-r4-20261015` and its dedicated worktree.
-Read `docs/ops/CURRENT_TASK.md`, then `docs/rebuild-r4/IMPLEMENTATION_SPEC_KO.md` before execution. The owner requested a new candidate branch, a bounded rebuild specification, and a single Codex execution handoff. Preparation is authorized; implementation starts when the owner supplies `docs/rebuild-r4/CODEX_START_KO.txt` or its equivalent execution instruction. Do not request routine phase-by-phase approval after that start.
+Read `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, `docs/ops/CURRENT_TASK.md`, and `docs/rebuild-r4/IMPLEMENTATION_SPEC_KO.md` before implementation decisions. The owner supplied the execution instruction in `docs/rebuild-r4/CODEX_START_KO.txt`; do not wait for routine phase-by-phase approval.
 
-For this candidate only, the new task/spec replaces the historical R3 execution hold and permits a separately implemented general narrative core while retaining the Story -> Observer -> atomic Commit spine. Main's product canon, preserved evidence, existing R3 deployments, and remote databases stay unchanged. This is not authorization to promote the candidate to production or to declare original-content parity. Explicit sexual content generation and implementation/improvement of sexual-coercion mechanics are outside the task; use ordinary non-explicit company-life fixtures.
+The R4 task independently rebuilds command/context/memory/observation/persistence/recovery while retaining the Story -> Observer -> atomic Commit spine. It does not redefine the product. `CURRENT_TRUTH.md`, `COMPANY_CANON.md`, and their specialized contracts remain product authority: this is the adult character-first interactive fiction `상식개변: 회사편`, not a generic office-life or productivity simulator. Keep the private-app premise, authored cast, world, source media mappings, and established reader-facing UI connected. Do not expose internal character labels as story prose or force the whole cast into every scene.
 
-Follow the new task's protected scope, budget, actual DB/model/browser evidence requirements, and progress checkpoints. Do not copy old runtime logic under new names. Older product-quality and mutation-safety principles below still apply where consistent with this branch-local scope.
+Lunch, cafeteria, notices, and on-call assignment examples are technical fixtures only. Keep them in tests or an explicitly selected demo provider. They are not product content, a default live Story provider, or narrative acceptance evidence. Do not strip or rewrite existing content/assets. This task does not authorize creating or improving sexual-coercion mechanics. Main, PR #104, R3 deployments, remote databases, and preserved saves remain protected; this candidate is not production or whole-product approval.
+
+Follow the task's scope, call budget, actual DB/model/browser evidence requirements, and progress checkpoints. Do not copy old runtime logic under new names. Reuse presentation helpers/assets only where their boundaries remain independent from the rebuilt runtime. Older product-quality and mutation-safety principles below still apply.
 
 ---
 

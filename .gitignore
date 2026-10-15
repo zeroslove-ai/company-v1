@@ -8,3 +8,5 @@ coverage/
 test-results/
 playwright-report/
 dist-*-dry/
+# R4 local databases and private QA runs
+var/r4-*/

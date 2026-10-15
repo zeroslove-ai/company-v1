@@ -8,6 +8,10 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "verify": "npm test"
+    "verify": "npm test",
+    "r4:dev": "node runtime-r4/server.js"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.10"
   }
 }
