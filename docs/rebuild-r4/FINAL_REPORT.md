@@ -45,7 +45,7 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 ## 미검증 및 차단
 
 - 원본 image catalog 102개 항목은 storage reference다. Worker 설정의 Company Supabase ref fmcrspgxstsmxxsmkeee는 INACTIVE다. 이 프로젝트의 다섯 원본 대표 이미지 URL에 HEAD를 시도했으나 모두 요청에 실패했고, 대표 URL 하나를 상세 확인했을 때 DNS `ENOTFOUND`였다. 따라서 원본 object 존재 여부는 확인할 수 없었다. 원격 서비스 보호 범위에 따라 복구·변경은 하지 않았다. 별도 AI_웹개발 Supabase ovltkzwddxsekcfeskds는 ACTIVE_HEALTHY이고 public image bucket에 598개 object가 있지만, catalog heroine1–5 대표 이미지 경로와 exact match가 0/5이며 heroine2 파일명은 의료 배경 맥락이다. Company 정본 인물 자산이라는 검증 없이 재사용하지 않았다. 해당 Supabase bucket에는 audio object도 0개다. 읽기 가능한 Cloudflare account 한 곳의 `tts` bucket에는 MP3 object가 있으나 canonical image 경로는 0/102 일치했다. 전체 저장소 git history와 Git LFS에서는 원본 art/audio 파일을 찾지 못했고 GitHub release도 없으며, demo GIF/PNG 두 개만 Git에서 추적된다. UI는 실제 장면 이미지를 불러오지 못한다고 표시한다.
-- content/csa_catalog.json의 기존 규칙 중 이 작업 범위에서 실제 모델로 실행 가능한 비노골적·비강압 preset을 찾지 못했다. 규칙의 구조적 APPLY/CHANGE/REMOVE·재시도·피드백·재시작 검사는 격리된 합성 fixture에 한정한다. 실제 Story/Observer 규칙 발효, 서로 다른 NPC의 첫 반응, CHANGE/REMOVE 뒤 대화 연속성은 미검증이다. 원본 규칙 카탈로그를 새로 만들거나 의미를 변경하지 않았다.
+- content/csa_catalog.json의 기존 규칙 중 이 작업 범위에서 실제 모델로 실행 가능한 비노골적·비강압 preset을 찾지 못했다. 규칙의 구조적 APPLY/CHANGE/REMOVE·재시도·피드백·재시작 검사는 격리된 합성 fixture에 한정한다. 실제 Story/Observer 규칙 발효, 서로 다른 NPC의 첫 반응, CHANGE/REMOVE 뒤 대화 연속성은 미검증이다. 원본 규칙 카탈로그를 새로 만들거나 의미를 변경하지 않았다. 실제 40턴 캠페인의 로컬 history API를 read-only로 다시 집계한 결과, Story와 Observer 각각 40/40 실제 HTTP 요청이 있었지만 2명 이상 NPC가 현장 인물로 기록된 턴은 0/40, RULE_CHANGE 턴은 0/40이었다. 마지막 턴의 현장 인물은 윤민아 1명이다. 따라서 해당 캠페인은 일반 상호작용·기억 검증에는 쓰였지만 두 NPC가 한 규칙 변화에 다르게 반응하는 acceptance를 증명하지 않는다.
 - 실제 캠페인 4개 historical projection은 degraded이며 추가 provider 호출은 남은 1회 예산으로 검증할 수 없다.
 - 이 판정은 코어 후보 검증 결과다. 모든 원작 콘텐츠·규칙 승인, 전체 출시 승인 또는 사용자 재미 수락을 뜻하지 않는다.
 

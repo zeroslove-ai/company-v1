@@ -4,7 +4,7 @@ Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 18:33 KST — all 13 accessible Cloudflare Worker sources/bindings checked read-only for media paths; task remains RUNNING
+Updated: 2026-10-15 18:34 KST — live DB history confirms no two-NPC or RULE_CHANGE turns in 40-turn campaign; task remains RUNNING
 
 ## Branch-local owner direction
 
