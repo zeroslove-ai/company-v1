@@ -3,7 +3,8 @@
 - Updated: 2026-10-15 KST
 - Branch: `rebuild/company-core-r4-20261015`
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
-- Implementation HEAD: `fc13366aa70c974683e028d776a392b02c6f540e` (report/status closure commit follows)
+- Implementation commit: `fc13366aa70c974683e028d776a392b02c6f540e`
+- Report/status closeout commit: `b780ba4d66977085a49d6066d8caea518f6658b3`
 - Status: PARTIAL_BLOCKED
 
 ## Product direction and source wiring
@@ -42,8 +43,8 @@
 
 ## Next
 
-- Final report is drafted at `docs/rebuild-r4/FINAL_REPORT.md`; implementation is committed at the HEAD listed above.
-- Commit the final status/report documents, regular-push without rewrite/force, then create and attach a draft PR. Do not merge or deploy.
+- Final report and status documents are committed; current branch history is linear.
+- Regular-push without rewrite/force, then create and attach a draft PR. Do not merge or deploy.
 
 ## Blockers / unverified
 
