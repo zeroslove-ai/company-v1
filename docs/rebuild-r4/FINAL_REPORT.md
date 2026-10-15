@@ -57,7 +57,7 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 
 ## 보호 범위 및 저장소
 
-- 후보 브랜치: rebuild/company-core-r4-20261015; 구현 커밋 bb198fc116de04937fd63b0851e98c77673bfd54, 자산 조사 closeout 0cb30d986957d076d8950238f1ed5e85b6d21e57, 진행 기록 checkpoint cbe8ddd56108989a6eccf32b8a4c2a2798fe2818가 모두 fast-forward push됐다.
+- 후보 브랜치: rebuild/company-core-r4-20261015; 구현 커밋 bb198fc116de04937fd63b0851e98c77673bfd54, 자산 조사 closeout 0cb30d986957d076d8950238f1ed5e85b6d21e57, 진행 기록 checkpoint cbe8ddd56108989a6eccf32b8a4c2a2798fe2818, push-history 정리 f673e65c7fe56fc3d4035f04f639c351b44d32fc, TTS R2 조사 71c4b45a6e6b1e472cf3d3dea95a299d1831e473, deployed Worker/voice metadata 조사 b1f05e2d4d1925dd182cf8ad80ec8b73be579a43가 모두 일반 fast-forward push됐다. PR #105 설명에도 실제 TTS R2 설정과 파일 메타데이터 근거를 갱신했다.
 - 초안 PR #105: https://github.com/zeroslove-ai/company-v1/pull/105 (OPEN/DRAFT 유지, 설명 갱신 및 이 작업에 연결 완료).
 - 원본 canon/content/media/voice 매핑, main, PR #104, R3 runtime/Worker, 원격 DB 및 보존 세이브는 수정하지 않았다. 원본 자료를 삭제하거나 일반 업무 fixture로 대체하지 않았다.
 - 실제 실행은 새 로컬 PGlite DB와 새 로컬 게임에만 기록했다. 배포와 main 병합은 수행하지 않았다.
