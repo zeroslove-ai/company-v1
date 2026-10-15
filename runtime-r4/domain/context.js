@@ -8,6 +8,22 @@ function tokenize(value) {
 const estimateTokens = value => Math.ceil(JSON.stringify(value).length / 4);
 const CONTEXT_TOKEN_BUDGET = 10_000;
 
+function relevantRuleHistory(state, recent, memories, currentTurnNumber) {
+  const candidates = [...(state.rule_history ?? [])];
+  for (const turn of [...recent, ...memories]) {
+    const event = turn.turn_record?.rule_change_event;
+    if (event) candidates.push(event);
+  }
+  const unique = new Map();
+  for (const event of candidates) {
+    if (!event || !['APPLY', 'CHANGE', 'REMOVE'].includes(event.operation)) continue;
+    if (event.effective_turn === currentTurnNumber) continue;
+    const key = event.command_id ?? `${event.effective_turn}:${event.rule_id}:${event.operation}`;
+    unique.set(key, event);
+  }
+  return [...unique.values()].sort((a, b) => a.effective_turn - b.effective_turn).slice(-16);
+}
+
 function chooseOpeningHeroine(content, command, locationId) {
   const candidates = content.actors
     .filter(actor => actor.kind === 'heroine' && actor.default_location_id === locationId)
@@ -19,13 +35,17 @@ function chooseOpeningHeroine(content, command, locationId) {
   return candidates[hash % candidates.length];
 }
 
-function makeContext({ command, state, recent, memories, content, turnNumber }) {
+function makeContext({ command, state, recent, memories, content, turnNumber, ruleChangeEvent = null }) {
   const literal = command.literal_action ?? '';
   const mentionedActors = content.actors.filter(actor => literal.includes(actor.name)).map(actor => actor.actor_id);
   const openingHeroine = command.kind === 'OPENING' ? chooseOpeningHeroine(content, command, state.scene.location_id) : null;
   const openingActors = openingHeroine ? [openingHeroine.actor_id] : [];
   const memoryActors = memories.flatMap(memory => memory.actor_ids ?? []);
-  const relevantIds = new Set([...(state.scene.present_actor_ids ?? []), ...mentionedActors, ...memoryActors, ...openingActors]);
+  const ruleActors = (state.active_rules ?? []).flatMap(rule => [...(rule.subject_actor_ids ?? []), ...(rule.counterparty_actor_ids ?? [])]);
+  const eventActors = [ruleChangeEvent?.previous_rule, ruleChangeEvent?.next_rule]
+    .filter(Boolean)
+    .flatMap(rule => [...(rule.subject_actor_ids ?? []), ...(rule.counterparty_actor_ids ?? [])]);
+  const relevantIds = new Set([...(state.scene.present_actor_ids ?? []), ...mentionedActors, ...memoryActors, ...openingActors, ...ruleActors, ...eventActors]);
   const actors = content.actors
     .filter(actor => relevantIds.has(actor.actor_id))
     .map(({ actor_id, kind, name, age, gender, department, position, role_title, company_tenure, default_location_id, prompt_card, profile_card }) => ({
@@ -50,14 +70,16 @@ function makeContext({ command, state, recent, memories, content, turnNumber }) 
     keywords: memory.memory_keywords ?? [],
     importance: Boolean(memory.memory_important)
   }));
+  const historicalRuleEvents = relevantRuleHistory(state, recent, memories, turnNumber);
   return {
     schema_version: 1,
-    mode: command.kind === 'OPENING' ? 'opening' : 'ordinary',
+    mode: command.kind === 'OPENING' ? 'opening' : command.kind === 'RULE_CHANGE' ? 'rule_change' : 'ordinary',
     current_turn_number: turnNumber,
     current_authority: {
       kind: command.kind,
       literal_action: command.literal_action,
-      exact_literal_must_remain_current: command.kind === 'FREE_ACTION'
+      exact_literal_must_remain_current: command.kind === 'FREE_ACTION',
+      rule_change: command.kind === 'RULE_CHANGE' ? command.rule_change : null
     },
     edition: content.edition,
     company: content.company,
@@ -66,7 +88,9 @@ function makeContext({ command, state, recent, memories, content, turnNumber }) 
     profile: state.profile,
     time: state.time,
     scene: state.scene,
-    active_rules: [],
+    active_rules: state.active_rules ?? [],
+    historical_rule_events: historicalRuleEvents,
+    rule_change_event: ruleChangeEvent,
     registered_characters: actors,
     character_directory: characterDirectory,
     current_location: content.locations.find(location => location.location_id === state.scene.location_id) ?? null,
@@ -89,7 +113,7 @@ function makeContext({ command, state, recent, memories, content, turnNumber }) 
   };
 }
 
-export function buildTurnContext({ command, state, recentTurns, memories, content, turnNumber }) {
+export function buildTurnContext({ command, state, recentTurns, memories, content, turnNumber, ruleChangeEvent = null }) {
   let recent = [...recentTurns].sort((a, b) => a.turn_number - b.turn_number);
   let selectedMemories = [...memories].sort((a, b) => a.turn_number - b.turn_number);
   const excluded = [...(memories.excluded_sources ?? [])];
@@ -97,7 +121,7 @@ export function buildTurnContext({ command, state, recentTurns, memories, conten
     selectedMemories = selectedMemories.filter(memory => memory.turn_number !== candidate.turn_number);
     excluded.push({ turn_number: candidate.turn_number, revision: candidate.source_revision, reason: 'context_budget_whole_record_excluded' });
   };
-  let context = makeContext({ command, state, recent, memories: selectedMemories, content, turnNumber });
+  let context = makeContext({ command, state, recent, memories: selectedMemories, content, turnNumber, ruleChangeEvent });
   while (estimateTokens(context) > CONTEXT_TOKEN_BUDGET) {
     const raw = selectedMemories
       .filter(memory => !memory.turn_digest?.summary)
@@ -116,7 +140,7 @@ export function buildTurnContext({ command, state, recentTurns, memories, conten
     } else {
       break;
     }
-    context = makeContext({ command, state, recent, memories: selectedMemories, content, turnNumber });
+    context = makeContext({ command, state, recent, memories: selectedMemories, content, turnNumber, ruleChangeEvent });
   }
 
   const contextManifest = {
@@ -127,7 +151,7 @@ export function buildTurnContext({ command, state, recentTurns, memories, conten
     excluded_candidate_sources: excluded,
     search_terms: tokenize(command.literal_action),
     content_version: content.version,
-    prompt_version: 'r4-company-canon-projection-4',
+    prompt_version: 'r4-company-rule-context-5',
     token_count: estimateTokens(context),
     token_count_kind: 'character_estimate_not_provider_measurement',
     token_budget: CONTEXT_TOKEN_BUDGET,

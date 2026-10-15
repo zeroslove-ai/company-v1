@@ -55,6 +55,7 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
         time: { day: 1, minutes: 9 * 60 },
         scene: { location_id: start?.location_id ?? '', present_actor_ids: [...(start?.default_actor_ids ?? [])], scene_note: '' },
         active_rules: [],
+        rule_history: [],
         projection_meta: { status: 'complete', last_verified_turn: {}, unverified: [] }
       };
       await db.query(
@@ -223,7 +224,7 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
 
     async getRecentTurns(gameId, committedTurn, limit = 6) {
       const result = await db.query(
-        'SELECT DISTINCT ON (turn_number) game_id,turn_number,turn_revision,command_json,narrative_body,turn_digest,actor_ids,memory_keywords,memory_important,search_text ' +
+        'SELECT DISTINCT ON (turn_number) game_id,turn_number,turn_revision,command_json,turn_record,narrative_body,turn_digest,actor_ids,memory_keywords,memory_important,search_text ' +
         'FROM company_r4_turns WHERE game_id=$1 AND turn_number>$2 AND turn_number<=$3 ' +
         'ORDER BY turn_number DESC,turn_revision DESC LIMIT $4',
         [gameId, Math.max(0, committedTurn - limit), committedTurn, limit]
@@ -234,7 +235,7 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
     async searchMemories({ gameId, beforeTurn, recentTurnNumbers, literalAction, actorIds, limit = 12 }) {
       const searchTerms = tokens(literalAction);
       const result = await db.query(
-          'SELECT m.*,t.narrative_body,t.command_json FROM company_r4_memory_index m ' +
+          'SELECT m.*,t.narrative_body,t.command_json,t.turn_record FROM company_r4_memory_index m ' +
           'JOIN company_r4_turns t ON t.game_id=m.game_id AND t.turn_number=m.turn_number AND t.turn_revision=m.source_revision ' +
           'WHERE m.game_id=$1 AND m.turn_number<$2 ' +
           'AND (m.actor_ids && $3::text[] OR m.memory_keywords && $4::text[] OR m.memory_important=true OR m.search_text ILIKE $5) ' +

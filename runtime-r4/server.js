@@ -260,11 +260,16 @@ const server = createServer(async (request, response) => {
     if (request.method === 'POST' && commandMatch) {
       const body = await readBody(request);
       const gameId = commandMatch[1];
+      if (body.kind === 'RULE_CHANGE') {
+        // The canonical CSA catalog currently contains no non-explicit preset that can be used for this task's permitted live validation.
+        throw new R4StoreError('r4_non_explicit_canonical_rule_unavailable', 503);
+      }
       const command = createCommand({
         gameId,
         kind: body.kind,
         expectedStateRevision: body.expected_state_revision,
         literalAction: body.literal_action ?? '',
+        ruleChange: body.rule_change ?? null,
         commandId: body.command_id ?? randomUUID()
       });
       await streamJob(request, response, () => store.beginCommand({ command }));

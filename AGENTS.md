@@ -7,6 +7,8 @@ The R4 task independently rebuilds command/context/memory/observation/persistenc
 
 Lunch, cafeteria, notices, and on-call assignment examples are technical fixtures only. Keep them in tests or an explicitly selected demo provider. They are not product content, a default live Story provider, or narrative acceptance evidence. Do not strip or rewrite existing content/assets. This task does not authorize creating or improving sexual-coercion mechanics. Main, PR #104, R3 deployments, remote databases, and preserved saves remain protected; this candidate is not production or whole-product approval.
 
+Rule-change implementation follows the canonical finite preset source and keeps APPLY/CHANGE/REMOVE, prospective current authority, prior rule history, Story, Observer, and atomic Commit on one server-owned path. The current repository CSA catalog has no non-explicit preset for the requested live acceptance. Do not invent a replacement product rule, relabel a sexual preset as benign, or send sexual preset text to a model for this task. A synthetic descriptor may appear only inside a clearly named structural test; it proves state/transaction plumbing, never narrative or product acceptance. Keep this blocker visible while continuing all independent work.
+
 Follow the task's scope, call budget, actual DB/model/browser evidence requirements, and progress checkpoints. Do not copy old runtime logic under new names. Reuse presentation helpers/assets only where their boundaries remain independent from the rebuilt runtime. Older product-quality and mutation-safety principles below still apply.
 
 ---

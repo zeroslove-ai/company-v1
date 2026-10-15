@@ -21,3 +21,5 @@
 30분 내외 또는 의미 있는 checkpoint마다 짧게 진행 보고하고 PROGRESS.md에 현재 HEAD/성과/다음 작업/실행 명령/로컬 URL/예산/차단을 갱신한다. 컨텍스트 축약·재개 시 이 파일과 git 상태부터 읽고 이어간다. 예약 작업·무한 데몬을 새로 만들지 않는다.
 
 마지막에는 FINAL_REPORT.md, 실제 실행 명령, fresh game URL, 검증 증거, 미검증/남은 결함, 원본 보호 결과를 남기고 commit/push 및 draft PR을 만든다. LOCAL_CANDIDATE_READY / PARTIAL_BLOCKED / FAILED_NEEDS_FIX를 구분한다. 코어 후보 완료를 전체 콘텐츠 출시 승인으로 과장하지 않는다. 목표 달성 전에는 루틴 승인 대기로 끝내지 말고, 목표 달성 후에는 의미 없는 반복으로 사용량을 소모하지 않는다.
+
+최우선 제품 경계: 업무 fixture는 Story 제품 콘텐츠가 아니다. 실제 규칙/인물 서사 검증에는 원본 정본에 이미 존재하는 비노골적 규칙만 쓴다. 현재 `content/csa_catalog.json`의 21개 프리셋은 모두 성적·친밀 규칙이므로 이 작업의 실제-model 대표 사례로 보낼 수 없다. 규칙 카탈로그를 새로 만들거나 원본 규칙을 다른 뜻으로 바꾸지 말고, 합성 rule descriptor 테스트는 구조 검증으로만 표시한다. 별도 허가와 안전한 원본 사례가 없는 동안 제품 RULE_CHANGE endpoint는 실행하지 않는다. 규칙 lifecycle 구조, 원본 캐릭터/세계관 context, 이미지·음성 매핑 및 기존 UI 보존 등 독립 구현은 계속한다.

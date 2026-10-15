@@ -3,6 +3,7 @@ import { normalizeObservation, degradedObservation } from '../domain/observation
 import { reduceTurn } from '../domain/reducer.js';
 import { R4StoreError } from '../adapters/store-errors.js';
 import { hashCommand } from '../domain/command.js';
+import { prepareRuleChange, commitProspectiveRuleState } from '../domain/rule-change.js';
 
 function narrativeBody(storyText) {
   const lines = String(storyText).replace(/\r/g, '').split('\n');
@@ -15,7 +16,7 @@ function scrubError(error) {
   return code || 'turn_failed';
 }
 
-export async function executeTurnJob({ job, store, provider, content, onEvent = () => {} }) {
+export async function executeTurnJob({ job, store, provider, content, resolveRuleTemplate = null, onEvent = () => {} }) {
   if (job.status === 'complete' && job.receipt) {
     return { duplicate: true, receipt: job.receipt, snapshot: await store.readSnapshot(job.gameId) };
   }
@@ -32,6 +33,19 @@ export async function executeTurnJob({ job, store, provider, content, onEvent = 
     : currentState;
   const turnNumber = feedback ? job.originalTurnNumber : currentState.committed_turn + 1;
   const turnRevision = feedback ? job.originalTurnRevision + 1 : 1;
+  let prospectiveRules = null;
+  if (job.command.kind === 'RULE_CHANGE') {
+    try {
+      prospectiveRules = prepareRuleChange({ state: sourceBefore, command: job.command, turnNumber, resolveRuleTemplate });
+    } catch (error) {
+      const code = scrubError(error);
+      await store.failJob(job.jobId, job.attemptNo, 'rule_change_prepare_failed', code);
+      throw new R4StoreError(code, 422, { job_id: job.jobId, retry_available: false });
+    }
+  }
+  const contextState = prospectiveRules
+    ? { ...sourceBefore, active_rules: prospectiveRules.active_rules, rule_history: prospectiveRules.rule_history }
+    : sourceBefore;
   const recentEnd = feedback ? turnNumber - 1 : currentState.committed_turn;
   const recentTurns = await store.getRecentTurns(job.gameId, recentEnd, 6);
   const recentNumbers = recentTurns.map(turn => turn.turn_number);
@@ -40,16 +54,22 @@ export async function executeTurnJob({ job, store, provider, content, onEvent = 
     beforeTurn: turnNumber,
     recentTurnNumbers: recentNumbers,
     literalAction: job.command.literal_action,
-    actorIds: content.actors.filter(actor => (job.command.literal_action ?? '').includes(actor.name)).map(actor => actor.actor_id),
+    actorIds: [...new Set([
+      ...content.actors.filter(actor => (job.command.literal_action ?? '').includes(actor.name)).map(actor => actor.actor_id),
+      ...(sourceBefore.active_rules ?? []).flatMap(rule => [...(rule.subject_actor_ids ?? []), ...(rule.counterparty_actor_ids ?? [])]),
+      ...(prospectiveRules?.rule_change_event?.next_rule?.subject_actor_ids ?? []),
+      ...(prospectiveRules?.rule_change_event?.next_rule?.counterparty_actor_ids ?? [])
+    ])],
     limit: 12
   });
   const built = buildTurnContext({
     command: job.command,
-    state: sourceBefore,
+    state: contextState,
     recentTurns,
     memories,
     content,
-    turnNumber
+    turnNumber,
+    ruleChangeEvent: prospectiveRules?.rule_change_event ?? null
   });
   let storyText = job.storyCheckpoint;
 
@@ -87,17 +107,20 @@ export async function executeTurnJob({ job, store, provider, content, onEvent = 
     await store.updateJob(job.jobId, job.attemptNo, { stage: 'commit_degraded', observerRaw });
   }
 
-  const after = reduceTurn({
+  const reduced = reduceTurn({
     before: executionBefore,
     observation,
     turnNumber: feedback ? currentState.committed_turn : turnNumber,
     turnRevision
   });
+  const after = commitProspectiveRuleState(reduced, prospectiveRules);
   const body = narrativeBody(storyText);
   const digest = observation.digest;
-  const actorIds = digest?.actor_ids ?? observation.scene.presence?.value ?? [];
-  const keywords = digest?.keywords ?? [];
-  const importance = digest?.important === true;
+  const currentRule = prospectiveRules?.active_rules.find(rule => rule.rule_id === job.command.rule_change?.rule_id) ?? null;
+  const eventRule = currentRule ?? prospectiveRules?.rule_change_event?.previous_rule;
+  const actorIds = [...new Set([...(digest?.actor_ids ?? observation.scene.presence?.value ?? []), ...(eventRule?.subject_actor_ids ?? []), ...(eventRule?.counterparty_actor_ids ?? [])])];
+  const keywords = [...new Set([...(digest?.keywords ?? []), ...(eventRule?.label ? [eventRule.label] : [])])];
+  const importance = digest?.important === true || job.command.kind === 'RULE_CHANGE';
   const record = {
     game_id: job.gameId,
     turn_number: turnNumber,
@@ -105,6 +128,7 @@ export async function executeTurnJob({ job, store, provider, content, onEvent = 
     command: job.command,
     command_hash: hashCommand(job.command),
     operation_kind: feedback ? 'FEEDBACK' : job.command.kind,
+    rule_change_event: prospectiveRules?.rule_change_event ?? null,
     feedback_text: feedback ? job.feedbackText : '',
     feedback_request_id: feedback ? job.requestId : null,
     state_before_revision: sourceBefore.state_revision,
@@ -132,7 +156,7 @@ export async function executeTurnJob({ job, store, provider, content, onEvent = 
     turnRecord: record,
     stateAfter: after,
     command: job.command,
-    searchText: body + '\n' + job.command.literal_action,
+    searchText: body + '\n' + job.command.literal_action + (job.command.rule_change ? '\n' + [job.command.rule_change.operation, job.command.rule_change.rule_id, job.command.rule_change.template_id, eventRule?.label ?? ''].join(' ') : ''),
     actorIds,
     keywords,
     important: importance,

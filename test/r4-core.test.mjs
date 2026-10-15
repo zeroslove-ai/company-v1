@@ -243,6 +243,167 @@ test('PGlite Story pipeline keeps feedback on the original gameplay turn and rep
   assert.deepEqual(history[1].command, sourceCommand);
 });
 
+test('synthetic rule-state structural fixture stages APPLY/CHANGE/REMOVE atomically and carries canon character context', async t => {
+  const root = await tempDir(t);
+  const dbPath = join(root, 'db');
+  let store = await createR4Store({ dbPath });
+  const gameId = await setupGame(store);
+  const contexts = [];
+  const subjectIds = ['heroine1', 'heroine2'];
+  const selectors = { test_fixture_scope: 'two-source-characters', subject_actor_ids: subjectIds };
+  const rules = {
+    structural_policy_a: { template_id: 'structural_policy_a', label: 'fixture policy A', rule_text: 'test-only structural description A', authority_label: 'test fixture', selector_schema: 'test_fixture' },
+    structural_policy_b: { template_id: 'structural_policy_b', label: 'fixture policy B', rule_text: 'test-only structural description B', authority_label: 'test fixture', selector_schema: 'test_fixture' }
+  };
+  const resolveRuleTemplate = (templateId, requestedSelectors) => {
+    assert.deepEqual(requestedSelectors, selectors);
+    const descriptor = rules[templateId];
+    return descriptor ? { ...descriptor, subject_actor_ids: [...requestedSelectors.subject_actor_ids], counterparty_actor_ids: [] } : null;
+  };
+  const provider = {
+    mode: 'test-only-structural-provider',
+    modelNames: { story: 'test-only', observer: 'test-only' },
+    async story({ context }) {
+      contexts.push(structuredClone(context));
+      const location = content.locations.find(item => item.location_id === context.scene.location_id);
+      const rule = context.rule_change_event?.next_rule ?? context.active_rules.find(item => item.rule_id === 'fixture-rule') ?? context.rule_change_event?.previous_rule;
+      const eventLine = context.rule_change_event
+        ? `사내 모니터에는 ${context.rule_change_event.operation}으로 새 효력이 반영된 ${rule.label} 공지가 나타났다.`
+        : `현재 장면에는 ${context.active_rules.length ? '활성 규정이 이어지고 있다' : '활성 규정이 남아 있지 않다'}.`;
+      return [
+        `${location.name}에서 이야기가 이어졌다.`,
+        eventLine,
+        '서원희는 공지 화면을 한 번 더 확인하고 표정을 다잡았다.',
+        '윤민아는 화면을 가리키며 변경된 내용을 먼저 물었다.',
+        '잠시 뒤 두 사람이 다시 대화를 이었다.',
+        '두 분이 지났다.',
+        '[선택지]', '1. 서원희에게 생각을 묻는다.', '2. 윤민아에게 변경 이유를 묻는다.', '3. 잠시 둘의 대화를 지켜본다.', '4. 다른 이야기를 꺼낸다.'
+      ].join('\n');
+    },
+    async observe({ storyText, context }) {
+      const location = content.locations.find(item => item.location_id === context.scene.location_id);
+      const locationEvidence = `${location.name}에서 이야기가 이어졌다.`;
+      const wunheeEvidence = '서원희는 공지 화면을 한 번 더 확인하고 표정을 다잡았다.';
+      const minahEvidence = '윤민아는 화면을 가리키며 변경된 내용을 먼저 물었다.';
+      assert.ok(storyText.includes(locationEvidence));
+      return {
+        elapsed_minutes: 2,
+        elapsed_evidence: '두 분이 지났다.',
+        scene: {
+          location_id: location.location_id,
+          location_evidence: locationEvidence,
+          present_actor_ids: subjectIds,
+          presence_evidence: [
+            { actor_id: 'heroine1', quote: wunheeEvidence },
+            { actor_id: 'heroine2', quote: minahEvidence }
+          ]
+        },
+        actor_ids: subjectIds,
+        keywords: ['test_fixture_scope'],
+        turn_digest: { summary: 'test-only structural memory of a staged rule event and two source characters', important: true },
+        active_rules: [{ rule_id: 'observer-forgery' }],
+        rule_history: [],
+        mind_monitor: {
+          heroine1: { surface: '공지 화면을 다시 확인한다.', subconscious: '새 변화에 당황했지만 태도를 정돈하려 한다.' },
+          heroine2: { surface: '변경된 조항을 질문한다.', subconscious: '예상하지 못한 변경의 범위를 파악하려 한다.' }
+        }
+      };
+    }
+  };
+
+  const submitRuleChange = async (operation, templateId, expectedRuleVersion) => {
+    const snapshot = await store.readSnapshot(gameId);
+    const command = createCommand({
+      gameId,
+      kind: 'RULE_CHANGE',
+      expectedStateRevision: snapshot.state.state_revision,
+      ruleChange: { operation, rule_id: 'fixture-rule', template_id: templateId, selectors, expected_rule_version: expectedRuleVersion }
+    });
+    const reserved = await store.beginCommand({ command });
+    return { command, job: reserved.job };
+  };
+
+  const failedApply = await submitRuleChange('APPLY', 'structural_policy_a', 0);
+  await assert.rejects(
+    executeTurnJob({ job: failedApply.job, store, provider: { ...provider, async story() { throw new Error('test_story_failure'); } }, content, resolveRuleTemplate }),
+    error => error.code === 'test_story_failure'
+  );
+  assert.deepEqual((await store.readSnapshot(gameId)).state.active_rules, []);
+  assert.deepEqual((await store.readSnapshot(gameId)).state.rule_history, []);
+  const applyRetry = await store.retryJob(failedApply.job.jobId, gameId);
+  assert.deepEqual(applyRetry.job.command, failedApply.command);
+  await executeTurnJob({ job: applyRetry.job, store, provider, content, resolveRuleTemplate });
+  let snapshot = await store.readSnapshot(gameId);
+  assert.deepEqual(snapshot.state.active_rules.map(rule => [rule.rule_id, rule.template_id, rule.version]), [['fixture-rule', 'structural_policy_a', 1]]);
+  assert.equal(snapshot.latest_turn.observer_applied.raw.active_rules[0].rule_id, 'observer-forgery');
+  assert.equal(snapshot.latest_turn.command.rule_change.operation, 'APPLY');
+  assert.deepEqual(snapshot.latest_turn.rule_change_event.next_rule.subject_actor_ids, subjectIds);
+  assert.equal(contexts[0].mode, 'rule_change');
+  assert.deepEqual(contexts[0].registered_characters.map(actor => actor.actor_id).filter(id => subjectIds.includes(id)).sort(), subjectIds);
+  assert.equal(contexts[0].registered_characters.find(actor => actor.actor_id === 'heroine1').dramatization.personality, content.actors.find(actor => actor.actor_id === 'heroine1').prompt_card.personality);
+  assert.equal(contexts[0].rule_change_event.operation, 'APPLY');
+  assert.deepEqual(contexts[0].active_rules.map(rule => rule.template_id), ['structural_policy_a']);
+
+  snapshot = await store.readSnapshot(gameId);
+  const feedbackText = '공지 장면은 유지하고 두 인물의 서로 다른 반응을 또렷하게 보여 준다.';
+  const feedback = await store.beginFeedback({ gameId, requestId: 'fixture-rule-feedback', feedbackText, expectedStateRevision: snapshot.state.state_revision });
+  const feedbackResult = await executeTurnJob({ job: feedback.job, store, provider, content, resolveRuleTemplate });
+  assert.deepEqual(feedbackResult.turn.command, applyRetry.job.command);
+  assert.equal(feedbackResult.turn.feedback_text, feedbackText);
+  assert.equal(feedbackResult.receipt.committed_turn, 1);
+  assert.equal(feedbackResult.receipt.turn_revision, 2);
+  assert.deepEqual(feedbackResult.snapshot.state.active_rules.map(rule => rule.template_id), ['structural_policy_a']);
+
+  const ordinary = await store.readSnapshot(gameId);
+  const ordinaryCommand = createCommand({ gameId, kind: 'FREE_ACTION', expectedStateRevision: ordinary.state.state_revision, literalAction: '서원희와 윤민아에게 새 공지에 대해 묻는다.' });
+  const ordinaryJob = await store.beginCommand({ command: ordinaryCommand });
+  await executeTurnJob({ job: ordinaryJob.job, store, provider, content, resolveRuleTemplate });
+  assert.deepEqual(contexts[2].active_rules.map(rule => rule.template_id), ['structural_policy_a']);
+  assert.equal(contexts[2].historical_rule_events.at(-1).operation, 'APPLY');
+  assert.equal(contexts[2].recent_committed_turns[0].turn_number, 1);
+
+  for (let index = 0; index < 6; index += 1) {
+    const prior = await store.readSnapshot(gameId);
+    const followUp = createCommand({ gameId, kind: 'FREE_ACTION', expectedStateRevision: prior.state.state_revision, literalAction: `짧은 후속 대화 ${index + 1}를 이어간다.` });
+    const followUpJob = await store.beginCommand({ command: followUp });
+    await executeTurnJob({ job: followUpJob.job, store, provider, content, resolveRuleTemplate });
+  }
+  const longMemoryState = await store.readSnapshot(gameId);
+  const recallCommand = createCommand({ gameId, kind: 'FREE_ACTION', expectedStateRevision: longMemoryState.state.state_revision, literalAction: '서원희와 윤민아가 이전 공지를 두고 나눈 대화를 떠올린다.' });
+  const recallJob = await store.beginCommand({ command: recallCommand });
+  await executeTurnJob({ job: recallJob.job, store, provider, content, resolveRuleTemplate });
+  assert.ok(contexts[9].relevant_past_memories.some(memory => memory.source_turn === 1));
+  assert.equal(contexts[9].historical_rule_events.at(-1).operation, 'APPLY');
+
+  const change = await submitRuleChange('CHANGE', 'structural_policy_b', 1);
+  await executeTurnJob({ job: change.job, store, provider, content, resolveRuleTemplate });
+  snapshot = await store.readSnapshot(gameId);
+  assert.deepEqual(snapshot.state.active_rules.map(rule => [rule.template_id, rule.version]), [['structural_policy_b', 2]]);
+  assert.equal(snapshot.latest_turn.rule_change_event.previous_rule.template_id, 'structural_policy_a');
+  assert.equal(snapshot.latest_turn.rule_change_event.next_rule.template_id, 'structural_policy_b');
+  assert.deepEqual(contexts[10].active_rules.map(rule => rule.template_id), ['structural_policy_b']);
+  assert.equal(contexts[10].rule_change_event.previous_rule.template_id, 'structural_policy_a');
+
+  const remove = await submitRuleChange('REMOVE', 'structural_policy_b', 2);
+  await executeTurnJob({ job: remove.job, store, provider, content, resolveRuleTemplate });
+  snapshot = await store.readSnapshot(gameId);
+  assert.deepEqual(snapshot.state.active_rules, []);
+  assert.deepEqual(snapshot.state.rule_history.map(event => event.operation), ['APPLY', 'CHANGE', 'REMOVE']);
+  assert.equal(contexts[11].active_rules.length, 0);
+  assert.equal(contexts[11].rule_change_event.operation, 'REMOVE');
+  assert.equal(contexts[11].rule_change_event.previous_rule.template_id, 'structural_policy_b');
+  assert.deepEqual(snapshot.latest_turn.command.rule_change, remove.command.rule_change);
+
+  await store.close();
+  store = await createR4Store({ dbPath });
+  t.after(() => store.close());
+  const restored = await store.readSnapshot(gameId);
+  assert.deepEqual(restored.state.active_rules, []);
+  assert.deepEqual(restored.state.rule_history.map(event => event.operation), ['APPLY', 'CHANGE', 'REMOVE']);
+  assert.equal(restored.state.committed_turn, 11);
+  assert.equal(restored.state.state_revision, 12);
+});
+
 test('PGlite scripted 40-turn structural campaign retrieves an important old digest beyond six recent turns', async t => {
   const root = await tempDir(t);
   const store = await createR4Store({ dbPath: join(root, 'db') });
