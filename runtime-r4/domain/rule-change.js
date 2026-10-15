@@ -154,4 +154,3 @@ export function commitProspectiveRuleState(after, prospective) {
   if (!prospective) return after;
   return { ...after, active_rules: structuredClone(prospective.active_rules), rule_history: structuredClone(prospective.rule_history) };
 }
-

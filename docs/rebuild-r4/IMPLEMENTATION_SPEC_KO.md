@@ -98,7 +98,7 @@ TurnRecord
 
 Snapshot
   game_id, state_revision, committed_turn, turn_revision, content_version
-  profile, time, scene, active_rules, clothing, projection_meta
+  profile, time, scene, active_rules, rule_history, clothing, projection_meta
 
 scene
   location_id, present_actor_ids, scene_note
@@ -106,6 +106,9 @@ scene
 projection_meta
   status: complete | degraded
   # 핵심 필드별 last_verified_turn 및 unverified 사유; 게임 능력치가 아님
+
+rule_history
+  # snapshot에는 최근 8개 이벤트 projection, 전체 근거는 각 durable turn record에 보존
 ```
 
 원본 명령은 durable TurnRecord에도 보관한다. jobs 테이블에만 남겨서 피드백·history에서 사라지게 하지 않는다. command_hash는 서버가 정규화된 JSON에서 계산한다. 실제 DB와 인메모리 adapter는 같은 Command/Snapshot/Job DTO를 반환해야 한다.

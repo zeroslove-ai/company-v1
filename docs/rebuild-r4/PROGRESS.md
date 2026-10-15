@@ -3,52 +3,39 @@
 - Updated: 2026-10-15 KST
 - Branch: `rebuild/company-core-r4-20261015`
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
-- Implementation commit: `fc13366aa70c974683e028d776a392b02c6f540e`
-- Report/status closeout commit: `b780ba4d66977085a49d6066d8caea518f6658b3`
-- Last pushed tip before this closeout note: `e5b31050ae7647cfd20fa41c3c38dc4cef7e4aa6`
-- Status: PARTIAL_BLOCKED
+- Implementation checkpoint HEAD: `e6d51a1` (`feat: add R4 prospective rule lifecycle core`)
+- Status: `PARTIAL_BLOCKED` (implementation committed locally; closeout docs and branch push remain)
 
 ## Product direction and source wiring
 
-- Re-read `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md` (P-IDENTITY/P-PREMISE/P-STORY/P-CHARACTER/P-OPENING/P-MEMORY), `LIVE_ACCEPTANCE_MATRIX.md`, `MEDIA_CATALOG_CONTRACT.md`, and original character/map/organization/position/media records.
-- Product remains the source adult, character-first interactive fiction `상식개변: 회사편`, including the player-private unfamiliar app premise. Cafeteria/notices/on-call examples are technical fixtures only. Canon/source records remain unchanged.
-- Existing local game `4dc4ba9c-afe3-4618-8635-ac86313cde3e` has two persisted `scripted-preview` turns. Turn 1 leaked internal label “생활형 리더”; turn 2 was generic office prose. Both are retained as historical fixture output, never actual-model or product acceptance evidence. The UI now labels a scripted turn “구조 검증용 스크립트 결과”.
-- Before the provider correction, missing model configuration selected `scripted-preview`; live mode now fails closed as `company-unconfigured`. Scripted mode is opt-in only (`R4_PROVIDER=scripted`) and visibly marked as not a model.
-- Current path is `content/characters.json` and `content/map.json` → `runtime-r4/domain/content.js` loader → `runtime-r4/domain/context.js` scene/persona projection → `runtime-r4/adapters/provider.js` Story request serialization. One opening heroine's full dramatization card (speech/addressing, personality, private/stress/continuity traits) and the private-app world premise enter the Story `context`; compact cast/map directories supply source names without impersonating all five as present. The five women are not forced into every scene.
-- Scene image metadata is sent in the separate Observer context (`available_media`) only. Observer prompt requires an exact Story quote, present registered heroine, active matching catalog entry, and situation fit; normalized `mediaHint` is non-authoritative. UI chooses the committed scene hint or a suitable present-speaker/sole-heroine portrait, with a stable unavailable-asset fallback. This branch has no actual Story request payload capture because no approved model provider is configured.
-- Existing reading surface has Story/full choices/compact buttons/free input, company map, present cast/source directory, Mind Monitor, source-media panel, voice controls/audio player, History, feedback, retry, and local-save state. Default browser fresh URL creates a new local game at `http://127.0.0.1:4174/?fresh=1`.
+- Rechecked `CURRENT_TRUTH.md`, `docs/redesign/COMPANY_CANON.md`, source `characters.json`, `map.json`, `organization.json`, `positions.json`, `media_catalog.json`, and `csa_catalog.json`. Canonical content files remain unchanged.
+- Product is the original character-first `상식개변: 회사편`, including the player's private unfamiliar app premise. Office notices/lunch/assignments are test examples only. The saved game `4dc4ba9c-afe3-4618-8635-ac86313cde3e` contains two `scripted-preview` turns: one exposed an internal label in place of dramatized prose; the next flattened to generic office prose. Those results are preserved and are not actual-model evidence.
+- R4 source path remains `content/characters.json` + `content/map.json` → `runtime-r4/domain/content.js` → `runtime-r4/domain/context.js` → `runtime-r4/adapters/provider.js` request JSON. Source-backed dramatization cards and the app/world premise are built into Story context; the actual HTTP Story/Observer request was not sent because no approved provider settings are present.
+- Rule mechanics now stage a server-owned prospective rule snapshot and event before Story, include current and historical rule records plus affected source-character cards in context, and apply rules only after reducer success. Observer data cannot write active rules. Story failure leaves rules and turn uncommitted; retry retains the original structured command. Feedback reruns the rule turn with its original command. PGlite stores current rules, a bounded recent event projection and durable per-turn rule events.
+- The source CSA catalog has 21 entries; all are sexual or intimate. There is no permitted non-explicit canonical example for live product validation. No substitute product catalog was added, none of those rule texts was sent to a model, and `POST /commands` rejects `RULE_CHANGE` with `r4_non_explicit_canonical_rule_unavailable` (HTTP 503). Thus the core mechanics are structural plumbing only; no product NPC reaction has passed.
 
-## Preservation, voice, and image work
+## UI, source images, and voice
 
-- Original `content/media_catalog.json` (102 stable references: 5 general portraits and 97 scene/adult-pool refs) and five heroine `voice_id` mappings are loaded without editing canonical source files.
-- Setup choices now use the source catalogs: six player departments from `organization.departments` and four ranks from `positions.json` (`인턴/대리/TF팀장/임원`). A browser review caught and fixed the earlier R4 drift that had offered general-NPC departments and inferred character job titles as player ranks.
-- Only catalog metadata/stable locators are committed. There are no local original image/audio binaries. `R4_PUBLIC_STORAGE_URL` and `R4_TTS_API_URL` are absent, so no original image pixels or generated voice audio were delivered in this execution.
-- Reader media resolves optional `storage://bucket/path` references through `R4_PUBLIC_STORAGE_URL`; it never marks a missing asset as loaded. GIF stop/replay and static poster fallback were exercised on a separate, explicit scripted fixture game and DB; this is presentation-structure evidence only.
-- TTS is disabled by default and requires existing voice mappings, a configured synthesis service, and a dialogue line saved by the completed Observer for the present heroine. Requests send exact saved Story evidence/text/direction; the server validates it against the latest committed observer projection before accessing the server-side voice ID. UI/validation tests do not demonstrate audio synthesis or playback.
+- Existing reader UI remains on the branch: Story and choices, free input, map, present cast, Mind Monitor, scene media, voice/TTS controls, History, feedback, retry, and local save state. No frontend files changed in this checkpoint.
+- `/api/content` on the updated local server reports all five source heroines, 102 original image references, and five voice mappings. `media_available=false`; there are no local original image/audio bytes and neither `R4_PUBLIC_STORAGE_URL` nor `R4_TTS_API_URL` is configured. Actual scene art and synthesized voice remain unverified/unavailable.
+- Prior browser evidence remains: 1280×900 desktop and 390×844 mobile had no horizontal overflow or console errors; a separate fixture verified Setup→Opening→one turn→local DB→reload and GIF pause/replay/poster fallback. These checks were performed before this no-frontend-change checkpoint and are structural/UI evidence, not real-model acceptance.
 
-## Implementation and verification evidence
+## Verification at this checkpoint
 
-- Independent `runtime-r4` command/context/observation/reducer/turn-pipeline/provider/PGlite store remains in place for Story → Observer → atomic Commit; feedback, original-command retry, recovered checkpoint, memory retrieval, paginated history, live-call accounting, and media fallback remain branch-local.
-- Full automated suite: 608/608 passed before the final Setup catalog correction (structural/regression coverage; includes a scripted 40-turn fixture and synthetic 1,005-turn storage test, neither is real-model narrative evidence). The 11-test R4 core file passed; after the Setup correction its source-projection test passed again. JS syntax checks and `git diff --check` pass.
-- Actual local DB survives a Node server process restart: existing game `4dc…` was read back with its same committed turn 2 and `scripted-preview` provenance. Health shows disk-backed PGlite, model mode `company-unconfigured`, actual model calls `0`, budget remaining `120`.
-- Earlier browser inspection at desktop 1280×900 and mobile 390×844 showed no horizontal overflow and no console errors. A separate scripted fixture browser confirmed Setup → Opening → one turn → DB commit → refresh. The fixture page was stopped; the primary local server is running on port 4174.
-- The current browser is on a separate fresh setup game `http://127.0.0.1:4174/?gameId=3d0ecd06-f392-4fa1-9040-46baf3b4d2d2`, with Setup dialog and canonical six/four department/rank options. This has not produced a Story because the approved model provider is unavailable.
+- `node --test test/r4-core.test.mjs`: 12/12 passed.
+- `npm test`: 609/609 passed; `git diff --check` passed. The added rule fixture uses a synthetic, test-only descriptor and provider. It exercised Story failure without partial state, exact structured-command retry, feedback revision, rule-history retrieval beyond the recent-turn window, APPLY → ordinary turn → CHANGE → REMOVE, an Observer state-mutation attempt, source cards for two selected canon characters, PGlite restart restoration, and inactive-rule absence. It is only pipeline/storage structure; its generated text is not character/narrative acceptance.
+- Updated server on port 4177: `/api/health` says provider `company-unconfigured`, live configured `false`, model calls `0`, remaining budget `120`, `mediaAvailable=false`, source voice mappings `5`, source image references `102`.
+- Production RULE_CHANGE endpoint returns HTTP 503 because there is no permitted canonical non-explicit rule to use. No model was called. The pre-existing `4dc…` game was read only; no preserved game was edited.
 
-## Commands, database, budget
+## Commands, URL, DB, and budget
 
-- Start local UI/runtime: `npm run r4:dev`
-- Fresh game URL: `http://127.0.0.1:4174/?fresh=1`
-- New local data: `var/r4-local-postgres/` (persistent PGlite directory; all `var/r4-*/` paths are gitignored).
-- Story + Observer calls: `0 / 120`, remaining `120`; no external model calls made.
-- Scripted fixture GIF/poster has no copied or modified original content; its separate data directory is local and gitignored.
+- Standard start: `npm run r4:dev`
+- Current updated candidate: PowerShell `$env:PORT='4177'; $env:R4_DB_PATH='var/r4-rule-check-db'; npm run r4:dev`
+- Fresh local game: `http://127.0.0.1:4177/?gameId=328140e6-9432-42bf-9b04-cb1e02734350` (Setup only; no Story generated)
+- Current disposable DB: `var/r4-rule-check-db/`; test DBs are temporary. Existing local game DB was read only.
+- Story + Observer use: `0 / 120`; remaining `120`. No API calls were made.
 
-## Next
+## Next / final state
 
-- Draft PR #105 is open and attached: `https://github.com/zeroslove-ai/company-v1/pull/105`. It targets `main` and remains a draft.
-- No further implementation is possible until an already-approved model configuration and existing media/TTS endpoints are present. After that external change, begin with one original-character scene; do not start long campaigns before direction review. Do not merge or deploy.
-
-## Blockers / unverified
-
-- No approved `LLM_API_URL`, `LLM_API_KEY`, `STORY_MODEL`, or `EXTRACT_MODEL` is present. Thus no actual Story payload delivery, representative live character scene, actual-model 40-turn memory campaign, or actual-model 8–12-turn boundary campaign has run.
-- No original image bytes/public storage URL or TTS synthesis service is present. Scene-specific selection code and voice projection are wired, but actual image visibility, adult-pool selection acceptance, and voice sound are unverified.
-- Full existing browser product acceptance (including actual free input/choice/History/feedback/TTS/media path in a real-provider game) remains incomplete. Do not claim `LOCAL_CANDIDATE_READY` until required evidence exists; present assessment is expected to be `PARTIAL_BLOCKED` if no configuration becomes available.
+- Focused core review and 609-test regression run are complete. Finish report/progress docs, push this branch without force, and update the existing draft PR #105. Do not merge or deploy.
+- Blocking evidence: no approved model configuration; no permitted non-explicit canonical rule example; no original image storage endpoint or TTS service. Continue no-go on product rule Story until the canonical source and authorized validation case allow it.
