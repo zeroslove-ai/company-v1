@@ -51,13 +51,13 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 
 ## Supabase/Cloudflare 자산 조사
 
-- Supabase MCP로 project metadata와 Storage catalog에 대한 SELECT-only query를 수행해 Company Worker 설정의 project ref를 INACTIVE로 확인했다. PROJECT restore, SQL write/DDL, upload, Worker 변경은 하지 않았다.
+- Supabase project 목록에는 두 project가 있다. Company Worker가 설정한 company-v1 (fmcrspgxstsmxxsmkeee)은 INACTIVE이며 별도 AI_웹개발 (ovltkzwddxsekcfeskds)은 ACTIVE_HEALTHY다. project metadata와 Storage catalog만 SELECT로 읽었다. 공식 project 복구, SQL write/DDL, upload, Worker 변경은 하지 않았다.
 - 다른 ACTIVE_HEALTHY project의 public image bucket에는 598개 object가 있으나 canonical media locators와 일치하는 주인공 portrait가 없고 medical-context file naming이 확인돼 Company 그림으로 연결하지 않았다. 오디오 object는 없었다.
 - Wrangler 설정에는 R2 media binding이 없다. R3 product contract와 Worker source는 기존 fancy-dust-7f8c service binding TTS 경로를 가리키며, R4 health와 live audio playback에서 synthesis path가 실제 동작했다.
 
 ## 보호 범위 및 저장소
 
-- 후보 브랜치: rebuild/company-core-r4-20261015; 구현 커밋 bb198fc116de04937fd63b0851e98c77673bfd54 (fast-forward push 완료, 원격 tip 일치).
+- 후보 브랜치: rebuild/company-core-r4-20261015; 구현 커밋 bb198fc116de04937fd63b0851e98c77673bfd54 및 자산 조사 closeout 0cb30d986957d076d8950238f1ed5e85b6d21e57 (fast-forward push 완료). 현재 원격 tip은 0cb30d986957d076d8950238f1ed5e85b6d21e57.
 - 초안 PR #105: https://github.com/zeroslove-ai/company-v1/pull/105 (OPEN/DRAFT 유지, 설명 갱신 및 이 작업에 연결 완료).
 - 원본 canon/content/media/voice 매핑, main, PR #104, R3 runtime/Worker, 원격 DB 및 보존 세이브는 수정하지 않았다. 원본 자료를 삭제하거나 일반 업무 fixture로 대체하지 않았다.
 - 실제 실행은 새 로컬 PGlite DB와 새 로컬 게임에만 기록했다. 배포와 main 병합은 수행하지 않았다.

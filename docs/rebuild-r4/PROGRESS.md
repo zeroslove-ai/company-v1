@@ -201,3 +201,11 @@
 - Commands: PORT=4182, R4_DB_PATH=var/r4-user-goal-20261015, R4_MODEL_CALL_BUDGET=120; npm run r4:dev. Fresh Setup URL http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f.
 - Live campaign URL http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c. Provider budget remains 119/120 (Story60, Observer59); no further model calls.
 - Remaining blockers: no safe canonical live rule case; official configured media project inactive; active alternate storage has no verified canonical paths; four historical projections degraded.
+## Checkpoint 2026-10-15 17:55 KST
+
+- Supabase project inventory lists exactly two projects in the connected account: Company runtime project company-v1 (fmcrspgxstsmxxsmkeee, INACTIVE) and AI_웹개발 (ovltkzwddxsekcfeskds, ACTIVE_HEALTHY). The latter's 598-image public bucket has no exact matches for the five canonical primary paths and zero audio objects. Only SELECT-only metadata reads were used.
+- Repo/provenance report now records the inactive official storage blocker, unverified object persistence, alternate bucket mismatch, the absence of R2 bindings, and the working TTS Worker path.
+- Latest implementation and provenance docs are pushed; HEAD and origin tip are 0cb30d986957d076d8950238f1ed5e85b6d21e57. PR #105 remains OPEN/DRAFT at that head and is attached to this task.
+- Run command: PORT=4182, R4_DB_PATH=var/r4-user-goal-20261015, R4_MODEL_CALL_BUDGET=120; npm run r4:dev. Fresh Setup URL http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f. Real campaign URL http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c.
+- Budget 119/120 remains untouched. The actual 40-turn campaign evidence is unchanged; no more provider calls planned.
+- Next useful work requires an available safe canonical non-explicit/non-coercive rule case, access to the source image project's objects without restoring it, or new user-provided assets/authorization for its restoration. Continue read-only provenance checks when useful; do not substitute unmatched assets or report structural fixtures as live acceptance. Keep task RUNNING and candidate status PARTIAL_BLOCKED until acceptance conditions change.
