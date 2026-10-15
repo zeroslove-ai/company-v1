@@ -1,6 +1,6 @@
 # Company R4 진행 기록
 
-- Updated: 2026-10-15 18:48 KST
+- Updated: 2026-10-15 18:56 KST
 - Status: RUNNING — 사용자가 중단하라고 할 때까지 목표 유지
 - Branch: `rebuild/company-core-r4-20261015`
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
@@ -23,6 +23,13 @@
 - 최종 코드 변경 뒤 R4 suite 24/24 및 전체 621/621 PASS, `git diff --check` 통과. Provider Story와 Observer가 같은 `jobId`를 예산 hook까지 전달하는지 테스트했다. 재시작·실패 시 예약 해제, 두 번째 게임의 경쟁 예약 거부, Observer-only retry 1회 보존을 PGlite에서 검증했다.
 - 실제 모델 사용은 이전과 동일하게 119/120 (Story 60, Observer 59), 예약/신규 provider call 없음. 새 campaign acceptance는 미수행이며 기존 blocker(비노골적 정본 규칙 case 부재, 원본 Company 이미지 파일 비접근)는 그대로다.
 - 다음: PR 설명에 이 코드/검증 checkpoint를 반영하고 최종 branch/PR 상태를 재확인한다. 상태는 PARTIAL_BLOCKED, CURRENT_TASK와 goal은 RUNNING/active로 유지한다.
+
+## Checkpoint 2026-10-15 18:56 KST
+
+- GitHub 원본 media 확인을 확장했다. Company repo의 126개 branch 중 123개 고유 tip commit tree를 GitHub API로 read-only 조회했다. non-truncated tree 123개 모두 canonical image locator basename/ID 102개, voice ID 5개, 캐릭터명 5개 경로 match가 0건이다. Company tags는 0개다.
+- 조직의 16개 저장소 release asset 이름도 읽기 전용으로 검색했으며 canonical 인물 이름/ID나 알려진 이미지·음성 파일명 match는 없었다. 이미지 bytes, 관련 없는 binary, 저장소 내용을 다운로드하지 않았다. 이번 검색도 이름·경로 metadata 검색이므로 opaque binary 내용을 검사했다는 주장을 하지 않는다.
+- 최종 보고서에 범위와 한계를 추가 중이다. 기존 remote/PR #105는 OPEN/DRAFT, code commit `219478e` 및 문서 commit `e5e76b2`까지 올라와 있다. 다음에 documentation commit/push, PR body 정정, clean worktree 확인.
+- 실행 명령/새 Setup과 실제 40턴 게임 URL은 앞 checkpoint와 동일하다. 실제 호출은 119/120, 이 조사에서 provider call 0. 실제 safe RULE_CHANGE 수락과 정본 이미지 원본 bytes 여전히 미검증이므로 PARTIAL_BLOCKED/RUNNING/active 유지.
 
 ## 실제 사용 콘텐츠와 경로
 
