@@ -1,10 +1,10 @@
 # Company — CURRENT TASK (R4 candidate branch only)
 
-Status: RUNNING
+Status: PARTIAL_BLOCKED
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 KST — owner execution instruction received; implementation RUNNING
+Updated: 2026-10-15 KST — implementation checkpoint committed; actual provider and media output remain blocked
 
 ## Branch-local owner direction
 
@@ -35,3 +35,7 @@ No main or PR #104 mutation, force-push, historical migration edits, existing Wo
 ## Execution
 
 Follow specification sections 10-12. First deliver a thin Setup -> Opening -> one turn -> DB -> reload flow, then finish the remaining boundaries. Continue useful independent work when externally blocked. Never relabel in-memory/scripted checks as live product evidence. Final status: LOCAL_CANDIDATE_READY, PARTIAL_BLOCKED, or FAILED_NEEDS_FIX. Full product/owner approval is separate.
+
+## Current result
+
+Independent R4 candidate code and local reader UI are committed on the requested branch. Current verdict is `PARTIAL_BLOCKED`: no approved Story/Observer model configuration or image-storage/TTS service is available for the required live narrative/media evidence. Scripted fixture results remain structural checks only. See `docs/rebuild-r4/FINAL_REPORT.md`.
