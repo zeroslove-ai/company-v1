@@ -1,3 +1,14 @@
+# R4 candidate branch-local instruction — 2026-10-15
+
+Applies only to `rebuild/company-core-r4-20261015` and its dedicated worktree.
+Read `docs/ops/CURRENT_TASK.md`, then `docs/rebuild-r4/IMPLEMENTATION_SPEC_KO.md` before execution. The owner requested a new candidate branch, a bounded rebuild specification, and a single Codex execution handoff. Preparation is authorized; implementation starts when the owner supplies `docs/rebuild-r4/CODEX_START_KO.txt` or its equivalent execution instruction. Do not request routine phase-by-phase approval after that start.
+
+For this candidate only, the new task/spec replaces the historical R3 execution hold and permits a separately implemented general narrative core while retaining the Story -> Observer -> atomic Commit spine. Main's product canon, preserved evidence, existing R3 deployments, and remote databases stay unchanged. This is not authorization to promote the candidate to production or to declare original-content parity. Explicit sexual content generation and implementation/improvement of sexual-coercion mechanics are outside the task; use ordinary non-explicit company-life fixtures.
+
+Follow the new task's protected scope, budget, actual DB/model/browser evidence requirements, and progress checkpoints. Do not copy old runtime logic under new names. Older product-quality and mutation-safety principles below still apply where consistent with this branch-local scope.
+
+---
+
 # Company v1 development rules
 
 These rules are binding for Company implementation, review, QA, and rollout.
