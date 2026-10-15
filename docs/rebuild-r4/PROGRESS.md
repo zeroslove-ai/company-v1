@@ -4,7 +4,8 @@
 - Branch: `rebuild/company-core-r4-20261015`
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
 - Implementation checkpoint HEAD: `e6d51a1` (`feat: add R4 prospective rule lifecycle core`)
-- Status: `PARTIAL_BLOCKED` (implementation committed locally; closeout docs and branch push remain)
+- Closeout checkpoint pushed: `22e7391` (`docs: record R4 rule core validation and blockers`)
+- Status: `PARTIAL_BLOCKED` (branch push completed; draft PR #105 remains open)
 
 ## Product direction and source wiring
 
@@ -37,5 +38,5 @@
 
 ## Next / final state
 
-- Focused core review and 609-test regression run are complete. Finish report/progress docs, push this branch without force, and update the existing draft PR #105. Do not merge or deploy.
+- Focused review, 609-test regression run, final report, and branch push are complete. PR #105 is updated and remains draft. Do not merge or deploy.
 - Blocking evidence: no approved model configuration; no permitted non-explicit canonical rule example; no original image storage endpoint or TTS service. Continue no-go on product rule Story until the canonical source and authorized validation case allow it.

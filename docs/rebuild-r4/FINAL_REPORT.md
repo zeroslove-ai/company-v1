@@ -33,7 +33,7 @@
 
 ## 브랜치와 보호 범위
 
-- Branch: `rebuild/company-core-r4-20261015`; 구현 checkpoint: `e6d51a1` (`feat: add R4 prospective rule lifecycle core`). 최종 closeout report/progress는 뒤따르는 문서 commit에 기록한다.
+- Branch: `rebuild/company-core-r4-20261015`; implementation checkpoint: `e6d51a1`; pushed closeout checkpoint: `22e7391` (`docs: record R4 rule core validation and blockers`).
 - Draft PR #105: https://github.com/zeroslove-ai/company-v1/pull/105 (기존 PR을 갱신, draft 유지).
-- 커밋 전 `origin/rebuild/company-core-r4-20261015` fetch 결과 원격/로컬 기준은 같았고, push는 fast-forward만 사용한다. force-push/merge/deploy하지 않는다.
+- Push 전 원격 branch를 다시 fetch해 새 커밋이 없는 것을 확인한 뒤 fast-forward push했고, remote tip `22e7391`을 확인했다. PR #105는 open/draft로 업데이트됐다. force-push/merge/deploy하지 않았다.
 - 원본 canon/content, `runtime-r3`, `frontend-r3`, 기존 migration, main, PR #104, R3 Worker, 원격 DB 및 보존 세이브를 수정하지 않았다. 기존 `4dc…` 게임은 읽기만 했다. 테스트 및 실행 데이터는 새 임시 로컬 PGlite DB를 사용했다.
