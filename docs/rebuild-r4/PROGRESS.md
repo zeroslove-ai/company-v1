@@ -5,6 +5,7 @@
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
 - Implementation commit: `fc13366aa70c974683e028d776a392b02c6f540e`
 - Report/status closeout commit: `b780ba4d66977085a49d6066d8caea518f6658b3`
+- Last pushed tip before this closeout note: `e5b31050ae7647cfd20fa41c3c38dc4cef7e4aa6`
 - Status: PARTIAL_BLOCKED
 
 ## Product direction and source wiring
@@ -43,8 +44,8 @@
 
 ## Next
 
-- Final report and status documents are committed; current branch history is linear.
-- Regular-push without rewrite/force, then create and attach a draft PR. Do not merge or deploy.
+- Draft PR #105 is open and attached: `https://github.com/zeroslove-ai/company-v1/pull/105`. It targets `main` and remains a draft.
+- No further implementation is possible until an already-approved model configuration and existing media/TTS endpoints are present. After that external change, begin with one original-character scene; do not start long campaigns before direction review. Do not merge or deploy.
 
 ## Blockers / unverified
 

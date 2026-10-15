@@ -15,6 +15,8 @@
 - 작업 브랜치: `rebuild/company-core-r4-20261015`
 - 구현 커밋: `fc13366aa70c974683e028d776a392b02c6f540e`
 - 보고서/최종 상태 커밋: `b780ba4d66977085a49d6066d8caea518f6658b3`
+- 마지막 closeout 문서 갱신 전 push된 branch tip: `e5b31050ae7647cfd20fa41c3c38dc4cef7e4aa6`
+- Draft PR: [#105](https://github.com/zeroslove-ai/company-v1/pull/105) (open, draft, base `main`)
 - 로컬 실행: `npm run r4:dev`
 - 새 게임 진입: `http://127.0.0.1:4174/?fresh=1`
 - 현재 브라우저의 새 Setup 게임: `http://127.0.0.1:4174/?gameId=3d0ecd06-f392-4fa1-9040-46baf3b4d2d2`
