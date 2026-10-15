@@ -4,7 +4,7 @@
 - Status: RUNNING — 사용자가 중단하라고 할 때까지 목표 유지
 - Branch: `rebuild/company-core-r4-20261015`
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
-- Current HEAD: `a4f8cf9aca20ba2f5c174bb2fca9307155a5eae5` (예산 예약 보강은 미커밋)
+- Current implementation HEAD: `219478e736cac30d6531f8d975ac4f4ed84631f6` (예산 예약 구현 commit; 이후 문서-only closeout은 아래 기록)
 - Live implementation SHA-256 after memory, current-action, Observer evidence, and no-time-passage fixes: `d34f342346d6588ba408d5d87b31c441bb0c13e3311d75c8570f73896cad778c`
 - 보호: main, PR #104, 기존 R3 Worker, 원격 DB, 보존 세이브, 정본 콘텐츠 변경 없음.
 
@@ -16,6 +16,13 @@
 - 실제 campaign 예산은 119/120 (Story 60, Observer 59) 그대로이고 새 호출은 없었다. 남은 1회로 새 두 단계 턴을 시작하지 않으며 실제 규칙 장면 acceptance는 아직 미검증이다. 원본 Company 이미지 파일 접근도 미해결이다.
 - 새 실행 명령: PowerShell에서 `PORT=4182`, `R4_DB_PATH=var/r4-user-goal-20261015`, `R4_MODEL_CALL_BUDGET=120` 환경을 지정한 뒤 `npm run r4:dev`. Fresh Setup URL `http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f`; 40턴 실제 캠페인 `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`.
 - 다음: diff/기존 remote commit 재확인 후 일반 commit/push, PR #105 OPEN/DRAFT 확인, 해당 증거를 보고서에 기록한다. 이후에도 goal은 활성/RUNNING으로 유지한다. 추가 provider 호출을 쓰지 않는다.
+
+## Checkpoint 2026-10-15 18:52 KST
+
+- 예산 예약 수정은 `219478e736cac30d6531f8d975ac4f4ed84631f6` (`fix(r4): reserve paired model calls per turn`)로 정상 commit/push됐다. push 전에 fetch 비교에서 원격 추가 commit은 없었으며 force push 없이 기존 후보 branch만 fast-forward했다. PR #105 확인 결과 OPEN/DRAFT, head `219478e736cac30d6531f8d975ac4f4ed84631f6`.
+- 최종 코드 변경 뒤 R4 suite 24/24 및 전체 621/621 PASS, `git diff --check` 통과. Provider Story와 Observer가 같은 `jobId`를 예산 hook까지 전달하는지 테스트했다. 재시작·실패 시 예약 해제, 두 번째 게임의 경쟁 예약 거부, Observer-only retry 1회 보존을 PGlite에서 검증했다.
+- 실제 모델 사용은 이전과 동일하게 119/120 (Story 60, Observer 59), 예약/신규 provider call 없음. 새 campaign acceptance는 미수행이며 기존 blocker(비노골적 정본 규칙 case 부재, 원본 Company 이미지 파일 비접근)는 그대로다.
+- 다음: PR 설명에 이 코드/검증 checkpoint를 반영하고 최종 branch/PR 상태를 재확인한다. 상태는 PARTIAL_BLOCKED, CURRENT_TASK와 goal은 RUNNING/active로 유지한다.
 
 ## 실제 사용 콘텐츠와 경로
 

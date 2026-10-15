@@ -4,7 +4,7 @@ Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 18:48 KST — Story/Observer budget reservation implemented and R4/full structural suites pass; report/commit/push closeout in progress, task remains RUNNING
+Updated: 2026-10-15 18:52 KST — budget reservation commit `219478e` pushed and PR #105 verified OPEN/DRAFT; report remains PARTIAL_BLOCKED and task RUNNING
 
 ## Branch-local owner direction
 
