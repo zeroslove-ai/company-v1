@@ -97,6 +97,7 @@ export async function executeTurnJob({ job, store, provider, content, resolveRul
       const generatedStory = await provider.story({
         context: built.context,
         command: job.command,
+        jobId: job.jobId,
         feedbackText: job.feedbackText,
         feedbackReferenceStory: feedback ? snapshot.latest_turn?.story_text ?? '' : '',
         onPayload: audit => { storyPayloadAudit = audit; },
@@ -124,6 +125,7 @@ export async function executeTurnJob({ job, store, provider, content, resolveRul
       storyText,
       context: built.observerContext ?? built.context,
       command: job.command,
+      jobId: job.jobId,
       onPayload: audit => { observerPayloadAudit = audit; }
     });
     observation = normalizeObservation(observerRaw, { storyText, before: sourceBefore, content, turnNumber, turnRevision });

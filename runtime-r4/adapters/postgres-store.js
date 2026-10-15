@@ -11,6 +11,26 @@ const schemaSql = readFileSync(resolve(root, 'supabase/r4/001_company_r4.sql'), 
 const asJson = value => typeof value === 'string' ? JSON.parse(value) : value;
 const tokens = text => [...new Set(String(text ?? '').toLocaleLowerCase('ko-KR').match(/[\p{L}\p{N}]{2,}/gu) ?? [])].slice(0, 24);
 
+async function lockModelBudget(tx) {
+  await tx.query('SELECT singleton_id FROM company_r4_model_budget_lock WHERE singleton_id=1 FOR UPDATE');
+}
+
+async function requireModelCallCapacity(tx, liveCallBudget, requiredCalls) {
+  await lockModelBudget(tx);
+  const result = await tx.query('SELECT count(*)::int AS total FROM company_r4_model_calls');
+  const reservations = await tx.query('SELECT COALESCE(sum(reserved_model_calls),0)::int AS total FROM company_r4_jobs WHERE status=\'running\'');
+  const remaining = Math.max(0, liveCallBudget - result.rows[0].total - reservations.rows[0].total);
+  if (remaining < requiredCalls) {
+    const code = requiredCalls === 1
+      ? 'live_model_call_budget_insufficient_for_retry'
+      : 'live_model_call_budget_insufficient_for_turn';
+    throw new R4StoreError(code, 429, {
+      required_calls: requiredCalls,
+      remaining_calls: remaining
+    });
+  }
+}
+
 function mapJob(row) {
   if (!row) return null;
   return {
@@ -40,7 +60,7 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
   await (await import('node:fs/promises')).mkdir(dirname(dbPath), { recursive: true });
   const db = await PGlite.create(dbPath);
   await db.exec(schemaSql);
-  await db.query('UPDATE company_r4_jobs SET status=\'failed\',stage=\'process_interrupted\',error=jsonb_build_object(\'code\',\'process_interrupted\'),updated_at=now() WHERE status=\'running\'');
+  await db.query('UPDATE company_r4_jobs SET status=\'failed\',stage=\'process_interrupted\',reserved_model_calls=0,error=jsonb_build_object(\'code\',\'process_interrupted\'),updated_at=now() WHERE status=\'running\'');
 
   const store = {
     dbPath,
@@ -117,10 +137,11 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
           throw new R4StoreError('state_revision_conflict', 409, { current_state_revision: state.state_revision });
         }
         if (!game.profile) throw new R4StoreError('setup_required', 409);
+        await requireModelCallCapacity(tx, liveCallBudget, 2);
         const jobId = randomUUID();
         const result = await tx.query(
-          'INSERT INTO company_r4_jobs (job_id,game_id,command_id,request_id,operation_kind,command_hash,command,feedback_state_before,original_turn_revision,status,stage,attempt_no,expected_state_revision,feedback_text,original_turn_number) ' +
-          'VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,\'running\',\'story\',1,$10,$11,$12) RETURNING *',
+          'INSERT INTO company_r4_jobs (job_id,game_id,command_id,request_id,operation_kind,command_hash,command,feedback_state_before,original_turn_revision,status,stage,attempt_no,expected_state_revision,feedback_text,original_turn_number,reserved_model_calls) ' +
+          'VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,\'running\',\'story\',1,$10,$11,$12,2) RETURNING *',
           [jobId, command.game_id, command.command_id, requestId, operationKind, commandHash, JSON.stringify(command), feedbackStateBefore ? JSON.stringify(feedbackStateBefore) : null, originalTurnRevision, command.expected_state_revision, feedbackText || null, originalTurnNumber]
         );
         return { job: mapJob(result.rows[0]), duplicate: false };
@@ -159,13 +180,14 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
         );
         const prior = turnResult.rows[0];
         if (!prior) throw new R4StoreError('feedback_turn_unavailable', 409);
+        await requireModelCallCapacity(tx, liveCallBudget, 2);
         const command = asJson(prior.command_json);
         const stateBefore = asJson(prior.state_before);
         const commandHash = createHash('sha256').update(stableJson({ command, feedbackText, originalTurnNumber: currentState.committed_turn, originalTurnRevision: prior.turn_revision })).digest('hex');
         const jobId = randomUUID();
         const result = await tx.query(
-          'INSERT INTO company_r4_jobs (job_id,game_id,command_id,request_id,operation_kind,command_hash,command,feedback_state_before,original_turn_revision,status,stage,attempt_no,expected_state_revision,feedback_text,original_turn_number) ' +
-          'VALUES ($1,$2,$3,$4,\'FEEDBACK\',$5,$6::jsonb,$7::jsonb,$8,\'running\',\'story\',1,$9,$10,$11) RETURNING *',
+          'INSERT INTO company_r4_jobs (job_id,game_id,command_id,request_id,operation_kind,command_hash,command,feedback_state_before,original_turn_revision,status,stage,attempt_no,expected_state_revision,feedback_text,original_turn_number,reserved_model_calls) ' +
+          'VALUES ($1,$2,$3,$4,\'FEEDBACK\',$5,$6::jsonb,$7::jsonb,$8,\'running\',\'story\',1,$9,$10,$11,2) RETURNING *',
           [jobId, gameId, command.command_id, requestId, commandHash, JSON.stringify(command), JSON.stringify(stateBefore), prior.turn_revision, expectedStateRevision, feedbackText, currentState.committed_turn]
         );
         return { job: mapJob(result.rows[0]), duplicate: false };
@@ -179,14 +201,15 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
         if (!row) throw new R4StoreError('job_not_found', 404);
         const job = mapJob(row);
         if (job.status !== 'failed') throw new R4StoreError('job_not_retryable', 409);
+        await requireModelCallCapacity(tx, liveCallBudget, job.storyCheckpoint ? 1 : 2);
         const gameResult = await tx.query('SELECT state FROM company_r4_games WHERE game_id=$1', [gameId]);
         const current = asJson(gameResult.rows[0].state);
         if (current.state_revision !== job.expectedStateRevision) throw new R4StoreError('state_revision_conflict', 409, { current_state_revision: current.state_revision });
         const nextAttempt = job.attemptNo + 1;
         const stage = job.storyCheckpoint ? 'observer' : 'story';
         const updated = await tx.query(
-          'UPDATE company_r4_jobs SET status=\'running\',stage=$3,attempt_no=$4,error=NULL,updated_at=now() WHERE job_id=$1 AND attempt_no=$2 AND status=\'failed\' RETURNING *',
-          [jobId, job.attemptNo, stage, nextAttempt]
+          'UPDATE company_r4_jobs SET status=\'running\',stage=$3,attempt_no=$4,reserved_model_calls=$5,error=NULL,updated_at=now() WHERE job_id=$1 AND attempt_no=$2 AND status=\'failed\' RETURNING *',
+          [jobId, job.attemptNo, stage, nextAttempt, job.storyCheckpoint ? 1 : 2]
         );
         return { job: mapJob(updated.rows[0]), duplicate: false };
       });
@@ -208,7 +231,7 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
 
     async failJob(jobId, attemptNo, stage, errorCode) {
       await db.query(
-        'UPDATE company_r4_jobs SET status=\'failed\',stage=$3,error=$4::jsonb,updated_at=now() WHERE job_id=$1 AND attempt_no=$2 AND status=\'running\'',
+        'UPDATE company_r4_jobs SET status=\'failed\',stage=$3,reserved_model_calls=0,error=$4::jsonb,updated_at=now() WHERE job_id=$1 AND attempt_no=$2 AND status=\'running\'',
         [jobId, attemptNo, stage, JSON.stringify({ code: String(errorCode ?? 'unknown').slice(0, 100) })]
       );
     },
@@ -316,7 +339,7 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
           [job.gameId, JSON.stringify(stateAfter)]
         );
         const update = await tx.query(
-          'UPDATE company_r4_jobs SET status=\'complete\',stage=\'committed\',receipt=$3::jsonb,updated_at=now() WHERE job_id=$1 AND attempt_no=$2 AND status=\'running\' RETURNING job_id',
+          'UPDATE company_r4_jobs SET status=\'complete\',stage=\'committed\',reserved_model_calls=0,receipt=$3::jsonb,updated_at=now() WHERE job_id=$1 AND attempt_no=$2 AND status=\'running\' RETURNING job_id',
           [jobId, attemptNo, JSON.stringify(receipt)]
         );
         if (!update.rows.length) throw new R4StoreError('attempt_fenced', 409);
@@ -324,10 +347,23 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
       });
     },
 
-    async startModelCall({ callId, gameId, commandId, stage, model }) {
+    async startModelCall({ callId, gameId, commandId, jobId, stage, model }) {
       return db.transaction(async tx => {
+        await lockModelBudget(tx);
+        const jobResult = await tx.query(
+          'SELECT job_id,reserved_model_calls,stage FROM company_r4_jobs WHERE job_id=$1 AND game_id=$2 AND command_id=$3 AND status=\'running\' FOR UPDATE',
+          [jobId, gameId, commandId]
+        );
+        const job = jobResult.rows[0];
+        if (!job || job.reserved_model_calls < 1 || job.stage !== stage) {
+          throw new R4StoreError('model_call_reservation_missing', 409);
+        }
         const count = await tx.query('SELECT count(*)::int AS total FROM company_r4_model_calls');
         if (count.rows[0].total >= liveCallBudget) throw new R4StoreError('live_model_call_budget_exhausted', 429);
+        await tx.query(
+          'UPDATE company_r4_jobs SET reserved_model_calls=reserved_model_calls-1 WHERE job_id=$1',
+          [job.job_id]
+        );
         await tx.query(
           'INSERT INTO company_r4_model_calls (call_id,game_id,command_id,stage,model,status) VALUES ($1,$2,$3,$4,$5,\'started\')',
           [callId, gameId, commandId, stage, model]
@@ -348,7 +384,13 @@ export async function createR4Store({ dbPath = resolve(root, 'var/r4-local-postg
         'SELECT count(*)::int AS total, count(*) FILTER (WHERE stage=\'story\')::int AS story, count(*) FILTER (WHERE stage=\'observer\')::int AS observer ' +
         'FROM company_r4_model_calls'
       );
-      return { ...result.rows[0], budget: liveCallBudget, remaining: Math.max(0, liveCallBudget - result.rows[0].total) };
+      const reservations = await db.query('SELECT COALESCE(sum(reserved_model_calls),0)::int AS total FROM company_r4_jobs WHERE status=\'running\'');
+      return {
+        ...result.rows[0],
+        reserved: reservations.rows[0].total,
+        budget: liveCallBudget,
+        remaining: Math.max(0, liveCallBudget - result.rows[0].total - reservations.rows[0].total)
+      };
     },
 
     async close() { await db.close(); }

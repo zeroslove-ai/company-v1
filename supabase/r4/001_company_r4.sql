@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS company_r4_jobs (
   expected_state_revision integer NOT NULL,
   feedback_text text,
   original_turn_number integer,
+  reserved_model_calls integer NOT NULL DEFAULT 0,
   story_checkpoint text,
   observer_raw jsonb,
   receipt jsonb,
@@ -33,6 +34,8 @@ CREATE TABLE IF NOT EXISTS company_r4_jobs (
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (game_id, request_id)
 );
+ALTER TABLE company_r4_jobs
+  ADD COLUMN IF NOT EXISTS reserved_model_calls integer NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS company_r4_jobs_game_created
   ON company_r4_jobs (game_id, created_at DESC);
 
@@ -74,6 +77,10 @@ CREATE TABLE IF NOT EXISTS company_r4_model_calls (
   input_tokens integer,
   output_tokens integer
 );
+CREATE TABLE IF NOT EXISTS company_r4_model_budget_lock (
+  singleton_id integer PRIMARY KEY CHECK (singleton_id = 1)
+);
+INSERT INTO company_r4_model_budget_lock (singleton_id) VALUES (1) ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS company_r4_memory_index (
   game_id text NOT NULL REFERENCES company_r4_games(game_id),
   turn_number integer NOT NULL,

@@ -50,6 +50,85 @@ async function runCommand(store, provider, gameId, kind, literalAction = '') {
   return executeTurnJob({ job, store, provider, content });
 }
 
+test('R4 call budget admits complete turn pairs and only one-call observer retries', async t => {
+  const root = await tempDir(t);
+  const store = await createR4Store({ dbPath: join(root, 'budget-pair-db'), liveCallBudget: 2 });
+  t.after(() => store.close());
+  const gameId = await setupGame(store);
+  await runCommand(store, createScriptedProvider(), gameId, 'OPENING');
+
+  const snapshot = await store.readSnapshot(gameId);
+  const command = createCommand({
+    gameId,
+    kind: 'FREE_ACTION',
+    expectedStateRevision: snapshot.state.state_revision,
+    literalAction: '현재 대화를 이어간다.'
+  });
+  const { job } = await store.beginCommand({ command });
+  const reservedUsage = await store.readUsage();
+  assert.equal(reservedUsage.reserved, 2);
+  assert.equal(reservedUsage.remaining, 0);
+
+  const secondGameId = await setupGame(store);
+  const secondGame = await store.readSnapshot(secondGameId);
+  const competingCommand = createCommand({ gameId: secondGameId, kind: 'FREE_ACTION', expectedStateRevision: secondGame.state.state_revision, literalAction: '다른 게임의 장면을 시작한다.' });
+  await assert.rejects(
+    store.beginCommand({ command: competingCommand }),
+    error => error.code === 'live_model_call_budget_insufficient_for_turn'
+  );
+
+  await store.startModelCall({ callId: 'budget-story-call', gameId, commandId: command.command_id, jobId: job.jobId, stage: 'story', model: 'test-only' });
+  await store.finishModelCall('budget-story-call', { status: 'complete' });
+  await store.updateJob(job.jobId, job.attemptNo, { stage: 'observer', storyCheckpoint: '보존된 Story checkpoint' });
+  await store.failJob(job.jobId, job.attemptNo, 'observer_interrupted', 'simulated_interruption');
+
+  const retried = await store.retryJob(job.jobId, gameId);
+  assert.equal(retried.job.attemptNo, 2);
+  assert.equal(retried.job.stage, 'observer');
+  assert.equal(retried.job.storyCheckpoint, '보존된 Story checkpoint');
+  assert.deepEqual(await store.readUsage(), { total: 1, story: 1, observer: 0, reserved: 1, budget: 2, remaining: 0 });
+
+  await store.failJob(job.jobId, retried.job.attemptNo, 'observer_interrupted', 'simulated_interruption');
+  const unchangedSnapshot = await store.readSnapshot(gameId);
+  const nextCommand = createCommand({
+    gameId,
+    kind: 'FREE_ACTION',
+    expectedStateRevision: unchangedSnapshot.state.state_revision,
+    literalAction: '새로운 대화를 시작한다.'
+  });
+  await assert.rejects(
+    store.beginCommand({ command: nextCommand }),
+    error => error.code === 'live_model_call_budget_insufficient_for_turn'
+  );
+  await assert.rejects(
+    store.beginFeedback({ gameId, requestId: 'budget-feedback', feedbackText: '다시 이어 주세요.', expectedStateRevision: unchangedSnapshot.state.state_revision }),
+    error => error.code === 'live_model_call_budget_insufficient_for_turn'
+  );
+  assert.deepEqual(await store.readUsage(), { total: 1, story: 1, observer: 0, reserved: 0, budget: 2, remaining: 1 });
+});
+
+test('R4 does not retry a failed Story without capacity for its Observer call', async t => {
+  const root = await tempDir(t);
+  const store = await createR4Store({ dbPath: join(root, 'budget-retry-db'), liveCallBudget: 2 });
+  t.after(() => store.close());
+  const gameId = await setupGame(store);
+  const snapshot = await store.readSnapshot(gameId);
+  const command = createCommand({ gameId, kind: 'FREE_ACTION', expectedStateRevision: snapshot.state.state_revision, literalAction: '장면을 이어간다.' });
+  const { job } = await store.beginCommand({ command });
+  await store.startModelCall({ callId: 'budget-incomplete-story', gameId, commandId: command.command_id, jobId: job.jobId, stage: 'story', model: 'test-only' });
+  await store.finishModelCall('budget-incomplete-story', { status: 'failed', errorCode: 'simulated_failure' });
+  await store.failJob(job.jobId, job.attemptNo, 'story_failed', 'simulated_failure');
+
+  await assert.rejects(
+    store.retryJob(job.jobId, gameId),
+    error => error.code === 'live_model_call_budget_insufficient_for_turn'
+  );
+  const unchangedJob = await store.getJob(job.jobId, gameId);
+  assert.equal(unchangedJob.status, 'failed');
+  assert.equal(unchangedJob.attemptNo, 1);
+  assert.deepEqual(await store.readUsage(), { total: 1, story: 1, observer: 0, reserved: 0, budget: 2, remaining: 1 });
+});
+
 test('R4 projects one source heroine into Story context and keeps scene media for Observer only', async () => {
   const sourceCharacters = JSON.parse(await readFile(resolve('content/characters.json'), 'utf8')).characters;
   const sourceMedia = JSON.parse(await readFile(resolve('content/media_catalog.json'), 'utf8')).entries;
@@ -103,7 +182,8 @@ test('R4 does not select a scripted preview as the default live provider', () =>
 });
 
 test('R4 Story request disables hidden reasoning so its output limit is reserved for narrative', async () => {
-  let requestPayload;
+  const requestPayloads = [];
+  const modelCallFields = [];
   const frames = [
     `data: ${JSON.stringify({ choices: [{ delta: { content: '윤민아가 컵을 내려놓는다.' }, finish_reason: null }] })}`,
     `data: ${JSON.stringify({ choices: [{ delta: { content: '' }, finish_reason: 'stop' }] })}`,
@@ -112,14 +192,30 @@ test('R4 Story request disables hidden reasoning so its output limit is reserved
   const provider = createConfiguredProvider({
     env: { LLM_API_URL: 'https://model.invalid', LLM_API_KEY: 'test-only', STORY_MODEL: 'deepseek-flash', EXTRACT_MODEL: 'deepseek-flash' },
     fetchImpl: async (_url, options) => {
-      requestPayload = JSON.parse(options.body);
-      return new Response(frames, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+      const requestPayload = JSON.parse(options.body);
+      requestPayloads.push(requestPayload);
+      if (requestPayload.stream) return new Response(frames, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+      return Response.json({ choices: [{ finish_reason: 'stop', message: { content: '{}' } }] });
+    },
+    onModelCall: {
+      start: async values => { modelCallFields.push(values); return values.callId; },
+      finish: async () => {}
     }
   });
-  const story = await provider.story({ context: {}, command: { game_id: 'provider-test', command_id: 'provider-test-command', kind: 'FREE_ACTION', literal_action: '대화를 이어 간다.' } });
+  const command = { game_id: 'provider-test', command_id: 'provider-test-command', kind: 'FREE_ACTION', literal_action: '대화를 이어 간다.' };
+  const story = await provider.story({ context: {}, jobId: 'provider-test-job', command });
   assert.equal(story, '윤민아가 컵을 내려놓는다.');
-  assert.deepEqual(requestPayload.thinking, { type: 'disabled' });
-  assert.equal(requestPayload.max_tokens, 3500);
+  const observed = await provider.observe({ storyText: story, context: {}, jobId: 'provider-test-job', command });
+  assert.equal(observed, '{}');
+  assert.deepEqual(requestPayloads.map(payload => payload.model), ['deepseek-flash', 'deepseek-flash']);
+  assert.equal(requestPayloads[0].stream, true);
+  assert.equal(requestPayloads[1].stream, false);
+  assert.deepEqual(modelCallFields.map(call => [call.stage, call.jobId]), [
+    ['story', 'provider-test-job'],
+    ['observer', 'provider-test-job']
+  ]);
+  assert.deepEqual(requestPayloads[0].thinking, { type: 'disabled' });
+  assert.equal(requestPayloads[0].max_tokens, 3500);
 });
 
 test('R4 resolves original adult CSA catalog selectors, group scopes, names, and finite conflicts', () => {

@@ -806,6 +806,8 @@ function displayError(code, message = '') {
     provider_timeout: '모델 응답 시간이 초과됐습니다. 원본 입력은 보존되어 있습니다.',
     company_model_configuration_unavailable: 'Company 모델 설정이 이 실행 환경에 없습니다.',
     live_model_call_budget_exhausted: '설정된 모델 호출 예산을 모두 사용했습니다.',
+    live_model_call_budget_insufficient_for_turn: 'Story와 Observer 두 단계에 필요한 예산이 부족해 새 턴을 시작하지 않았습니다.',
+    live_model_call_budget_insufficient_for_retry: '재시도 단계에 필요한 예산이 남지 않았습니다. 원본 명령은 그대로 보존되어 있습니다.',
     state_revision_conflict: '다른 화면에서 장면이 바뀌었습니다. 최신 저장 내용을 불러왔습니다.',
     observer_failed: '관찰 정리에 실패했지만 이야기 본문은 낮은 신뢰 상태로 저장했습니다.',
     explicit_retry_required: '실패한 원본 명령이 보존되어 있습니다. 원본 명령 재시도를 선택해 주세요.'

@@ -56,9 +56,9 @@ export function createConfiguredProvider({ env = process.env, fetchImpl = fetch,
   const config = configuration(env);
   if (!config.ready) throw new Error('company_model_configuration_unavailable');
 
-  async function request(stage, model, payload, gameId, commandId) {
+  async function request(stage, model, payload, gameId, commandId, jobId) {
     const callId = onModelCall?.start
-      ? await onModelCall.start({ callId: randomUUID(), gameId, commandId, stage, model })
+      ? await onModelCall.start({ callId: randomUUID(), gameId, commandId, jobId, stage, model })
       : randomUUID();
     const controller = new AbortController();
     let timeoutCode = '';
@@ -111,7 +111,7 @@ export function createConfiguredProvider({ env = process.env, fetchImpl = fetch,
   return {
     mode: 'company-configured',
     modelNames: { story: config.storyModel, observer: config.observerModel },
-    async story({ context, command, feedbackText = '', feedbackReferenceStory = '', onChunk = null, onPayload = null }) {
+    async story({ context, command, jobId, feedbackText = '', feedbackReferenceStory = '', onChunk = null, onPayload = null }) {
       const requestPayload = {
         model: config.storyModel,
         stream: true,
@@ -130,7 +130,7 @@ export function createConfiguredProvider({ env = process.env, fetchImpl = fetch,
         ]
       };
       onPayload?.(payloadAudit(requestPayload, 'story'));
-      const call = await request('story', config.storyModel, requestPayload, command.game_id, command.command_id);
+      const call = await request('story', config.storyModel, requestPayload, command.game_id, command.command_id, jobId);
       let inputTokens = null;
       let outputTokens = null;
       try {
@@ -192,7 +192,7 @@ export function createConfiguredProvider({ env = process.env, fetchImpl = fetch,
         call.clearTimers();
       }
     },
-    async observe({ storyText, context, command, onPayload = null }) {
+    async observe({ storyText, context, command, jobId, onPayload = null }) {
       const requestPayload = {
         model: config.observerModel,
         stream: false,
@@ -205,7 +205,7 @@ export function createConfiguredProvider({ env = process.env, fetchImpl = fetch,
         ]
       };
       onPayload?.(payloadAudit(requestPayload, 'observer'));
-      const call = await request('observer', config.observerModel, requestPayload, command.game_id, command.command_id);
+      const call = await request('observer', config.observerModel, requestPayload, command.game_id, command.command_id, jobId);
       try {
         const payload = await call.response.json();
         const choice = payload.choices?.[0];

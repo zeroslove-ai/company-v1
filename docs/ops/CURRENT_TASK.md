@@ -4,7 +4,7 @@ Status: RUNNING
 Task ID: company-core-r4-bounded-rebuild-20261015
 Branch: rebuild/company-core-r4-20261015
 Base main: 7780759fd595247bd05d13f89ce44847e4551d8a
-Updated: 2026-10-15 18:40 KST — GitHub asset scan committed/pushed and PR #105 verified OPEN/DRAFT at the candidate head; task remains RUNNING
+Updated: 2026-10-15 18:48 KST — Story/Observer budget reservation implemented and R4/full structural suites pass; report/commit/push closeout in progress, task remains RUNNING
 
 ## Branch-local owner direction
 
@@ -44,4 +44,4 @@ Follow specification sections 10-12. First deliver a thin Setup -> Opening -> on
 
 ## Current result
 
-The R4 candidate has a server-owned prospective rule-state/context/commit path, actual source-character Story payload evidence, 40-turn actual-model memory evidence, DB restart restore, and desktop/mobile UI checks. The task remains RUNNING while repository closeout is completed. Actual rule-reaction acceptance and source image bytes remain unverified; the final report distinguishes live-model evidence from isolated structural and scripted fixtures. See docs/rebuild-r4/PROGRESS.md and docs/rebuild-r4/FINAL_REPORT.md.
+The R4 candidate has a server-owned prospective rule-state/context/commit path, actual source-character Story payload evidence, 40-turn actual-model memory evidence, DB restart restore, desktop/mobile UI checks, and bounded Story/Observer call reservations. The task remains RUNNING. Actual rule-reaction acceptance and source image bytes remain unverified; the final report distinguishes live-model evidence from isolated structural and scripted fixtures. See docs/rebuild-r4/PROGRESS.md and docs/rebuild-r4/FINAL_REPORT.md.

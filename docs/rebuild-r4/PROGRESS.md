@@ -1,12 +1,21 @@
 # Company R4 진행 기록
 
-- Updated: 2026-10-15 16:58 KST
+- Updated: 2026-10-15 18:48 KST
 - Status: RUNNING — 사용자가 중단하라고 할 때까지 목표 유지
 - Branch: `rebuild/company-core-r4-20261015`
 - Worktree: `C:\Users\JAEWAN\Documents\Codex\2026-10-15\company-r4-rebuild-worktree`
-- Current HEAD: `924a3c39e73f5ce3cdffcbb0d09d43a0f2db0d88` (R4 수정은 미커밋)
+- Current HEAD: `a4f8cf9aca20ba2f5c174bb2fca9307155a5eae5` (예산 예약 보강은 미커밋)
 - Live implementation SHA-256 after memory, current-action, Observer evidence, and no-time-passage fixes: `d34f342346d6588ba408d5d87b31c441bb0c13e3311d75c8570f73896cad778c`
 - 보호: main, PR #104, 기존 R3 Worker, 원격 DB, 보존 세이브, 정본 콘텐츠 변경 없음.
+
+## Checkpoint 2026-10-15 18:48 KST
+
+- 기존 후보 HEAD `a4f8cf9aca20ba2f5c174bb2fca9307155a5eae5`에서 예산 경계 구현을 보강 중이다. 남은 호출이 1회일 때 새 Story를 먼저 호출하면 Observer가 예산 초과 처리돼 degraded turn이 저장될 수 있는 실행 경로를 확인했다.
+- 새 턴과 feedback은 Story+Observer 2회분을 job에 예약한다. Observer checkpoint가 있는 재시도는 Observer 1회만 예약하고, Story checkpoint가 없는 재시도는 2회를 요구한다. 단일 DB lock row로 다른 게임의 동시 예약도 직렬화하며, 각 실제 모델 호출 시작 때 예약을 소비하고 job 실패·commit·프로세스 재시작 시 미사용 예약을 해제한다. `/api/health`의 `remaining`은 이미 소비한 호출과 실행 중 예약을 뺀 가용량이다. 부족할 때 UI는 단계별로 안내한다.
+- 추가된 경계 회귀 2개 포함 `node --test --test-reporter=spec test/r4-core.test.mjs` 24/24 PASS, 전체 `npm test -- --test-reporter=dot` 621/621 PASS, `git diff --check` PASS. 모두 PGlite/구조 검증이며 실제 모델 호출은 사용하지 않았다.
+- 실제 campaign 예산은 119/120 (Story 60, Observer 59) 그대로이고 새 호출은 없었다. 남은 1회로 새 두 단계 턴을 시작하지 않으며 실제 규칙 장면 acceptance는 아직 미검증이다. 원본 Company 이미지 파일 접근도 미해결이다.
+- 새 실행 명령: PowerShell에서 `PORT=4182`, `R4_DB_PATH=var/r4-user-goal-20261015`, `R4_MODEL_CALL_BUDGET=120` 환경을 지정한 뒤 `npm run r4:dev`. Fresh Setup URL `http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f`; 40턴 실제 캠페인 `http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c`.
+- 다음: diff/기존 remote commit 재확인 후 일반 commit/push, PR #105 OPEN/DRAFT 확인, 해당 증거를 보고서에 기록한다. 이후에도 goal은 활성/RUNNING으로 유지한다. 추가 provider 호출을 쓰지 않는다.
 
 ## 실제 사용 콘텐츠와 경로
 
