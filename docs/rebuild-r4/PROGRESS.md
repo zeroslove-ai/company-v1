@@ -190,3 +190,14 @@
 - Run: PORT=4182, R4_DB_PATH=var/r4-user-goal-20261015, R4_MODEL_CALL_BUDGET=120; npm run r4:dev.
 - Fresh Setup URL: http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f. Actual 40-turn game: http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c.
 - Blockers remain: no safe canonical rule example for live rule-reaction acceptance; no original art bytes/public storage base; four historical degraded projections; only one provider call left.
+## Checkpoint 2026-10-15 17:52 KST
+
+- Current HEAD at inspection: c3e0654736ae92924dedad73a82f490e3482bb30; candidate remote matches. PR #105 is OPEN/DRAFT at the same HEAD; worktree clean before this documentation update.
+- Read-only Supabase MCP identified the configured Company ref fmcrspgxstsmxxsmkeee as INACTIVE with no Edge Functions. No restore, write/DDL, or deployment was performed; the queries were SELECT-only metadata reads.
+- Separate project AI_웹개발 ref ovltkzwddxsekcfeskds is ACTIVE_HEALTHY. Its public image bucket has 598 objects and zero audio objects. Five canonical primary image paths have zero exact matches; heroine2 filename context is medical, so none were substituted into Company.
+- Wrangler files contain no R2 media binding. They retain the existing fancy-dust-7f8c TTS Worker service binding. Actual R4 test audio for Minah/Jena already verified through this path.
+- Git history is not shallow and all currently fetched refs contain only the two demo GIF/PNG media binaries; no original source art or audio files are committed. Prior canonical media refs are stable across the image-catalog/content-heroines history.
+- Next: commit/push this asset provenance report and update draft PR #105 with the distinction between inactive configured storage and the separate active bucket with no verified canonical mapping. Keep status PARTIAL_BLOCKED; do not remap files without canonical proof.
+- Commands: PORT=4182, R4_DB_PATH=var/r4-user-goal-20261015, R4_MODEL_CALL_BUDGET=120; npm run r4:dev. Fresh Setup URL http://127.0.0.1:4182/?gameId=546dd220-2623-4ebd-8ce7-6bb095a7b52f.
+- Live campaign URL http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c. Provider budget remains 119/120 (Story60, Observer59); no further model calls.
+- Remaining blockers: no safe canonical live rule case; official configured media project inactive; active alternate storage has no verified canonical paths; four historical projections degraded.

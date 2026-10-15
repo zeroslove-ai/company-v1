@@ -38,15 +38,22 @@ http://127.0.0.1:4182/?gameId=26f159ff-ce8f-4c7d-869a-4b126360362c
 - 실제 피드백 revision2는 기존 구조화 command ID와 원문을 보존했다. 피드백 후 캐릭터 귀속이 현장 인물과 일치하고 음성 재생 control이 활성화됐다.
 - 서버 재시작/브라우저 새로고침 후 마지막 확정 장면을 확인했다. desktop 1280×900과 mobile 390×844에서 가로 overflow가 없었다.
 - 회귀 테스트는 npm test -- --test-reporter=dot 실행 결과 619/619 통과다. 핵심 R4 suite는 22/22 통과했다.
-- 기존 TTS Worker와 원본 voice ID 매핑이 설정됐다. 실제 장면 대사에서 윤민아와 김제나의 음성 출력을 각각 확인했고, 윤민아 플레이어에는 3초 오디오가 로드됐다. 음성 품질 평가는 하지 않았다.
+- 기존 Cloudflare TTS Worker fancy-dust-7f8c와 원본 voice_id 매핑을 확인했다. Worker는 실제 장면의 확정 대사를 받아 음성 URL을 반환했고, 윤민아/김제나 대사 재생과 윤민아의 3초 audio player를 확인했다. 정적 오디오 원본 파일이나 voice sample이 Supabase 이미지 저장소에 있다는 증거는 찾지 못했다. 음성 품질 평가는 하지 않았다.
 - 정지/재생/GIF 교체/실패 시 포스터 fallback은 별도 scripted-preview fixture UI에서 확인했다. 이 결과는 모델 서사 검증이 아니다.
 
 ## 미검증 및 차단
 
-- 원본 이미지 catalog의 102개 항목은 storage reference만 있으며 공개 이미지 저장소 연결과 로컬 원본 pixel 파일이 없어 실제 캐릭터 원본 그림을 표시하지 못했다. UI에는 이 장면 이미지를 불러올 수 없다고 나온다. fixture 이미지를 원본 art로 간주하지 않았다.
+- 원본 image catalog 102개 항목은 storage reference다. Worker 설정의 Company Supabase ref fmcrspgxstsmxxsmkeee는 INACTIVE이고 R4 public storage base도 설정되지 않아 그 프로젝트의 원본 object 존재 여부는 확인할 수 없었다. 원격 서비스 보호 범위에 따라 복구·변경은 하지 않았다. 별도 AI_웹개발 Supabase ovltkzwddxsekcfeskds는 ACTIVE_HEALTHY이고 public image bucket에 598개 object가 있지만, catalog heroine1–5 대표 이미지 경로와 exact match가 0/5이며 heroine2 파일명은 의료 배경 맥락이다. Company 정본 인물 자산이라는 검증 없이 재사용하지 않았다. 해당 bucket에는 audio object도 0개다. 전체 저장소 git history에서도 원본 art/audio 파일은 발견되지 않았고 demo GIF/PNG 두 개만 추적된다. UI는 실제 장면 이미지를 불러오지 못한다고 표시한다.
 - content/csa_catalog.json의 기존 규칙 중 이 작업 범위에서 실제 모델로 실행 가능한 비노골적·비강압 preset을 찾지 못했다. 규칙의 구조적 APPLY/CHANGE/REMOVE·재시도·피드백·재시작 검사는 격리된 합성 fixture에 한정한다. 실제 Story/Observer 규칙 발효, 서로 다른 NPC의 첫 반응, CHANGE/REMOVE 뒤 대화 연속성은 미검증이다. 원본 규칙 카탈로그를 새로 만들거나 의미를 변경하지 않았다.
 - 실제 캠페인 4개 historical projection은 degraded이며 추가 provider 호출은 남은 1회 예산으로 검증할 수 없다.
 - 이 판정은 코어 후보 검증 결과다. 모든 원작 콘텐츠·규칙 승인, 전체 출시 승인 또는 사용자 재미 수락을 뜻하지 않는다.
+
+
+## Supabase/Cloudflare 자산 조사
+
+- Supabase MCP로 project metadata와 Storage catalog에 대한 SELECT-only query를 수행해 Company Worker 설정의 project ref를 INACTIVE로 확인했다. PROJECT restore, SQL write/DDL, upload, Worker 변경은 하지 않았다.
+- 다른 ACTIVE_HEALTHY project의 public image bucket에는 598개 object가 있으나 canonical media locators와 일치하는 주인공 portrait가 없고 medical-context file naming이 확인돼 Company 그림으로 연결하지 않았다. 오디오 object는 없었다.
+- Wrangler 설정에는 R2 media binding이 없다. R3 product contract와 Worker source는 기존 fancy-dust-7f8c service binding TTS 경로를 가리키며, R4 health와 live audio playback에서 synthesis path가 실제 동작했다.
 
 ## 보호 범위 및 저장소
 
